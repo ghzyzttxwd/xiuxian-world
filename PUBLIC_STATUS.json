@@ -1,9 +1,9 @@
 {
   "status": "PASS",
-  "checked_at_utc": "2026-08-22T23:23:04.840955+00:00",
+  "checked_at_utc": "2026-08-22T23:23:16.082741+00:00",
   "verified_url": "https://ghzyzttxwd.github.io/xiuxian-world/",
   "source_branch": "gh-pages",
-  "trigger_sha": "77e408290389f250ff9e0c987a8f3ff72bce241f",
+  "trigger_sha": "d449ea58be8c1ac2d3a8623aed8e2748679fa543",
   "checks": [
     "HTTP 200",
     "V0.2 index rendered",
