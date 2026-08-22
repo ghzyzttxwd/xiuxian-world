@@ -188,14 +188,14 @@
     const seed = ((Date.now() ^ Math.floor(Math.random()*0xffffffff)) >>> 0) || 123456789;
     state = {
       version:VERSION, rng:seed,
-      time:{year:1,month:3,day:1},
+      time:{year:1,month:1,day:1},
       player:{name:name||'陆尘',startAge:16,lifespan:82,realmIndex:0,progress:0,spiritStones:3,herbs:1,reputation:0,vitality:100,location:'青石村'},
       world:{beastPressure:48,qingyunPower:72,bloodBladePower:44,marketIndex:100,casualties:0},
       npcs:[], personalLog:[], worldLog:[], pendingEvent:null, flags:{}, major:{},
     };
     state.npcs=createNPCs();
     addPersonal('你在青石村醒来。此界有仙，凡人亦可争一线长生。','major');
-    addWorld('青云宗传出消息：今年春末仍会照例巡查附近村镇，挑选有灵根的少年。');
+    addWorld('青云宗传出消息：近期仍会照例巡查附近村镇，挑选有灵根的少年。');
     save();
   }
 
