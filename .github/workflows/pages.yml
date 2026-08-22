@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -37,7 +37,6 @@ jobs:
           base64 -d icon-512-v2.b64 > icon-512-v2.jpg
           python3 - <<'PY'
           from pathlib import Path
-          import struct
 
           def jpeg_size(path):
               data = Path(path).read_bytes()
@@ -82,3 +81,61 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify public PWA icon end-to-end
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${PAGE_URL%/}/"
+          nonce="${GITHUB_SHA}"
+          local192=$(sha256sum icon-192-v2.jpg | awk '{print $1}')
+          local512=$(sha256sum icon-512-v2.jpg | awk '{print $1}')
+
+          for n in $(seq 1 12); do
+            if curl -fsSL --max-time 20 "${base}manifest.webmanifest?v=${nonce}" -o /tmp/manifest.json && \
+               grep -q 'icon-192-v2.jpg' /tmp/manifest.json && \
+               grep -q 'icon-512-v2.jpg' /tmp/manifest.json; then
+              break
+            fi
+            if [ "$n" -eq 12 ]; then
+              echo 'public manifest did not update' >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
+          curl -fsSL --retry 5 --retry-delay 2 "${base}icon-192-v2.jpg?v=${nonce}" -o /tmp/public192.jpg
+          curl -fsSL --retry 5 --retry-delay 2 "${base}icon-512-v2.jpg?v=${nonce}" -o /tmp/public512.jpg
+          curl -fsSL --retry 5 --retry-delay 2 "${base}sw.js?v=${nonce}" -o /tmp/public-sw.js
+          grep -q 'taixuan-v0.2.1-icon-refresh' /tmp/public-sw.js
+
+          public192=$(sha256sum /tmp/public192.jpg | awk '{print $1}')
+          public512=$(sha256sum /tmp/public512.jpg | awk '{print $1}')
+          test "$local192" = "$public192"
+          test "$local512" = "$public512"
+
+          python3 - <<PY
+          import json, os
+          status = {
+            'status': 'PASS',
+            'verified_url': os.environ['PAGE_URL'],
+            'trigger_sha': os.environ['GITHUB_SHA'],
+            'manifest': 'new illustrated icon paths confirmed',
+            'service_worker': 'taixuan-v0.2.1-icon-refresh confirmed',
+            'icon_192_sha256': '$public192',
+            'icon_512_sha256': '$public512'
+          }
+          open('/tmp/PUBLIC_ICON_STATUS.json','w',encoding='utf-8').write(json.dumps(status,ensure_ascii=False,indent=2)+'\n')
+          PY
+
+          git fetch origin gh-pages
+          git worktree add /tmp/gh-pages origin/gh-pages
+          cp /tmp/PUBLIC_ICON_STATUS.json /tmp/gh-pages/PUBLIC_ICON_STATUS.json
+          cd /tmp/gh-pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_ICON_STATUS.json
+          git commit -m 'chore: record illustrated icon public verification [skip ci]' || true
+          git push origin HEAD:gh-pages
