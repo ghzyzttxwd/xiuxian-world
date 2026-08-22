@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>太玄界 · 修仙大世界 V0.1</title>
+  <style>
+    :root { --bg:#11130f; --panel:#1a1e17; --panel2:#22281f; --text:#e9eadf; --muted:#a8ad9e; --line:#3a4335; --accent:#d7c18a; --good:#9ac38a; --bad:#d58b7d; --warn:#d8aa62; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:radial-gradient(circle at top,#20271d 0,#10120f 42%,#0b0d0b 100%); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; min-height:100vh; }
+    button,input { font:inherit; }
+    button { border:1px solid var(--line); background:#293126; color:var(--text); border-radius:10px; padding:11px 13px; cursor:pointer; }
+    button:active { transform:translateY(1px); }
+    button.primary { border-color:#7d714e; background:#4d452f; color:#fff7df; }
+    button.ghost { background:transparent; }
+    button.danger { border-color:#75443b; background:#3b2723; }
+    button:disabled { opacity:.42; cursor:not-allowed; }
+    .app { max-width:980px; margin:0 auto; padding:14px 12px 40px; }
+    .hero { padding:18px 16px 10px; text-align:center; }
+    .hero h1 { margin:0; font-size:25px; letter-spacing:4px; font-weight:700; }
+    .hero p { color:var(--muted); margin:7px 0 0; font-size:13px; }
+    .grid { display:grid; grid-template-columns:1.05fr 1.45fr; gap:12px; }
+    .panel { background:rgba(26,30,23,.94); border:1px solid var(--line); border-radius:14px; padding:14px; box-shadow:0 8px 30px rgba(0,0,0,.18); }
+    .panel h2 { margin:0 0 10px; font-size:16px; color:#f4e7bd; }
+    .panel h3 { margin:13px 0 8px; font-size:14px; color:#ddd5b7; }
+    .stats { display:grid; grid-template-columns:1fr 1fr; gap:7px 12px; font-size:14px; }
+    .stat { display:flex; justify-content:space-between; gap:8px; color:var(--muted); border-bottom:1px dashed #30382d; padding:3px 0 6px; }
+    .stat b { color:var(--text); font-weight:600; text-align:right; }
+    .bar { height:8px; border-radius:99px; overflow:hidden; background:#0f120e; border:1px solid #30372c; margin-top:7px; }
+    .bar > i { display:block; height:100%; width:0; background:linear-gradient(90deg,#7d916f,#d4c181); transition:width .2s; }
+    .actions,.travel { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .travel { grid-template-columns:repeat(2,1fr); }
+    .small { font-size:12px; color:var(--muted); line-height:1.55; }
+    .log { max-height:300px; overflow:auto; display:flex; flex-direction:column; gap:7px; }
+    .log-item { border-left:3px solid #596451; background:#151914; border-radius:7px; padding:8px 10px; font-size:13px; line-height:1.55; }
+    .log-item.major { border-left-color:var(--warn); background:#211b12; }
+    .log-item.good { border-left-color:var(--good); }
+    .log-item.bad { border-left-color:var(--bad); }
+    .time { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; color:#e9ddb9; }
+    .tag { display:inline-block; border:1px solid #565f4d; border-radius:999px; padding:2px 8px; font-size:11px; color:#c9cfbf; margin-right:5px; }
+    .event-card { border:1px solid #66583a; background:linear-gradient(180deg,#2a2418,#1b1914); border-radius:12px; padding:12px; margin:8px 0; }
+    .event-card strong { color:#f2d98f; }
+    .event-card .deadline { color:#e8ad66; font-size:12px; margin-top:6px; }
+    .event-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .choice { border:1px solid #55624d; background:#171d15; border-radius:12px; padding:12px; margin-top:10px; }
+    .choice-title { color:#f0dfaa; font-weight:700; margin-bottom:5px; }
+    .choice-buttons { display:grid; gap:8px; margin-top:10px; }
+    .footer-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    #startScreen { max-width:520px; margin:8vh auto 0; }
+    .start-box { text-align:center; padding:26px 18px; }
+    .start-box input { width:100%; margin:15px 0 10px; padding:13px; border-radius:10px; border:1px solid var(--line); background:#10130f; color:var(--text); outline:none; }
+    .start-actions { display:grid; gap:8px; }
+    .world-row { display:flex; justify-content:space-between; gap:10px; border-bottom:1px dashed #30382d; padding:7px 0; font-size:13px; }
+    .world-row span:first-child { color:var(--muted); }
+    .hidden { display:none !important; }
+    .notice { color:#dbcc9c; background:#201d15; border:1px solid #524a35; padding:9px 10px; border-radius:10px; font-size:12px; margin-bottom:10px; }
+    @media (max-width:760px){ .grid{grid-template-columns:1fr;} .actions{grid-template-columns:repeat(2,1fr);} .stats{grid-template-columns:1fr 1fr;} .hero{padding-top:9px;} }
+  </style>
+</head>
+<body>
+<div class="app">
+  <section id="startScreen" class="panel start-box">
+    <h1 style="letter-spacing:5px;margin:0">太玄界</h1>
+    <p class="small">修仙大世界 · V0.1 核心循环原型</p>
+    <input id="nameInput" maxlength="8" placeholder="输入你的道号或姓名" value="陆尘" />
+    <div class="start-actions">
+      <button class="primary" id="newGameBtn">踏入仙途</button>
+      <button id="continueBtn" class="hidden">继续上次存档</button>
+    </div>
+    <p class="small">世界不会等你。你修炼、赶路或采药时，其他修士、宗门与事件也会继续演化。</p>
+  </section>
+
+  <main id="gameScreen" class="hidden">
+    <header class="hero">
+      <h1>太玄界</h1>
+      <p>低美术 · 高事件 · 高数值 · 世界持续演化</p>
+    </header>
+
+    <div class="grid">
+      <div>
+        <section class="panel">
+          <div class="time"><strong id="dateText"></strong><span id="seasonText" class="tag"></span></div>
+          <h2 id="playerName"></h2>
+          <div class="stats" id="stats"></div>
+          <div class="bar"><i id="cultivationBar"></i></div>
+          <div id="cultivationText" class="small" style="margin-top:5px"></div>
+        </section>
+
+        <section class="panel" style="margin-top:12px">
+          <h2>今日可做</h2>
+          <div id="pendingNotice" class="notice hidden">你正处在一个需要抉择的事件中，先处理事件才能继续行动。</div>
+          <div class="actions">
+            <button data-action="cultivate" class="primary">吐纳修炼</button>
+            <button data-action="gather">采药寻材</button>
+            <button data-action="work">凡俗谋生</button>
+            <button data-action="inquire">四处打听</button>
+            <button data-action="rest">闭门休整</button>
+            <button data-action="wander">附近探索</button>
+          </div>
+          <h3>附近地点</h3>
+          <div class="travel" id="travelButtons"></div>
+        </section>
+
+        <section class="panel" style="margin-top:12px">
+          <h2>世界状态</h2>
+          <div id="worldState"></div>
+        </section>
+      </div>
+
+      <div>
+        <section class="panel">
+          <h2>天下大事</h2>
+          <div id="majorEvents"></div>
+        </section>
+
+        <section id="choicePanel" class="panel hidden" style="margin-top:12px">
+          <h2>眼前之事</h2>
+          <div id="choiceContent"></div>
+        </section>
+
+        <section class="panel" style="margin-top:12px">
+          <h2>个人经历</h2>
+          <div class="log" id="personalLog"></div>
+        </section>
+
+        <section class="panel" style="margin-top:12px">
+          <h2>修真界传闻</h2>
+          <div class="log" id="worldLog"></div>
+        </section>
+      </div>
+    </div>
+
+    <div class="footer-actions">
+      <button id="saveBtn">手动存档</button>
+      <button id="exportBtn" class="ghost">导出存档</button>
+      <button id="resetBtn" class="danger">重开一世</button>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const SAVE_KEY = 'xiuxian_world_v01';
+  const VERSION = '0.1.0';
+  const REALMS = [
+    {name:'凡人', need:100, rate:1},
+    {name:'炼气一层', need:125, rate:1.05}, {name:'炼气二层', need:150, rate:1.1},
+    {name:'炼气三层', need:180, rate:1.15}, {name:'炼气四层', need:220, rate:1.2},
+    {name:'炼气五层', need:270, rate:1.3}, {name:'炼气六层', need:330, rate:1.4},
+    {name:'炼气七层', need:400, rate:1.5}, {name:'炼气八层', need:480, rate:1.6},
+    {name:'炼气九层', need:600, rate:1.75}, {name:'筑基初期', need:850, rate:2.1},
+    {name:'筑基中期', need:1100, rate:2.35}, {name:'筑基后期', need:1500, rate:2.7}
+  ];
+  const LOCATIONS = {
+    '青石村': {links:{'青石镇':1}, desc:'偏僻山村，灵气稀薄，但胜在安稳。'},
+    '青石镇': {links:{'青石村':1,'临江城':2,'黑风岭':2}, desc:'凡人与低阶散修混居的小镇。'},
+    '临江城': {links:{'青石镇':2,'青云山':3,'黑风岭':2}, desc:'方圆数百里最大的修士聚集地。'},
+    '黑风岭': {links:{'青石镇':2,'临江城':2}, desc:'妖兽横行，灵药也比外界更多。'},
+    '青云山': {links:{'临江城':3}, desc:'青云宗山门所在，寻常散修不得深入。'}
+  };
+  const NPC_NAMES = ['陈玄','苏青禾','赵长生','韩烈','沈玉书','林晚照','周鹤','顾平川','叶小满','陆昭','魏七','白芷','宁川','谢无咎','唐雨眠','许观山'];
+  const FACTIONS = ['散修','青云宗','玄水帮','血刀门'];
+  let state = null;
+
+  const $ = id => document.getElementById(id);
+  const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
+  function rand(){ state.rng = (Math.imul(state.rng,1664525) + 1013904223) >>> 0; return state.rng / 4294967296; }
+  function rint(a,b){ return Math.floor(rand()*(b-a+1))+a; }
+  function pick(arr){ return arr[Math.floor(rand()*arr.length)]; }
+  function dayNumber(){ return (state.time.year-1)*360 + (state.time.month-1)*30 + state.time.day; }
+  function season(){ return ['春','夏','秋','冬'][Math.floor((state.time.month-1)/3)]; }
+  function age(){ return state.player.startAge + Math.floor((dayNumber()-1)/360); }
+  function dateLabel(){ return `第${state.time.year}年 · ${state.time.month}月${state.time.day}日`; }
+  function realm(){ return REALMS[state.player.realmIndex]; }
+  function addPersonal(text,type=''){ state.personalLog.unshift({day:dayNumber(),date:dateLabel(),text,type}); state.personalLog=state.personalLog.slice(0,40); }
+  function addWorld(text,type=''){ state.worldLog.unshift({day:dayNumber(),date:dateLabel(),text,type}); state.worldLog=state.worldLog.slice(0,50); }
+
+  function createNPCs(){
+    return NPC_NAMES.map((name,i)=>({
+      id:i+1, name, age:rint(16,55), faction:pick(FACTIONS), location:pick(Object.keys(LOCATIONS)),
+      realmIndex:rint(0,5), progress:rint(0,90), talent:rint(70,130), alive:true,
+      ambition:rint(15,95), courage:rint(20,95), wealth:rint(0,20)
+    }));
+  }
+
+  function newState(name){
+    const seed = ((Date.now() ^ Math.floor(Math.random()*0xffffffff)) >>> 0) || 123456789;
+    state = {
+      version:VERSION, rng:seed,
+      time:{year:1,month:3,day:1},
+      player:{name:name||'陆尘',startAge:16,lifespan:82,realmIndex:0,progress:0,spiritStones:3,herbs:1,reputation:0,vitality:100,location:'青石村'},
+      world:{beastPressure:48,qingyunPower:72,bloodBladePower:44,marketIndex:100,casualties:0},
+      npcs:[], personalLog:[], worldLog:[], pendingEvent:null, flags:{}, major:{},
+    };
+    state.npcs=createNPCs();
+    addPersonal('你在青石村醒来。此界有仙，凡人亦可争一线长生。','major');
+    addWorld('青云宗传出消息：今年春末仍会照例巡查附近村镇，挑选有灵根的少年。');
+    save();
+  }
+
+  const MINOR_EVENTS = {
+    wounded:{ title:'林间求救', text:'你在路旁发现一名浑身是血的低阶修士。他气息微弱，身后似乎还有追兵。', options:[
+      {label:'拿出一株草药救他', can:()=>state.player.herbs>0, act:()=>{state.player.herbs--; if(rand()<.68){state.player.spiritStones+=2; state.player.reputation+=2; addPersonal('你救下伤者。对方临走前塞给你两块灵石，并记下了你的名字。','good');}else{state.player.reputation+=1; addPersonal('你替伤者止住了血，但他身无长物，只能郑重记下这份人情。','good');}}},
+      {label:'不惹麻烦，立刻离开', act:()=>addPersonal('你没有卷入陌生修士的恩怨。修真界里，活着本就是一种本事。')}
+    ]},
+    herb:{ title:'崖壁灵光', text:'峭壁缝隙里长着一株泛着微光的赤叶草，但下方碎石松动。', options:[
+      {label:'冒险采下', act:()=>{if(rand()<.7){state.player.herbs+=2; addPersonal('你踩着岩缝攀上去，成功采到两株赤叶草。','good');}else{state.player.vitality=clamp(state.player.vitality-18,0,100); addPersonal('碎石突然崩落，你摔得不轻，只能狼狈退回。','bad');}}},
+      {label:'记下位置，下次再说', act:()=>{state.player.reputation+=0; addPersonal('你忍住了贪念。山还在，命只有一条。');}}
+    ]},
+    trader:{ title:'古怪行商', text:'一个戴斗笠的行商拦住你，说有一瓶“聚气散”，只卖两块灵石。真假难辨。', options:[
+      {label:'花2灵石赌一次', can:()=>state.player.spiritStones>=2, act:()=>{state.player.spiritStones-=2; if(rand()<.58){const gain=rint(35,60); state.player.progress+=gain; addPersonal(`药力竟是真的，你炼化后修为增加 ${gain} 点。`,'good'); checkBreakthrough();}else{state.player.vitality=clamp(state.player.vitality-10,0,100); addPersonal('药粉入口辛辣刺喉。你很快明白，自己买了假货。','bad');}}},
+      {label:'让他找别人', act:()=>addPersonal('你没有拿自己的修行钱去赌一个陌生人的嘴。')}
+    ]},
+    dispute:{ title:'街头争执', text:'两名散修为一株灵草的归属吵得不可开交，周围已经聚了不少人。', options:[
+      {label:'上前评理', act:()=>{if(rand()<.62){state.player.reputation+=2; addPersonal('你的几句话让双方各退一步。附近散修开始有人记住你。','good');}else{state.player.reputation-=1; addPersonal('你刚开口就被双方一起骂了回来。修士的脸面有时比灵石还重。','bad');}}},
+      {label:'看热闹就好', act:()=>{state.player.progress+=3; addPersonal('你站在人群外看完了争执，也算见识了一点修真界的规矩。');}}
+    ]},
+    cave:{ title:'废弃洞穴', text:'荒草后露出一个狭窄洞口，里面有微弱灵气渗出，也有腥气。', options:[
+      {label:'进去看看', act:()=>{if(rand()<.5+state.player.realmIndex*.035){const stones=rint(1,4); state.player.spiritStones+=stones; addPersonal(`你在洞里找到前人遗留的破袋子，收获 ${stones} 块灵石。`,'good');}else{state.player.vitality=clamp(state.player.vitality-rint(8,22),0,100); addPersonal('洞中突然窜出野兽，你仓促逃出，身上添了几道伤口。','bad');}}},
+      {label:'封住洞口离开', act:()=>addPersonal('未知机缘也意味着未知杀机。你没有进去。')}
+    ]}
+  };
+
+  function maybeMinorEvent(action){
+    if(state.pendingEvent) return;
+    const chance = action==='wander' ? .65 : action==='inquire' ? .28 : .18;
+    if(rand()>chance) return;
+    let ids=['wounded','herb','trader','dispute','cave'];
+    if(state.player.location==='黑风岭') ids=['herb','cave','wounded'];
+    if(state.player.location==='临江城') ids=['trader','dispute','wounded'];
+    state.pendingEvent=pick(ids);
+  }
+
+  function resolveMinor(index){
+    if(!state.pendingEvent) return;
+    const ev=MINOR_EVENTS[state.pendingEvent], op=ev.options[index];
+    if(op.can && !op.can()) return;
+    op.act();
+    state.pendingEvent=null;
+    save(); render();
+  }
+
+  function simulateNPCDay(){
+    for(const n of state.npcs){
+      if(!n.alive) continue;
+      n.progress += Math.max(1,Math.round((2 + rand()*4) * n.talent/100));
+      const need=REALMS[Math.min(n.realmIndex,REALMS.length-1)].need;
+      if(n.progress>=need && n.realmIndex<REALMS.length-1){
+        n.progress-=need; n.realmIndex++;
+        if(rand()<.15) addWorld(`${n.name}突破至${REALMS[n.realmIndex].name}。`,'good');
+      }
+      if(rand()<.012){
+        const links=Object.keys(LOCATIONS[n.location].links); if(links.length) n.location=pick(links);
+      }
+      if(rand()<.0008 && n.age>45){ n.alive=false; if(rand()<.6) addWorld(`散修间传来消息：${n.name}身死道消。`,'bad'); }
+    }
+  }
+
+  function tickWorld(){
+    state.world.beastPressure=clamp(state.world.beastPressure+rint(-1,4),0,120);
+    state.world.marketIndex=clamp(state.world.marketIndex+rint(-2,2),75,135);
+    if(rand()<.02){ state.world.qingyunPower=clamp(state.world.qingyunPower+rint(-2,3),0,100); }
+    if(rand()<.02){ state.world.bloodBladePower=clamp(state.world.bloodBladePower+rint(-2,3),0,100); }
+    simulateNPCDay();
+  }
+
+  function advanceDays(days){
+    for(let i=0;i<days;i++){
+      state.time.day++;
+      if(state.time.day>30){state.time.day=1; state.time.month++;}
+      if(state.time.month>12){state.time.month=1; state.time.year++; for(const n of state.npcs) if(n.alive)n.age++;}
+      tickWorld();
+      evaluateMajorEvents();
+    }
+  }
+
+  function checkBreakthrough(){
+    let guard=0;
+    while(state.player.realmIndex<REALMS.length-1 && state.player.progress>=realm().need && guard++<20){
+      const old=realm().name; state.player.progress-=realm().need; state.player.realmIndex++;
+      addPersonal(`灵气贯通经脉，你从【${old}】突破至【${realm().name}】！`,'major');
+      addWorld(`有散修谈起：${state.player.name}近日气息大涨，疑似已有突破。`);
+    }
+  }
+
+  function cultivate(){
+    const base=rint(8,14); const bonus=state.player.location==='青云山'?1.25:state.player.location==='黑风岭'?1.12:1;
+    const gain=Math.round(base*realm().rate*bonus);
+    state.player.progress+=gain; state.player.vitality=clamp(state.player.vitality-3,0,100);
+    advanceDays(1); addPersonal(`你吐纳一日，修为 +${gain}。`); checkBreakthrough(); maybeMinorEvent('cultivate');
+  }
+  function gather(){
+    const risk=state.player.location==='黑风岭'; const herbs=risk?rint(1,3):rint(0,2); state.player.herbs+=herbs;
+    if(risk && rand()<.22){state.player.vitality=clamp(state.player.vitality-rint(5,15),0,100); addPersonal(`你在黑风岭采到 ${herbs} 株药材，却被妖兽追得受了伤。`,'bad');}
+    else addPersonal(`你花了一天寻材，带回 ${herbs} 株可用药材。`,herbs?'good':'');
+    if(rand()<.16){state.player.spiritStones++; addPersonal('你还在石缝里捡到一块灵石。','good');}
+    advanceDays(1); maybeMinorEvent('gather');
+  }
+  function work(){
+    const gain=state.player.location==='临江城'?2:1; state.player.spiritStones+=gain; state.player.vitality=clamp(state.player.vitality-2,0,100);
+    advanceDays(2); addPersonal(`你替人做了两日杂事，换得 ${gain} 块灵石。`); maybeMinorEvent('work');
+  }
+  function inquire(){
+    advanceDays(1); const alive=state.npcs.filter(n=>n.alive); const n=pick(alive);
+    addPersonal(`你四处打听，听说${n.name}如今在${n.location}活动，修为约在${REALMS[n.realmIndex].name}。`);
+    if(rand()<.35) addWorld(`坊间传闻：${pick(['临江城的灵米价格又涨了','黑风岭深处夜里常有兽吼','青云宗近期管束弟子颇严','血刀门的人在青石镇附近露过面'])}。`);
+    maybeMinorEvent('inquire');
+  }
+  function rest(){ advanceDays(1); state.player.vitality=clamp(state.player.vitality+28,0,100); addPersonal('你休整了一日，精神与伤势都恢复了不少。','good'); }
+  function wander(){ advanceDays(1); addPersonal(`你在${state.player.location}附近探索了一整日。`); maybeMinorEvent('wander'); }
+
+  function doAction(action){
+    if(state.pendingEvent) return;
+    if(age()>=state.player.lifespan){ addPersonal('寿元已尽。此世修行止于此。','bad'); render(); return; }
+    ({cultivate,gather,work,inquire,rest,wander}[action])();
+    evaluateMajorEvents(); save(); render();
+  }
+
+  function travel(to){
+    if(state.pendingEvent) return;
+    const cost=LOCATIONS[state.player.location].links[to]; if(!cost) return;
+    addPersonal(`你从${state.player.location}动身，前往${to}。`);
+    advanceDays(cost); state.player.location=to; state.player.vitality=clamp(state.player.vitality-cost*2,0,100);
+    addPersonal(`耗时 ${cost} 日，你抵达${to}。`,'good'); maybeMinorEvent('wander'); evaluateMajorEvents(); save(); render();
+  }
+
+  const MAJOR_DEFS = {
+    recruitment:{
+      title:'青云宗开山收徒', location:'青云山', announceAt:4, startAt:8, endAt:12,
+      announce:'青云宗正式张榜：五日后开山收徒，凡四十岁以下、愿受验灵者皆可前往。',
+      resolveAbsent:'青云宗本届收徒结束，共收外门弟子二十三人。数名散修少年一跃改换命数。',
+      participate(){
+        const score=state.player.realmIndex*15 + state.player.reputation*2 + rint(1,70);
+        if(score>=58){state.player.spiritStones+=5; state.player.reputation+=6; state.flags.qingyunDisciple=true; addPersonal('你通过验灵与问心，被青云宗收入外门。五块灵石与一枚外门令牌落入手中。','major'); addWorld(`${state.player.name}通过青云宗试炼，成为外门弟子。`,'major');}
+        else {state.player.reputation+=1; addPersonal('你参加了青云宗收徒试炼，却在最后一关被淘汰。至少你看清了宗门修士与自己的差距。','bad');}
+      }
+    },
+    beastTide:{
+      title:'黑风岭小兽潮', location:'黑风岭', condition:()=>dayNumber()>=15 || state.world.beastPressure>=88, lead:2, duration:5,
+      announce:'黑风岭妖兽异常躁动，青石镇已悬赏修士协助清剿。兽潮随时可能爆发。',
+      resolveAbsent:'黑风岭兽潮最终被附近修士压下，但青石镇死伤惨重，商路停摆数日。',
+      participate(){
+        const power=state.player.realmIndex*18 + rint(1,75);
+        if(power>=55){const reward=rint(4,8); state.player.spiritStones+=reward; state.player.reputation+=5; state.world.beastPressure=Math.max(20,state.world.beastPressure-45); addPersonal(`你参与清剿并活了下来，斩获折算成 ${reward} 块灵石。你的名字第一次在附近修士间真正传开。`,'major');}
+        else {state.player.vitality=clamp(state.player.vitality-rint(25,45),1,100); state.player.reputation+=2; addPersonal('你低估了兽潮。混战中几乎丢掉性命，最终带伤逃出黑风岭。','bad');}
+      }
+    },
+    ancientCave:{
+      title:'苍梧古洞现世', location:'临江城', condition:()=>state.player.realmIndex>=3 || dayNumber()>=42, lead:4, duration:4,
+      announce:'临江城外夜现青紫霞光，数名筑基修士判断苍梧山旧洞府即将重开。各方都在赶来。',
+      resolveAbsent:'苍梧古洞关闭。青云宗与血刀门各有收获，也各自折损了人手，临江城暗流更甚。',
+      participate(){
+        const chance=.35 + state.player.realmIndex*.055;
+        if(rand()<chance){state.player.progress+=rint(80,160); state.player.spiritStones+=rint(6,12); addPersonal('你在苍梧古洞外围捡到了一只破损储物袋。里面的资源足以让散修眼红。','major'); checkBreakthrough();}
+        else {state.player.vitality=clamp(state.player.vitality-rint(15,35),1,100); addPersonal('古洞争夺远比传闻凶险。你没抢到宝物，只带着一身伤撤出。','bad');}
+      }
+    }
+  };
+
+  function ensureMajor(id,def){
+    if(state.major[id]) return state.major[id];
+    let start,end;
+    if(def.announceAt){start=def.startAt; end=def.endAt;}
+    else {start=dayNumber()+def.lead; end=start+def.duration;}
+    state.major[id]={id,status:'announced',announcedDay:dayNumber(),startDay:start,endDay:end,participated:false};
+    addWorld(`【天下大事】${def.announce}`,'major'); return state.major[id];
+  }
+
+  function evaluateMajorEvents(){
+    for(const [id,def] of Object.entries(MAJOR_DEFS)){
+      let e=state.major[id];
+      if(!e){
+        const should=def.announceAt ? dayNumber()>=def.announceAt : (def.condition && def.condition());
+        if(should) e=ensureMajor(id,def); else continue;
+      }
+      if(e.status==='announced' && dayNumber()>=e.startDay){ e.status='active'; addWorld(`【事件开启】${def.title}已经开始，可参与至第 ${e.endDay} 日。`,'major'); }
+      if((e.status==='active'||e.status==='announced') && dayNumber()>e.endDay){
+        e.status='resolved'; if(!e.participated){addWorld(`【事件结束】${def.resolveAbsent}`,'major'); if(id==='beastTide'){state.world.casualties+=rint(80,260); state.world.marketIndex=clamp(state.world.marketIndex+12,75,135); state.world.beastPressure=clamp(state.world.beastPressure-30,0,120);}}
+      }
+    }
+  }
+
+  function participateMajor(id){
+    if(state.pendingEvent) return;
+    const e=state.major[id], def=MAJOR_DEFS[id];
+    if(!e || e.status!=='active' || e.participated || state.player.location!==def.location || dayNumber()>e.endDay) return;
+    e.participated=true; def.participate(); e.status='resolved'; save(); render();
+  }
+
+  function save(){ try{localStorage.setItem(SAVE_KEY,JSON.stringify(state));}catch(e){console.warn('save failed',e);} }
+  function load(){ try{const raw=localStorage.getItem(SAVE_KEY); if(!raw)return false; const parsed=JSON.parse(raw); if(!parsed||!parsed.player)return false; state=parsed; return true;}catch(e){return false;} }
+  function exportSave(){
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`太玄界-${state.player.name}-${dayNumber()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  function render(){
+    $('startScreen').classList.add('hidden'); $('gameScreen').classList.remove('hidden');
+    $('dateText').textContent=dateLabel(); $('seasonText').textContent=season(); $('playerName').textContent=state.player.name;
+    const items=[['年龄',`${age()} / ${state.player.lifespan}`],['境界',realm().name],['所在地',state.player.location],['灵石',state.player.spiritStones],['药材',state.player.herbs],['声望',state.player.reputation],['状态',`${state.player.vitality}/100`],['身份',state.flags.qingyunDisciple?'青云宗外门':'散修']];
+    $('stats').innerHTML=items.map(x=>`<div class="stat"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
+    const pct=clamp(state.player.progress/realm().need*100,0,100); $('cultivationBar').style.width=pct+'%'; $('cultivationText').textContent=`修为 ${state.player.progress} / ${realm().need} · 当前修炼效率 ×${realm().rate}`;
+    document.querySelectorAll('[data-action]').forEach(b=>b.disabled=!!state.pendingEvent);
+    $('pendingNotice').classList.toggle('hidden',!state.pendingEvent);
+    const links=LOCATIONS[state.player.location].links; $('travelButtons').innerHTML=Object.entries(links).map(([to,cost])=>`<button ${state.pendingEvent?'disabled':''} data-travel="${to}">前往${to}<br><span class="small">${cost}日</span></button>`).join('');
+    document.querySelectorAll('[data-travel]').forEach(b=>b.onclick=()=>travel(b.dataset.travel));
+    $('worldState').innerHTML=`
+      <div class="world-row"><span>当地</span><b>${LOCATIONS[state.player.location].desc}</b></div>
+      <div class="world-row"><span>黑风岭兽患</span><b>${state.world.beastPressure}/100</b></div>
+      <div class="world-row"><span>青云宗势力</span><b>${state.world.qingyunPower}/100</b></div>
+      <div class="world-row"><span>血刀门势力</span><b>${state.world.bloodBladePower}/100</b></div>
+      <div class="world-row"><span>坊市物价</span><b>${state.world.marketIndex}%</b></div>
+      <div class="world-row"><span>已记录灾亡</span><b>${state.world.casualties}</b></div>`;
+    renderMajor(); renderChoice(); renderLogs();
+  }
+
+  function renderMajor(){
+    const entries=Object.entries(state.major);
+    if(!entries.length){$('majorEvents').innerHTML='<div class="small">暂时风平浪静。但这个世界不会永远安静。</div>';return;}
+    entries.sort((a,b)=>a[1].endDay-b[1].endDay);
+    $('majorEvents').innerHTML=entries.map(([id,e])=>{
+      const def=MAJOR_DEFS[id]; let status=e.status==='announced'?`距开启 ${Math.max(0,e.startDay-dayNumber())} 日`:e.status==='active'?`剩余 ${Math.max(0,e.endDay-dayNumber()+1)} 日`:'已结束';
+      let btn='';
+      if(e.status==='active'&&!e.participated){
+        if(state.player.location===def.location) btn=`<button class="primary" data-major="${id}">立即参与</button>`;
+        else if(LOCATIONS[state.player.location].links[def.location]) btn=`<button data-travel="${def.location}">赶往${def.location}</button>`;
+      }
+      return `<div class="event-card"><strong>${def.title}</strong><div class="small" style="margin-top:5px">地点：${def.location}</div><div class="deadline">${status}${e.participated?' · 你已参与':''}</div><div class="event-actions">${btn}</div></div>`;
+    }).join('');
+    document.querySelectorAll('[data-major]').forEach(b=>b.onclick=()=>participateMajor(b.dataset.major));
+    document.querySelectorAll('#majorEvents [data-travel]').forEach(b=>b.onclick=()=>travel(b.dataset.travel));
+  }
+
+  function renderChoice(){
+    if(!state.pendingEvent){$('choicePanel').classList.add('hidden'); return;}
+    const ev=MINOR_EVENTS[state.pendingEvent]; $('choicePanel').classList.remove('hidden');
+    $('choiceContent').innerHTML=`<div class="choice"><div class="choice-title">${ev.title}</div><div class="small">${ev.text}</div><div class="choice-buttons">${ev.options.map((o,i)=>`<button data-choice="${i}" ${(o.can&&!o.can())?'disabled':''}>${o.label}</button>`).join('')}</div></div>`;
+    document.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>resolveMinor(Number(b.dataset.choice)));
+  }
+
+  function renderLogs(){
+    const fmt=x=>`<div class="log-item ${x.type||''}"><span class="tag">${x.date}</span>${x.text}</div>`;
+    $('personalLog').innerHTML=state.personalLog.map(fmt).join('')||'<div class="small">尚无经历。</div>';
+    $('worldLog').innerHTML=state.worldLog.map(fmt).join('')||'<div class="small">尚无传闻。</div>';
+  }
+
+  document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>doAction(b.dataset.action)));
+  $('newGameBtn').onclick=()=>{ const name=$('nameInput').value.trim().slice(0,8)||'陆尘'; newState(name); render(); };
+  $('continueBtn').onclick=()=>{ if(load()){evaluateMajorEvents();render();} };
+  $('saveBtn').onclick=()=>{save(); addPersonal('你将这一刻的经历记入玉简。','good'); save(); render();};
+  $('exportBtn').onclick=exportSave;
+  $('resetBtn').onclick=()=>{if(confirm('确定重开一世？当前浏览器存档会被清除。')){localStorage.removeItem(SAVE_KEY); location.reload();}};
+
+  if(localStorage.getItem(SAVE_KEY)) $('continueBtn').classList.remove('hidden');
+  console.info('太玄界 V0.1 loaded');
+})();
+</script>
+</body>
+</html>
