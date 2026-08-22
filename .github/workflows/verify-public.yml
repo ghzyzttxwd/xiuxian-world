@@ -1,0 +1,91 @@
+name: Verify public GitHub Pages
+
+on:
+  push:
+    branches: ["gh-pages"]
+    paths-ignore:
+      - "PUBLIC_STATUS.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-public:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout published branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Wait for Pages and verify terminal resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://ghzyzttxwd.github.io/xiuxian-world/"
+          ok=0
+          for i in $(seq 1 30); do
+            code=$(curl -L -sS -o /tmp/public-index.html -w '%{http_code}' "${BASE}?verify=${GITHUB_SHA}" || true)
+            if [ "$code" = "200" ] && grep -q '太玄界' /tmp/public-index.html && grep -q 'V0.2' /tmp/public-index.html; then
+              ok=1
+              break
+            fi
+            echo "Attempt $i: HTTP $code; waiting for Pages propagation..."
+            sleep 10
+          done
+          test "$ok" = "1"
+
+          curl -fsSL "${BASE}manifest.webmanifest?verify=${GITHUB_SHA}" -o /tmp/manifest.webmanifest
+          curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/sw.js
+          curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/app.js
+          curl -fsSL "${BASE}icon-192.png?verify=${GITHUB_SHA}" -o /tmp/icon-192.png
+          curl -fsSL "${BASE}icon-512.png?verify=${GITHUB_SHA}" -o /tmp/icon-512.png
+          curl -fsSL "${BASE}bundle2/c01.b64?verify=${GITHUB_SHA}" -o /tmp/c01.b64
+          curl -fsSL "${BASE}bundle2/c24.b64?verify=${GITHUB_SHA}" -o /tmp/c24.b64
+
+          python3 - <<'PY'
+          import json, struct, pathlib
+          m=json.loads(pathlib.Path('/tmp/manifest.webmanifest').read_text())
+          assert m.get('display') == 'standalone', m
+          sizes={x.get('sizes') for x in m.get('icons', [])}
+          assert {'192x192','512x512'} <= sizes, sizes
+          def dims(p):
+              b=pathlib.Path(p).read_bytes()
+              assert b[:8] == b'\x89PNG\r\n\x1a\n'
+              return struct.unpack('>II', b[16:24])
+          assert dims('/tmp/icon-192.png') == (192,192)
+          assert dims('/tmp/icon-512.png') == (512,512)
+          assert b'bundle2' in pathlib.Path('/tmp/app.js').read_bytes()
+          assert b'install' in pathlib.Path('/tmp/sw.js').read_bytes()
+          assert pathlib.Path('/tmp/c01.b64').stat().st_size > 1000
+          assert pathlib.Path('/tmp/c24.b64').stat().st_size > 1000
+          PY
+
+          # Ensure the terminal page is the same V0.2 shell we published.
+          grep -q '太玄界 · 修仙大世界 V0.2' /tmp/public-index.html
+
+      - name: Record machine-verifiable success
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, datetime
+          data={
+            'status':'PASS',
+            'checked_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'verified_url':'https://ghzyzttxwd.github.io/xiuxian-world/',
+            'source_branch':'gh-pages',
+            'trigger_sha':os.environ['GITHUB_SHA'],
+            'checks':[
+              'HTTP 200', 'V0.2 index rendered', 'manifest standalone',
+              'service worker reachable', 'app loader reachable',
+              '192x192 icon', '512x512 icon', 'runtime chunk c01', 'runtime chunk c24'
+            ]
+          }
+          open('PUBLIC_STATUS.json','w',encoding='utf-8').write(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_STATUS.json
+          git commit -m 'chore: record public Pages verification [skip ci]' || exit 0
+          git push origin HEAD:gh-pages
