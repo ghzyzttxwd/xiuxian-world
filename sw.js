@@ -1,4 +1,4 @@
-const CACHE='taixuan-v0.2.2-icon-v3';
+const CACHE='taixuan-v0.2.3-icon-v3-svg';
 const CORE=['./','./index.html','./style.css','./app.js','./manifest.webmanifest','./icon-v3.svg','./bundle2/c01.b64','./bundle2/c02.b64','./bundle2/c03.b64','./bundle2/c04.b64','./bundle2/c05.b64','./bundle2/c06.b64','./bundle2/c07.b64','./bundle2/c08.b64','./bundle2/c09.b64','./bundle2/c10.b64','./bundle2/c11.b64','./bundle2/c12.b64','./bundle2/c13.b64','./bundle2/c14.b64','./bundle2/c15.b64','./bundle2/c16.b64','./bundle2/c17.b64','./bundle2/c18.b64','./bundle2/c19.b64','./bundle2/c20.b64','./bundle2/c21.b64','./bundle2/c22.b64','./bundle2/c23.b64','./bundle2/c24.b64'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
