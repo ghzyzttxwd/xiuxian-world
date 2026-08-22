@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "太玄界 · 修仙大世界",
   "short_name": "太玄界",
   "description": "低美术、高事件、高数值、持续世界演化的修仙沙盒 RPG。",
@@ -10,7 +11,7 @@
   "background_color": "#0d110c",
   "theme_color": "#10150f",
   "icons": [
-    {"src":"./icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"./icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {"src":"./icon-192-v2.jpg?v=2","sizes":"192x192","type":"image/jpeg","purpose":"any maskable"},
+    {"src":"./icon-512-v2.jpg?v=2","sizes":"512x512","type":"image/jpeg","purpose":"any maskable"}
   ]
 }
