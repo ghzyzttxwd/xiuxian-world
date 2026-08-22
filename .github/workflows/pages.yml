@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -24,63 +24,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify source PWA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s icon-v3.svg
+          grep -q '<title id="title">太玄界</title>' icon-v3.svg
+          grep -q 'icon-v3.svg' manifest.webmanifest
+          grep -q '"short_name": "太玄界"' manifest.webmanifest
+          grep -q 'taixuan-v0.2.2-icon-v3' sw.js
+          grep -q 'icon-v3.svg?v=3' index.html
+          test -s app.js
+          test -s bundle2/c01.b64
+          test -s bundle2/c24.b64
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-
-      - name: Build TaiXuan app icons
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # The 512 source is intentionally split into small text chunks so a partial upload
-          # can never masquerade as a successful icon update.
-          test "$(wc -c < icon-192-v2.b64)" -eq 11296
-          cat icon512/part01.b64 icon512/part02.b64 icon512/part03.b64 icon512/part04.b64 icon512/part05.b64 icon512/part06.b64 > /tmp/icon-512-v2.b64
-          test "$(wc -c < /tmp/icon-512-v2.b64)" -eq 46248
-
-          base64 -d icon-192-v2.b64 > icon-192-v2.jpg
-          base64 -d /tmp/icon-512-v2.b64 > icon-512-v2.jpg
-
-          echo '61cdef3e4a80f4a6e2dde1fe011f77ccfea5209c611d75270f7e243f73d125ea  icon-192-v2.jpg' | sha256sum -c -
-          echo 'e81793543a6ef290a3b0684b0ad4fd6c0760cc2743010c1765128855ef8b861b  icon-512-v2.jpg' | sha256sum -c -
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          def jpeg_size(path):
-              data = Path(path).read_bytes()
-              if not data.startswith(b'\xff\xd8'):
-                  raise SystemExit(f'{path}: not JPEG')
-              i = 2
-              while i < len(data) - 9:
-                  if data[i] != 0xFF:
-                      i += 1
-                      continue
-                  while i < len(data) and data[i] == 0xFF:
-                      i += 1
-                  marker = data[i]
-                  i += 1
-                  if marker in (0xD8, 0xD9):
-                      continue
-                  if i + 2 > len(data):
-                      break
-                  length = int.from_bytes(data[i:i+2], 'big')
-                  if marker in (0xC0,0xC1,0xC2,0xC3,0xC5,0xC6,0xC7,0xC9,0xCA,0xCB,0xCD,0xCE,0xCF):
-                      h = int.from_bytes(data[i+3:i+5], 'big')
-                      w = int.from_bytes(data[i+5:i+7], 'big')
-                      return w, h
-                  i += length
-              raise SystemExit(f'{path}: no JPEG SOF')
-
-          expected = {'icon-192-v2.jpg': (192,192), 'icon-512-v2.jpg': (512,512)}
-          for path, dims in expected.items():
-              actual = jpeg_size(path)
-              if actual != dims:
-                  raise SystemExit(f'{path}: {actual} != {dims}')
-              print(path, actual, Path(path).stat().st_size)
-          PY
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -91,7 +52,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Verify public PWA icon end-to-end
+      - name: Verify public deployment end-to-end
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         shell: bash
@@ -99,52 +60,32 @@ jobs:
           set -euo pipefail
           base="${PAGE_URL%/}/"
           nonce="${GITHUB_SHA}"
-          local192=$(sha256sum icon-192-v2.jpg | awk '{print $1}')
-          local512=$(sha256sum icon-512-v2.jpg | awk '{print $1}')
 
-          for n in $(seq 1 12); do
-            if curl -fsSL --max-time 20 "${base}manifest.webmanifest?v=${nonce}" -o /tmp/manifest.json && \
-               grep -q 'icon-192-v2.jpg' /tmp/manifest.json && \
-               grep -q 'icon-512-v2.jpg' /tmp/manifest.json; then
-              break
+          for n in $(seq 1 15); do
+            ok=1
+            curl -fsSL --max-time 20 "${base}?v=${nonce}" -o /tmp/index.html || ok=0
+            curl -fsSL --max-time 20 "${base}manifest.webmanifest?v=${nonce}" -o /tmp/manifest.json || ok=0
+            curl -fsSL --max-time 20 "${base}icon-v3.svg?v=${nonce}" -o /tmp/icon.svg || ok=0
+            curl -fsSL --max-time 20 "${base}sw.js?v=${nonce}" -o /tmp/sw.js || ok=0
+            curl -fsSL --max-time 20 "${base}app.js?v=${nonce}" -o /tmp/app.js || ok=0
+            curl -fsSL --max-time 20 "${base}bundle2/c01.b64?v=${nonce}" -o /tmp/c01.b64 || ok=0
+            curl -fsSL --max-time 20 "${base}bundle2/c24.b64?v=${nonce}" -o /tmp/c24.b64 || ok=0
+
+            if [ "$ok" -eq 1 ] && \
+               grep -q 'icon-v3.svg?v=3' /tmp/index.html && \
+               grep -q 'icon-v3.svg' /tmp/manifest.json && \
+               grep -q '"short_name": "太玄界"' /tmp/manifest.json && \
+               grep -q '<title id="title">太玄界</title>' /tmp/icon.svg && \
+               grep -q 'taixuan-v0.2.2-icon-v3' /tmp/sw.js && \
+               test -s /tmp/app.js && test -s /tmp/c01.b64 && test -s /tmp/c24.b64; then
+              echo 'PUBLIC_PWA_V3=PASS'
+              echo "URL=${base}"
+              exit 0
             fi
-            if [ "$n" -eq 12 ]; then
-              echo 'public manifest did not update' >&2
+
+            if [ "$n" -eq 15 ]; then
+              echo 'Public Pages did not converge to PWA v3 within verification window' >&2
               exit 1
             fi
             sleep 5
           done
-
-          curl -fsSL --retry 5 --retry-delay 2 "${base}icon-192-v2.jpg?v=${nonce}" -o /tmp/public192.jpg
-          curl -fsSL --retry 5 --retry-delay 2 "${base}icon-512-v2.jpg?v=${nonce}" -o /tmp/public512.jpg
-          curl -fsSL --retry 5 --retry-delay 2 "${base}sw.js?v=${nonce}" -o /tmp/public-sw.js
-          grep -q 'taixuan-v0.2.1-icon-refresh' /tmp/public-sw.js
-
-          public192=$(sha256sum /tmp/public192.jpg | awk '{print $1}')
-          public512=$(sha256sum /tmp/public512.jpg | awk '{print $1}')
-          test "$local192" = "$public192"
-          test "$local512" = "$public512"
-
-          python3 - <<PY
-          import json, os
-          status = {
-            'status': 'PASS',
-            'verified_url': os.environ['PAGE_URL'],
-            'trigger_sha': os.environ['GITHUB_SHA'],
-            'manifest': 'new illustrated icon paths confirmed',
-            'service_worker': 'taixuan-v0.2.1-icon-refresh confirmed',
-            'icon_192_sha256': '$public192',
-            'icon_512_sha256': '$public512'
-          }
-          open('/tmp/PUBLIC_ICON_STATUS.json','w',encoding='utf-8').write(json.dumps(status,ensure_ascii=False,indent=2)+'\n')
-          PY
-
-          git fetch origin gh-pages
-          git worktree add /tmp/gh-pages origin/gh-pages
-          cp /tmp/PUBLIC_ICON_STATUS.json /tmp/gh-pages/PUBLIC_ICON_STATUS.json
-          cd /tmp/gh-pages
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_ICON_STATUS.json
-          git commit -m 'chore: record illustrated icon public verification [skip ci]' || true
-          git push origin HEAD:gh-pages
