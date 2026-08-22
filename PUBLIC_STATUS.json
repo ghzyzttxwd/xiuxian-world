@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "checked_at_utc": "2026-08-22T19:04:02.733654+00:00",
+  "verified_url": "https://ghzyzttxwd.github.io/xiuxian-world/",
+  "source_branch": "gh-pages",
+  "trigger_sha": "19d35154fe38c977bca900f6a4e0fbe02a804b59",
+  "checks": [
+    "HTTP 200",
+    "V0.2 index rendered",
+    "manifest standalone",
+    "service worker reachable",
+    "app loader reachable",
+    "192x192 icon",
+    "512x512 icon",
+    "runtime chunk c01",
+    "runtime chunk c24"
+  ]
+}
