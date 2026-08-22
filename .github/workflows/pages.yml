@@ -33,8 +33,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          # The 512 source is intentionally split into small text chunks so a partial upload
+          # can never masquerade as a successful icon update.
+          test "$(wc -c < icon-192-v2.b64)" -eq 11296
+          cat icon512/part01.b64 icon512/part02.b64 icon512/part03.b64 icon512/part04.b64 icon512/part05.b64 icon512/part06.b64 > /tmp/icon-512-v2.b64
+          test "$(wc -c < /tmp/icon-512-v2.b64)" -eq 46248
+
           base64 -d icon-192-v2.b64 > icon-192-v2.jpg
-          base64 -d icon-512-v2.b64 > icon-512-v2.jpg
+          base64 -d /tmp/icon-512-v2.b64 > icon-512-v2.jpg
+
+          echo '61cdef3e4a80f4a6e2dde1fe011f77ccfea5209c611d75270f7e243f73d125ea  icon-192-v2.jpg' | sha256sum -c -
+          echo 'e81793543a6ef290a3b0684b0ad4fd6c0760cc2743010c1765128855ef8b861b  icon-512-v2.jpg' | sha256sum -c -
+
           python3 - <<'PY'
           from pathlib import Path
 
@@ -68,8 +79,6 @@ jobs:
               actual = jpeg_size(path)
               if actual != dims:
                   raise SystemExit(f'{path}: {actual} != {dims}')
-              if Path(path).stat().st_size < 5000:
-                  raise SystemExit(f'{path}: suspiciously small')
               print(path, actual, Path(path).stat().st_size)
           PY
 
