@@ -11,16 +11,16 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css" />
-  <title>太玄界 · 修仙大世界 V2.1</title>
+  <title>太玄界 · 修仙大世界 V2.2</title>
 </head>
 <body>
 <div id="startScreen" class="start">
   <section class="panel start-box">
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V2.1</p>
+    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V2.2</p>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions"><button id="newGameBtn" class="primary">穿越此界</button><button id="continueBtn" class="hidden">继续上次存档</button><button id="installStartBtn" class="ghost">安装应用</button></div>
-    <div id="installStatus" class="install-note"></div><div class="version">V2.1 · 四大道途与流派分化</div>
+    <div id="installStatus" class="install-note"></div><div class="version">V2.2 · 道途世界反馈</div>
   </section>
 </div>
 <div id="gameApp" class="app hidden">
@@ -28,7 +28,7 @@
   <section id="page-home" class="page active">
     <div class="hero-card"><div class="hero-row"><div><div class="hero-name" id="heroName">陆尘</div><div class="hero-sub" id="heroSub"></div></div><div class="realm-box"><b id="realmName">凡人</b><span id="cultivationText"></span></div></div><div class="bar"><i id="cultivationBar"></i></div><div class="quick-stats"><div class="quick-stat"><b id="spiritStoneQuick">0</b><span>灵石</span></div><div class="quick-stat"><b id="herbQuick">0</b><span>灵草</span></div><div class="quick-stat"><b id="hpQuick">0</b><span>气血</span></div><div class="quick-stat"><b id="repQuick">0</b><span>声望</span></div><div class="quick-stat"><b id="diligenceQuick">0</b><span>勤勉</span></div><div class="quick-stat"><b id="insightQuick">0</b><span>悟道点</span></div></div></div>
     <div id="urgentBox"></div><div id="breakthroughBox"></div><div id="legacyBox"></div>
-    <section class="panel"><h2>今日可做</h2><p class="section-tip">境界长线已贯通至化神后期，高阶丹药与法宝循环继续保留。V2.1 从结丹境开始开放四条主修道途：剑修、火法、体修、神识流拥有不同属性取舍与专属战斗绝学；转修需要额外悟道并折损道途熟练度。</p><div class="actions-grid"><button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button><button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button><button class="action-btn" data-action="work"><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></button><button class="action-btn" data-action="explore"><b>附近逛一逛</b><small>1日 · 随机事件、战斗或发现</small></button><button class="action-btn" data-action="rumor"><b>打听消息</b><small>1日 · 更容易获知天下大事</small></button><button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button></div></section>
+    <section class="panel"><h2>今日可做</h2><p class="section-tip">四大道途的战斗差异继续保留。V2.2 让世界开始识别你的主修路线：共鸣地域可出现专属机缘，同道NPC在论道与切磋时会给出额外反馈，道途名望会持久记录；青云宗也会认可剑修名望。</p><div class="actions-grid"><button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button><button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button><button class="action-btn" data-action="work"><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></button><button class="action-btn" data-action="explore"><b>附近逛一逛</b><small>1日 · 随机事件、战斗或发现</small></button><button class="action-btn" data-action="rumor"><b>打听消息</b><small>1日 · 更容易获知天下大事</small></button><button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button></div></section>
     <section class="panel"><h2>最近经历</h2><div id="homeLog" class="log-list"></div></section>
   </section>
   <section id="page-character" class="page">
@@ -43,10 +43,10 @@
   </section>
   <section id="page-map" class="page"><section class="panel"><h2>天下行旅</h2><p class="section-tip">十二片地域继续存在；部分目的地已有多条路线可选，天数、路费、地区危险、伤势与势力关系会共同决定途中风险，赶路可能遭遇战斗或见闻。</p><div id="mapList"></div></section><section class="panel"><h2>临江坊市</h2><p class="section-tip">坊市行情会随世界经济与大战余波波动。买价始终高于卖价，不能靠原地倒卖刷灵石。</p><div id="marketInfo"></div><div id="marketActions"></div></section></section>
   <section id="page-events" class="page"><section class="panel"><h2>天下大事 <span id="eventBadge" class="badge">0</span></h2><div id="majorEvents"></div></section><section class="panel"><h2>修真界传闻</h2><div id="worldLog" class="log-list"></div></section></section>
-  <section id="page-relations" class="page"><section class="panel"><h2>人物关系</h2><p class="section-tip">见面后可赠礼、论道、切磋或求助。交情深会带来实际帮助；仇恨太深，对方也可能在同一地点伏击或劫掠你。</p><div id="npcList"></div></section></section>
+  <section id="page-relations" class="page"><section class="panel"><h2>人物关系</h2><p class="section-tip">见面后可赠礼、论道、切磋或求助。NPC现在拥有稳定的道途倾向；与你同道的人在论道和切磋时会产生额外关系、熟练度与名望反馈。交情深仍会带来实际帮助，深仇也仍可能引发伏击。</p><div id="npcList"></div></section></section>
   <nav class="bottom-nav"><button class="nav-btn active" data-page="home"><b>☯</b>修炼</button><button class="nav-btn" data-page="character"><b>人</b>角色</button><button class="nav-btn" data-page="map"><b>图</b>地图</button><button class="nav-btn" data-page="events"><b>令</b>大事 <span id="navBadge" class="badge hidden">0</span></button><button class="nav-btn" data-page="relations"><b>缘</b>关系</button></nav>
 </div>
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
-<script src="./app.js?v=2101"></script>
+<script src="./app.js?v=2201"></script>
 </body>
 </html>

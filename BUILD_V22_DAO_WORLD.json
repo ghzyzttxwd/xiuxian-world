@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.2.0",
+  "build": "2201",
+  "milestone": "dao-world-reactivity",
+  "source": "src/game-v22.js",
+  "source_sha256": "df2136f95191f2fe55c9d2ea6d6509d39111b20523637e63b97ba7d527a42d50",
+  "source_bytes": 164887,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 19,
+  "checks": [
+    "four path-specific world events",
+    "persistent per-path renown",
+    "NPC dao affinity",
+    "same-path discussion and spar feedback",
+    "Qingyun sword recognition",
+    "map resonance markers",
+    "regional event integration",
+    "schema 18 to 19 migration",
+    "V2.1 systems preserved"
+  ]
+}
