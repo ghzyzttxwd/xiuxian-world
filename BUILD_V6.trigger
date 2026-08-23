@@ -1,3 +1,4 @@
-mode=v03-public-verify
-patch=0301
-trigger=20260823-1145
+mode=v04-public-verify
+patch=0401
+release=82493b29a2581613f03b77e409811fbe5e981199
+trigger=20260823-1209
