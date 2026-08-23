@@ -1,12 +1,15 @@
 name: V1.4 schema diagnostic
 
 on:
+  pull_request:
+    branches: ["main"]
+    paths: ["V14_SCHEMA_DIAG.trigger"]
   push:
     branches: ["main"]
     paths: ["V14_SCHEMA_DIAG.trigger"]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   diagnostic:
@@ -14,36 +17,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
           fetch-depth: 0
-      - name: Build and regression with exact result
+      - name: Build consolidated runtime
         shell: bash
         run: |
-          set -uo pipefail
-          rm -f V14_SCHEMA_DIAG_PASS.json V14_SCHEMA_DIAG_FAIL.txt
+          set -euo pipefail
+          node tools/build-v13-source.cjs
+          node --check src/game-v13.js
+          grep -q "const SAVE_SCHEMA_VERSION=13" src/game-v13.js
+          grep -q "const SAVE_MIGRATIONS=" src/game-v13.js
+      - name: Unified gameplay and save migration regression
+        shell: bash
+        run: |
+          set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          set +e
-          {
-            node tools/build-v13-source.cjs
-            rc=$?
-            if [ "$rc" -eq 0 ]; then node --check src/game-v13.js; rc=$?; fi
-            if [ "$rc" -eq 0 ]; then node tests/regression-v14.mjs; rc=$?; fi
-            exit "$rc"
-          } > /tmp/v14-schema-diag.log 2>&1
-          rc=$?
-          set -e
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if [ "$rc" -eq 0 ]; then
-            printf '%s\n' '{"status":"PASS","stage":"schema-build-regression","build":"1402","save_schema_version":13}' > V14_SCHEMA_DIAG_PASS.json
-            git add src/game-v13.js BUILD_V14_SOURCE.json V14_SCHEMA_DIAG_PASS.json
-            git commit -m 'test: V1.4 schema diagnostic PASS [skip ci]'
-            git push origin HEAD:main
-          else
-            { echo 'V1.4 SCHEMA DIAGNOSTIC FAIL'; echo; cat /tmp/v14-schema-diag.log; } > V14_SCHEMA_DIAG_FAIL.txt
-            git add V14_SCHEMA_DIAG_FAIL.txt
-            git commit -m 'chore: record V1.4 schema diagnostic failure [skip ci]'
-            git push origin HEAD:main
-            exit "$rc"
-          fi
+          node tests/regression-v14.mjs
