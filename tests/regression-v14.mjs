@@ -32,12 +32,13 @@ function cleanHtml(html) {
 
 function makeDom(seedSave = null) {
   const dom = new JSDOM(cleanHtml(htmlRaw), {
-    url: 'https://example.test/',
+    // Keep the headless origin non-HTTPS so the production service-worker
+    // registration branch is not entered inside jsdom.
+    url: 'http://example.test/',
     runScripts: 'outside-only',
     pretendToBeVisual: true,
   });
   dom.window.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {} });
-  Object.defineProperty(dom.window.navigator, 'serviceWorker', { value: undefined, configurable: true });
   dom.window.console = console;
   if (seedSave !== null) dom.window.localStorage.setItem('xiuxian_world_v02', seedSave);
   dom.window.eval(source);
