@@ -85,8 +85,13 @@ state = api.getState();
 assert(state.player.battleWins >= 1, 'weak combat did not resolve as a win');
 assert(state.player.kills >= 1, 'kill stat did not increase');
 
+// The test API intentionally does not auto-save newGame(). Exercise the real
+// save button before deriving a legacy-shaped save for migration testing.
+const saveBtn = dom.window.document.getElementById('saveBtn');
+assert(saveBtn, 'save button missing');
+saveBtn.click();
 let saved = dom.window.localStorage.getItem('xiuxian_world_v02');
-assert(saved, 'new game did not create a save');
+assert(saved, 'manual save did not write xiuxian_world_v02');
 const old = JSON.parse(saved);
 old.version = '0.2.0';
 for (const key of [
