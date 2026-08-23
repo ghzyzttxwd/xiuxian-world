@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "gameplay_version": "1.5.0",
+  "build": "1501",
+  "milestone": "regional-world-expansion",
+  "source": "src/game-v15.js",
+  "source_sha256": "aed4906f1acb0e69e7167c91d7930e1da72f5840013f95560c63dc488037bfc3",
+  "source_bytes": 111474,
+  "location_count": 12,
+  "save_schema_version": 13,
+  "new_regions": [
+    "云梦泽",
+    "苍梧郡城",
+    "赤霞谷",
+    "落星矿脉",
+    "万兽山脉",
+    "古河遗迹",
+    "玄阴禁地"
+  ],
+  "checks": [
+    "12 connected regions",
+    "regional danger/resources/work",
+    "regional enemies",
+    "faction-aware NPC spawn/movement",
+    "regional events",
+    "weighted regional secret realms"
+  ]
+}
