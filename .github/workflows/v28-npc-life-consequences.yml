@@ -1,0 +1,306 @@
+name: V2.8 NPC life consequences validation and release
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V28_NPC_LIFE_CONSEQUENCES.trigger"
+      - "tools/build-v28-npc-life-consequences.cjs"
+      - "tools/v28-npc-life-consequences-block.txt"
+      - "tests/regression-v28.mjs"
+      - ".github/workflows/v28-npc-life-consequences.yml"
+  push:
+    branches: ["main"]
+    paths: ["V28_NPC_LIFE_CONSEQUENCES.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v28-npc-life-consequences-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v28:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify V2.7 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const s=require('./PUBLIC_V27_STATUS.json');
+          const sha='42cba54234472ec526bfdbfab01cb6fcf39dd19c41647cc2611d2e8e57d05e21';
+          if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='2701'||s.game_version!=='2.7.0'||s.realm_count!==26||s.location_count!==12||s.route_count!==20||s.save_schema_version!==24||s.source_sha256!==sha) throw new Error('V2.7 baseline is not verified');
+          JS
+
+      - name: Build V2.8 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/build-v28-npc-life-consequences.cjs
+          node tools/build-v28-npc-life-consequences.cjs
+          node --check src/game-v28.js
+          node - <<'JS'
+          const b=require('./BUILD_V28_NPC_LIFE_CONSEQUENCES.json');
+          if(b.status!=='PASS'||b.gameplay_version!=='2.8.0'||b.build!=='2801'||b.milestone!=='npc-life-consequences'||b.realm_count!==26||b.location_count!==12||b.route_count!==20||b.save_schema_version!==25) throw new Error('V2.8 build report mismatch');
+          JS
+          grep -q "const VERSION='2.8.0'" src/game-v28.js
+          grep -q 'ensureNpcConsequenceShape' src/game-v28.js
+          grep -q 'npcPendingRequest' src/game-v28.js
+          grep -q 'favorDebt' src/game-v28.js
+          grep -q 'simulateNpcFeud' src/game-v28.js
+          grep -q 'simulateNpcFactionShift' src/game-v28.js
+          grep -q 'simulateNpcMajorLifeEvent' src/game-v28.js
+          grep -q 'renderNpcConsequencePanel' src/game-v28.js
+          ! grep -q '天道酬勤' src/game-v28.js
+
+      - name: Run V2.7 and V2.8 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v27.mjs
+          node tests/regression-v28.mjs
+
+      - name: V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v28:
+    if: github.event_name == 'push'
+    needs: validate-v28
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Rebuild and regress exact release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/build-v28-npc-life-consequences.cjs
+          node tools/build-v28-npc-life-consequences.cjs
+          node --check src/game-v28.js
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v27.mjs
+          node tests/regression-v28.mjs
+
+      - name: Switch runtime shell to V2.8 build 2801
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > app.js <<'JS'
+          // 太玄界 V2.8 NPC人生后果正式加载器 · build 2801
+          (()=>{
+            const fail=(e)=>{console.error(e);document.body.innerHTML='<div style="max-width:680px;margin:40px auto;padding:20px;color:#fff;background:#171a16;border:1px solid #485042;border-radius:14px;font-family:system-ui;line-height:1.7"><h2>太玄界加载失败</h2><div>'+String(e)+'</div><p>请刷新页面；若仍失败，请把这段错误发给我。</p></div>'};
+            try{window.__TAIXUAN_BUILD__={engineeringVersion:'2.8.0',gameplayVersion:'2.8.0',build:'2801',milestone:'npc-life-consequences',source:'src/game-v28.js',legacyPatchChain:false};document.title='太玄界 · 修仙大世界 V2.8';const script=document.createElement('script');script.src='./src/game-v28.js?v=2801';script.async=false;script.onload=()=>{if(!window.__TAIXUAN_TEST__)fail(new Error('V2.8 直接源码运行时未完成初始化'))};script.onerror=()=>fail(new Error('V2.8 游戏核心加载失败：src/game-v28.js'));document.head.appendChild(script)}catch(e){fail(e)}})();
+          JS
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html'); s=p.read_text(encoding='utf-8')
+          pairs=[
+            ('太玄界 · 修仙大世界 V2.7','太玄界 · 修仙大世界 V2.8'),
+            ('修仙大世界 · V2.7','修仙大世界 · V2.8'),
+            ('V2.7 · NPC命运网络','V2.8 · NPC人生后果'),
+            ('./app.js?v=2701','./app.js?v=2801'),
+            ('V2.4～V2.6 的凡修生存、宗门生涯和宗门人物生态继续保留。V2.7 把命运模拟扩展到普通修士：他们会变老、受伤、历练、闯秘境、参加势力冲突，也会结交、结怨和真正死亡。','V2.7 的 NPC 命运网络继续保留。V2.8 让这些经历产生长期后果：故人会主动求援，援手会形成可偿还的人情债；NPC 仇怨会升级为伤亡，散修会加入势力，修士也会经历低频但真实改变状态的人生分叉。'),
+            ('见面后仍可赠礼、论道、切磋或求助。V2.7 起 NPC 还拥有自己的年龄、伤势、历练、秘境与势力战经历，并会彼此结交或结怨；故人死亡会永久进入人物命运记录。','见面后仍可赠礼、论道、切磋或求助。V2.8 起关系不再只是一条数值：故人可能主动向你求援，帮助会留下人情并在以后得到回报；NPC 之间的深仇可能升级为真实伤亡，势力归属和重大人生事件也会长期写进人物状态。')
+          ]
+          for old,new in pairs:
+            if new in s:
+              continue
+            if old not in s:
+              raise SystemExit(f'index anchor missing and target absent: {old}')
+            s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+          cat > sw.js <<'JS'
+          const CACHE='taixuan-v2.8.0-npc-life-consequences-2801';
+          const CORE=['./','./index.html?v=2801','./style.css','./app.js?v=2801','./src/game-v28.js?v=2801','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6'];
+          self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+          self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+          self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=2801'))));});
+          JS
+          cat > README.md <<'MD'
+          # 太玄界 · 修仙大世界
+
+          当前正式版本：**V2.8.0 · NPC人生后果（build 2801）**
+
+          正式运行结构：`index.html -> app.js -> src/game-v28.js`。浏览器直接加载可读源码，不使用历史补丁链或 `eval`。
+
+          ## V2.8
+          - 完整保留 V2.7 的动态年龄、伤势、历练、秘境、势力战、NPC关系网络、真实助阵和故人录；
+          - 关系较好的 NPC 在真实困境中会主动向玩家求援，援手会消耗回春散、灵草或灵石，拒绝和失约也有关系后果；
+          - 帮助 NPC 会形成持久化 `favorDebt`，旧恩可在数十日后转化成真实资源回报，并提高故人战斗助阵意愿；
+          - NPC↔NPC 深仇会低频升级为冲突、负伤，极深仇怨可能真正决出生死，死亡继续进入 V2.7 故人录；
+          - 散修可加入青云宗、玄水帮或血刀门，部分受创成员会退出为散修；青云宗/血刀门人口变化会轻微影响势力强度；
+          - 新增低频重大人生事件：机缘、洞府、功法、失财、重伤隐退、寿元压力下的闭死关，事件都会修改真实人物状态；
+          - 重伤隐退和闭关期间，NPC 不再照常移动、闯秘境或参加势力战；
+          - 人物关系页新增“人生后果”面板，可处理当前求援并查看人情、仇怨死亡、势力变化和人生事件统计。
+
+          ## 存档
+          V2.8 使用 `saveSchemaVersion = 25`。V2.7 schema24 自动迁移；未来 schema26+ 拒绝覆盖。
+
+          V6 App 图标保持固定 SHA-256，不修改。
+          MD
+          node --check app.js
+          node --check sw.js
+          grep -q 'src/game-v28.js?v=2801' app.js
+          grep -q 'src/game-v28.js?v=2801' sw.js
+          grep -q 'V2.8 · NPC人生后果' index.html
+          ! grep -q 'bundle2' app.js
+          ! grep -q 'eval' app.js
+
+      - name: Regress after shell switch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v28.mjs
+
+      - name: Commit V2.8 runtime to main
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v28.js BUILD_V28_NPC_LIFE_CONSEQUENCES.json app.js index.html sw.js README.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: V2.8 NPC life consequences [skip ci]'
+            git push origin HEAD:main
+          fi
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact V2.8 assets to gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp src/game-v28.js /tmp/pages/src/game-v28.js
+          cp BUILD_V28_NPC_LIFE_CONSEQUENCES.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png /tmp/pages/
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v28.js BUILD_V28_NPC_LIFE_CONSEQUENCES.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V2.8 NPC life consequences ${RELEASE_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Public terminal verification
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          EXPECT_GAME="$(node -p "require('./BUILD_V28_NPC_LIFE_CONSEQUENCES.json').source_sha256")"
+          passed=0
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}?v=2801&x=${RELEASE_SHA}-${i}" -o /tmp/public-index.html || ok=0
+            curl -fsSL "${BASE}app.js?v=2801&x=${RELEASE_SHA}-${i}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}src/game-v28.js?v=2801&x=${RELEASE_SHA}-${i}" -o /tmp/public-game.js || ok=0
+            curl -fsSL "${BASE}sw.js?v=2801&x=${RELEASE_SHA}-${i}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${RELEASE_SHA}-${i}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon192.png || ok=0
+            if [ "$ok" = 1 ] \
+              && grep -q 'V2.8 · NPC人生后果' /tmp/public-index.html \
+              && grep -q 'src/game-v28.js?v=2801' /tmp/public-app.js \
+              && grep -q "const VERSION='2.8.0'" /tmp/public-game.js \
+              && grep -q 'taixuan-v2.8.0-npc-life-consequences-2801' /tmp/public-sw.js \
+              && [ "$(sha256sum /tmp/public-game.js | awk '{print $1}')" = "$EXPECT_GAME" ] \
+              && [ "$(sha256sum /tmp/public-icon512.png | awk '{print $1}')" = "$EXPECT512" ] \
+              && [ "$(sha256sum /tmp/public-icon192.png | awk '{print $1}')" = "$EXPECT192" ]; then
+              passed=1
+              break
+            fi
+            sleep 5
+          done
+          test "$passed" = 1
+          node --check /tmp/public-app.js
+          node --check /tmp/public-game.js
+          node --check /tmp/public-sw.js
+          node - <<'JS'
+          const fs=require('fs'),m=JSON.parse(fs.readFileSync('/tmp/public-manifest.json','utf8'));
+          if(m.display!=='standalone'||m.start_url!=='./index.html?v=6'||!Array.isArray(m.icons)||m.icons.length<2) throw new Error('manifest regression');
+          const sizes=new Set(m.icons.map(x=>x.sizes));
+          if(!sizes.has('192x192')||!sizes.has('512x512')) throw new Error('manifest icon regression');
+          JS
+          INDEX_PATH=/tmp/public-index.html GAME_PATH=/tmp/public-game.js node tests/regression-v28.mjs
+
+      - name: Record public PASS on gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          EXPECT_GAME="$(node -p "require('./BUILD_V28_NPC_LIFE_CONSEQUENCES.json').source_sha256")"
+          cat > /tmp/pages/PUBLIC_V28_STATUS.json <<JSON
+          {"status":"PASS","game_version":"2.8.0","build":"2801","milestone":"npc-life-consequences","verified_commit":"${RELEASE_SHA}","source_sha256":"${EXPECT_GAME}","realm_count":26,"location_count":12,"route_count":20,"save_schema_version":25,"stage":"public-pass","checks":["V2.7 public baseline PASS","V2.8 build and node syntax PASS","V2.7 regression PASS","V2.8 regression PASS","schema 24 to 25 migration","future schema 26 overwrite guard","NPC help requests with real costs","favor debt and later return","NPC feud injury/death consequences","dynamic faction membership","stateful major life events","retirement risk suppression","public asset HTTP 200","public source hash equality","public headless regression","standalone manifest","V6 icon hash regression"]}
+          JSON
+          cd /tmp/pages
+          git add PUBLIC_V28_STATUS.json
+          git commit -m "chore: record V2.8 public PASS ${RELEASE_SHA} [skip ci]"
+          git push origin HEAD:gh-pages
+
+      - name: Verify public PASS is actually reachable
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          ok=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "${BASE}PUBLIC_V28_STATUS.json?x=${RELEASE_SHA}-${i}" -o /tmp/public-v28-status.json; then
+              if node - "$RELEASE_SHA" <<'JS'
+          const fs=require('fs');
+          const expected=process.argv[2],s=JSON.parse(fs.readFileSync('/tmp/public-v28-status.json','utf8'));
+          if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='2.8.0'||s.build!=='2801'||s.verified_commit!==expected||s.save_schema_version!==25)process.exit(1);
+          JS
+              then ok=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$ok" = 1
+
+      - name: Sync identical public PASS to main and enforce final diff
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          cp /tmp/pages/PUBLIC_V28_STATUS.json PUBLIC_V28_STATUS.json
+          cmp -s /tmp/pages/PUBLIC_V28_STATUS.json PUBLIC_V28_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V28_STATUS.json
+          git commit -m 'chore: sync verified V2.8 public PASS to main [skip ci]'
+          git push origin HEAD:main
+          test "$(git rev-list --count "${RELEASE_SHA}..HEAD")" = "1"
+          test "$(git diff --name-only "${RELEASE_SHA}" HEAD)" = "PUBLIC_V28_STATUS.json"
+          test "$(git rev-list --count "HEAD..${RELEASE_SHA}")" = "0"
