@@ -1,7 +1,11 @@
 const fs=require('fs');const crypto=require('crypto');
 const INPUT='src/game-v36.js',OUTPUT='src/game-v37.js',CATALOG='content/v37-unity-law.cjs',RUNTIME='tools/v37-unity-law-runtime.txt',REPORT='BUILD_V37_UNITY_LAW.json',BUILD='3701';
 for(const f of [INPUT,CATALOG,RUNTIME])if(!fs.existsSync(f))throw new Error('V3.7 build missing '+f);
-const data=require('../'+CATALOG);let src=fs.readFileSync(INPUT,'utf8'),runtime=fs.readFileSync(RUNTIME,'utf8').trimEnd();runtime=runtime.replace('__V37_LAWS__',JSON.stringify(data.laws)).replace('__V37_WAR_FRONTS__',JSON.stringify(data.warFronts));const inner=a=>JSON.stringify(a).slice(1,-1);function must(s,r,l){if(!src.includes(s))throw new Error('V3.7 transform did not match: '+l);src=src.replace(s,r)}
+const data=require('../'+CATALOG);let src=fs.readFileSync(INPUT,'utf8'),runtime=fs.readFileSync(RUNTIME,'utf8').trimEnd();runtime=runtime.replace('__V37_LAWS__',JSON.stringify(data.laws)).replace('__V37_WAR_FRONTS__',JSON.stringify(data.warFronts));
+const oldWarHook="function onV37CombatWin(e){ensureV37UnityShape();const p=state.player;if(String(e?.id||'').startsWith('enemy-v37-')){p.v37HighWarWins++;if(p.v37HighWarWins%3===0)p.v37LawProficiency=Math.min(240,(p.v37LawProficiency||0)+1)}if(combat?.v37WarFrontId)v37ResolveWarResult(combat.v37WarFrontId,true)}";
+const newWarHook="function onV37CombatWin(e){ensureV37UnityShape();const p=state.player;if(combat?.v37WarFrontId)v37ResolveWarResult(combat.v37WarFrontId,true);else if(String(e?.id||'').startsWith('enemy-v37-')&&p.battleWins%3===0)p.v37LawProficiency=Math.min(240,(p.v37LawProficiency||0)+1)}";
+if(!runtime.includes(oldWarHook))throw new Error('V3.7 war win hook missing');runtime=runtime.replace(oldWarHook,newWarHook);
+const inner=a=>JSON.stringify(a).slice(1,-1);function must(s,r,l){if(!src.includes(s))throw new Error('V3.7 transform did not match: '+l);src=src.replace(s,r)}
 const auctionAdditions=[
  {id:'auction-v37-lawcrystal',shopId:'shop-cangwu-auction',kind:'material',refId:'mat-v37-law-crystal',basePrice:520,stock:2,minRealm:29},
  {id:'auction-v37-domain-sand',shopId:'shop-cangwu-auction',kind:'material',refId:'mat-v37-domain-sand',basePrice:680,stock:1,minRealm:30},
