@@ -9,6 +9,8 @@ on:
       - "content/v31-spells.json"
       - "tools/v31-manual-spell-runtime.txt"
       - "tools/build-v31-manual-spell-expansion.cjs"
+      - "tools/release-v31-assets.cjs"
+      - "tools/verify-v31-public.sh"
       - "tests/regression-v31.mjs"
       - ".github/workflows/v31-manual-spell-expansion.yml"
 
@@ -46,6 +48,7 @@ jobs:
           node tools/build-v31-manual-spell-expansion.cjs >/tmp/v31-build-second.log
           second=$(sha256sum src/game-v31.js | awk '{print $1}')
           test "$first" = "$second"
+          test "$first" = "492a2808ba69727ab6232e753ed25f388cc324cff0a8032a1ccc35f8549180e7"
           node -e "const b=require('./BUILD_V31_MANUAL_SPELL_EXPANSION.json');if(b.status!=='PASS'||b.gameplay_version!=='3.1.0'||b.build!=='3101'||b.milestone!=='manual-spell-expansion'||b.save_schema_version!==28||b.content_registry_version!==2||b.counts.manuals!==28||b.counts.spells!==60||b.counts.active_slots!==6||b.counts.passive_slots!==1)throw new Error('V3.1 report mismatch')"
           test "$(node -e "const b=require('./BUILD_V31_MANUAL_SPELL_EXPANSION.json');process.stdout.write(b.source_sha256)")" = "$first"
           grep -q "const VERSION='3.1.0'" src/game-v31.js
@@ -63,6 +66,22 @@ jobs:
           node tests/regression-v29.mjs
           node tests/regression-v30.mjs
           node tests/regression-v31.mjs
+
+      - name: Validate V3.1 release assets and public shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/release-v31-assets.cjs
+          bash -n tools/verify-v31-public.sh
+          node tools/release-v31-assets.cjs
+          grep -q 'V3.1 · 功法术法大扩容' index.html
+          grep -q 'app.js?v=3101' index.html
+          grep -q "gameplayVersion:'3.1.0'" app.js
+          grep -q 'src/game-v31.js?v=3101' app.js
+          grep -q 'taixuan-v3.1.0-manual-spell-expansion-3101' sw.js
+          grep -q 'src/game-v31.js?v=3101' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
 
       - name: Frozen V6 icon regression
         shell: bash
