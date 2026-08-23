@@ -1,0 +1,37 @@
+name: One-shot V2.1 builder escape fix
+on:
+  push:
+    branches: ["main"]
+    paths: ["V21_ESCAPE_FIX.trigger"]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Preserve target newline escapes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tools/build-v21-dao-paths.cjs')
+          s=p.read_text(encoding='utf-8')
+          anchors=[r"\n功法：《",r"\n绝学：",r"\n转修额外消耗悟道 "]
+          for old in anchors:
+              if old not in s: raise SystemExit('missing escape anchor: '+old)
+              s=s.replace(old,old.replace('\\n','\\\\n'))
+          p.write_text(s,encoding='utf-8')
+          PY
+          node --check tools/build-v21-dao-paths.cjs
+          node tools/build-v21-dao-paths.cjs
+          node --check src/game-v21.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools/build-v21-dao-paths.cjs
+          git commit -m 'fix: preserve V2.1 generated newline escapes [skip ci]'
+          git push origin HEAD:main
