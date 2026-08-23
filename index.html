@@ -11,13 +11,13 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css" />
-  <title>太玄界 · 修仙大世界 V0.2</title>
+  <title>太玄界 · 修仙大世界 V0.4</title>
 </head>
 <body>
 <div id="startScreen" class="start">
   <section class="panel start-box">
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.2</p>
+    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.4</p>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions">
       <button id="newGameBtn" class="primary">穿越此界</button>
@@ -25,7 +25,7 @@
       <button id="installStartBtn" class="ghost">安装应用</button>
     </div>
     <div id="installStatus" class="install-note"></div>
-    <div class="version">V0.2 · 世界不会等待玩家</div>
+    <div class="version">V0.4 · 宗门身份与任务体系</div>
   </section>
 </div>
 
@@ -93,6 +93,12 @@
       </section>
     </div>
     <section class="panel">
+      <h2>宗门</h2>
+      <p class="section-tip">宗门不是静态称号：任务、贡献、月俸、兑换和身份晋升都会真实影响角色成长。</p>
+      <div id="sectInfo"></div>
+      <div id="sectActions"></div>
+    </section>
+    <section class="panel">
       <h2>功法</h2>
       <div id="manualList"></div>
       <h3>法术与技艺</h3>
@@ -138,6 +144,6 @@
 
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
 
-<script src="./app.js"></script>
+<script src="./app.js?v=0401"></script>
 </body>
 </html>
