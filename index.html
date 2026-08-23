@@ -11,13 +11,13 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css" />
-  <title>太玄界 · 修仙大世界 V0.7</title>
+  <title>太玄界 · 修仙大世界 V0.8</title>
 </head>
 <body>
 <div id="startScreen" class="start">
   <section class="panel start-box">
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.7</p>
+    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.8</p>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions">
       <button id="newGameBtn" class="primary">穿越此界</button>
@@ -25,7 +25,7 @@
       <button id="installStartBtn" class="ghost">安装应用</button>
     </div>
     <div id="installStatus" class="install-note"></div>
-    <div class="version">V0.7 · 法器与锻造闭环</div>
+    <div class="version">V0.8 · 人情与恩怨闭环</div>
   </section>
 </div>
 
@@ -64,10 +64,7 @@
         <button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button>
       </div>
     </section>
-    <section class="panel">
-      <h2>最近经历</h2>
-      <div id="homeLog" class="log-list"></div>
-    </section>
+    <section class="panel"><h2>最近经历</h2><div id="homeLog" class="log-list"></div></section>
   </section>
 
   <section id="page-character" class="page">
@@ -76,47 +73,21 @@
       <div class="cheat-name">【天道酬勤】</div>
       <div class="cheat-desc">凡有所练，必有所得。修炼收益提高 50%，功法与法术熟练度获取翻倍；任何消耗时间的有效行动都会积累“勤勉”。每满 20 点勤勉自动凝聚 1 点“悟道点”，可直接用于顿悟。</div>
       <div class="cheat-points"><span class="pill" id="diligencePill"></span><span class="pill" id="insightPill"></span></div>
-      <div class="cheat-buttons">
-        <button id="insightCultivate">顿悟修为</button>
-        <button id="insightManual">顿悟功法</button>
-        <button id="insightSpell">顿悟法术</button>
-      </div>
+      <div class="cheat-buttons"><button id="insightCultivate">顿悟修为</button><button id="insightManual">顿悟功法</button><button id="insightSpell">顿悟法术</button></div>
     </section>
     <div class="desktop-grid">
       <section class="panel"><h2>人物</h2><div id="characterStats"></div></section>
       <section class="panel"><h2>灵根</h2><div id="rootInfo"></div></section>
     </div>
-    <section class="panel">
-      <h2>宗门</h2>
-      <p class="section-tip">宗门不是静态称号：任务、贡献、月俸、兑换和身份晋升都会真实影响角色成长。</p>
-      <div id="sectInfo"></div><div id="sectActions"></div>
-    </section>
-    <section class="panel">
-      <h2>炼丹</h2>
-      <p class="section-tip">采来的灵草和坊市资源可以炼成丹药。每炉真实消耗材料与 1 天时间，失败也会积累炼丹经验。</p>
-      <div id="alchemyInfo"></div><div id="alchemyActions"></div>
-    </section>
-    <section class="panel">
-      <h2>法器与锻造</h2>
-      <p class="section-tip">击败妖兽有机会剥取兽材。兽材与灵石可锻造法器；装备后的属性会直接进入战斗公式。</p>
-      <div id="gearInfo"></div><div id="gearActions"></div>
-    </section>
-    <section class="panel">
-      <h2>功法</h2><div id="manualList"></div><h3>法术与技艺</h3><div id="spellList"></div>
-    </section>
+    <section class="panel"><h2>宗门</h2><p class="section-tip">宗门不是静态称号：任务、贡献、月俸、兑换和身份晋升都会真实影响角色成长。</p><div id="sectInfo"></div><div id="sectActions"></div></section>
+    <section class="panel"><h2>炼丹</h2><p class="section-tip">采来的灵草和坊市资源可以炼成丹药。每炉真实消耗材料与 1 天时间，失败也会积累炼丹经验。</p><div id="alchemyInfo"></div><div id="alchemyActions"></div></section>
+    <section class="panel"><h2>法器与锻造</h2><p class="section-tip">击败妖兽有机会剥取兽材。兽材与灵石可锻造法器；装备后的属性会直接进入战斗公式。</p><div id="gearInfo"></div><div id="gearActions"></div></section>
+    <section class="panel"><h2>功法</h2><div id="manualList"></div><h3>法术与技艺</h3><div id="spellList"></div></section>
   </section>
 
   <section id="page-map" class="page">
-    <section class="panel">
-      <h2>天下行旅</h2>
-      <p class="section-tip">赶路会真实消耗时间；大事件不会因为你在路上而暂停。</p>
-      <div id="mapList"></div>
-    </section>
-    <section class="panel">
-      <h2>临江坊市</h2>
-      <p class="section-tip">坊市行情会随世界经济波动。买价始终高于卖价，不能靠原地倒卖刷灵石；回春散可在受伤后直接疗伤。</p>
-      <div id="marketInfo"></div><div id="marketActions"></div>
-    </section>
+    <section class="panel"><h2>天下行旅</h2><p class="section-tip">赶路会真实消耗时间；大事件不会因为你在路上而暂停。</p><div id="mapList"></div></section>
+    <section class="panel"><h2>临江坊市</h2><p class="section-tip">坊市行情会随世界经济波动。买价始终高于卖价，不能靠原地倒卖刷灵石；回春散可在受伤后直接疗伤。</p><div id="marketInfo"></div><div id="marketActions"></div></section>
   </section>
 
   <section id="page-events" class="page">
@@ -127,7 +98,7 @@
   <section id="page-relations" class="page">
     <section class="panel">
       <h2>人物关系</h2>
-      <p class="section-tip">NPC 会自己修炼、移动、结交、结怨甚至死亡。你与他们发生过的事会留下关系和恩怨。</p>
+      <p class="section-tip">见面后可赠礼、论道、切磋或求助。交情深会带来实际帮助；仇恨太深，对方也可能在同一地点伏击或劫掠你。</p>
       <div id="npcList"></div>
     </section>
   </section>
@@ -142,6 +113,6 @@
 </div>
 
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
-<script src="./app.js?v=0701"></script>
+<script src="./app.js?v=0801"></script>
 </body>
 </html>
