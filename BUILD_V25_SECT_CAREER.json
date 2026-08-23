@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.5.0",
+  "build": "2501",
+  "milestone": "sect-career-mentorship",
+  "source": "src/game-v25.js",
+  "source_sha256": "d3cc012b5e1f3aa65e5c562e2cc5df6f8753884630d0312f6539b68b757f5488",
+  "source_bytes": 190540,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 22,
+  "checks": [
+    "five-rank Qingyun career",
+    "real nonlethal promotion assessments",
+    "four mentor lineages",
+    "mentor cooldown and bond progression",
+    "rank-gated senior sect tasks",
+    "rank-scaled stipend and exchanges",
+    "schema 21 to 22 migration",
+    "V2.4 systems preserved"
+  ]
+}
