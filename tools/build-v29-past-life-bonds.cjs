@@ -24,7 +24,7 @@ must("['player.npcFavorReturns',p.npcFavorReturns],['world.npcConsequenceEvents'
 
 must('\nfunction cultivationGainForDays(days=1,retreatBoost=1)','\n'+block+'\n\nfunction cultivationGainForDays(days=1,retreatBoost=1)','insert past-life block');
 
-must("if(!state.flags.dead||state.flags.legacyRecorded)return 0;const gain=legacyGainThisLife();const","if(!state.flags.dead||state.flags.legacyRecorded)return 0;ensurePastLifeShape();capturePastLifeBonds();const gain=legacyGainThisLife();const",'capture bonds on death');
+must("if(!state.flags.dead||state.flags.legacyRecorded)return 0;const gain=legacyGainThisLife();state.legacy=state.legacy||","if(!state.flags.dead||state.flags.legacyRecorded)return 0;ensurePastLifeShape();capturePastLifeBonds();const gain=legacyGainThisLife();state.legacy=state.legacy||",'capture bonds on death');
 
 const oldFirstReset="state.legacy=keep.legacy;for(const n of state.npcs){n.relation=0;n.grudge=0;n.lastGiftDay=0;n.lastDaoDay=0;n.lastSparDay=0;n.lastHelpMonth=0;n.lastRevengeDay=0}state.personalLog=[];";
 const newFirstReset="state.legacy=keep.legacy;ensurePastLifeShape();resetPlayerNpcTiesForRebirth();state.personalLog=[];";
