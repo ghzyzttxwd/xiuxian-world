@@ -28,6 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/finalize-v31-taskbook.py
+          sed -i -E '/最近重大修订：|当前正式基线：/ s/[[:space:]]+$//' docs/PROJECT_TASKBOOK.md
           grep -q '当前正式基线：V3.1.0 · 功法术法大扩容 · build 3101 · save schema 28' docs/PROJECT_TASKBOOK.md
           grep -q 'V3.1 功法 / 法术 | DONE' docs/PROJECT_TASKBOOK.md
           grep -q 'V3.2 法宝 / 炼器 | TODO / CURRENT' docs/PROJECT_TASKBOOK.md
