@@ -1,0 +1,139 @@
+name: Build V0.3 combat
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["BUILD_V03.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Generate V0.3 source and app shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/upgrade_v03.py
+          node --check src/game-v03.js
+          grep -q "const VERSION='0.3.0'" src/game-v03.js
+          grep -q "battleWins" src/game-v03.js
+          grep -q "御风步" src/game-v03.js
+          grep -q "deathRisk" src/game-v03.js
+          grep -q "src/game-v03.js" app.js
+          ! grep -q "bundle2" app.js
+          grep -q "V0.3" index.html
+          grep -q "taixuan-v0.3.0-combat-v03" sw.js
+
+      - name: Headless gameplay regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          cat > /tmp/test-v03.mjs <<'JS'
+          import fs from 'fs';
+          import assert from 'assert';
+          import {JSDOM} from 'jsdom';
+          const html=fs.readFileSync('index.html','utf8').replace(/<script src="\.\/app\.js"><\/script>/,'');
+          const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});
+          dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
+          Object.defineProperty(dom.window.navigator,'serviceWorker',{value:undefined,configurable:true});
+          dom.window.console=console;
+          dom.window.eval(fs.readFileSync('src/game-v03.js','utf8'));
+          const api=dom.window.__TAIXUAN_TEST__;
+          assert(api,'test API missing');
+          api.newGame('回归测试者');
+          let s=api.getState();
+          assert.equal(s.version,'0.3.0');
+          assert.equal(s.player.battleWins,0);
+          assert.equal(s.player.battleLosses,0);
+          api.startCombat('灰背野狼');
+          for(let i=0;i<20&&api.getCombat();i++) api.combatAction('attack');
+          s=api.getState();
+          assert(s.player.battleWins>=1,'weak-enemy combat did not resolve as win');
+          assert(s.player.kills>=1,'kill stat not updated');
+          api.startCombat('黑风岭狼王');
+          for(let i=0;i<20&&api.getCombat();i++) api.combatAction('attack');
+          s=api.getState();
+          assert(s.flags.dead || s.player.battleLosses>=1,'dangerous combat produced neither loss nor death');
+          if(!s.flags.dead) assert(s.player.injury>=1,'combat loss did not create injury');
+          console.log('V0.3 gameplay regression PASS',JSON.stringify({wins:s.player.battleWins,losses:s.player.battleLosses,injury:s.player.injury,dead:!!s.flags.dead}));
+          JS
+          node /tmp/test-v03.mjs
+
+      - name: Commit generated V0.3 files to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v03.js app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest README.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: V0.3 combat loop [skip ci]'
+            git push origin HEAD:main
+          fi
+
+      - name: Publish V0.3 runtime to gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp src/game-v03.js /tmp/pages/src/game-v03.js
+          cp app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest /tmp/pages/
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v03.js app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: publish V0.3 combat loop [skip ci]'
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Public terminal verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}?game=0.3&x=${GITHUB_SHA}" -o /tmp/index.html || ok=0
+            curl -fsSL "${BASE}app.js?game=0.3&x=${GITHUB_SHA}" -o /tmp/app.js || ok=0
+            curl -fsSL "${BASE}src/game-v03.js?game=0.3&x=${GITHUB_SHA}" -o /tmp/game.js || ok=0
+            curl -fsSL "${BASE}sw.js?game=0.3&x=${GITHUB_SHA}" -o /tmp/sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?game=0.3&x=${GITHUB_SHA}" -o /tmp/manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?x=${GITHUB_SHA}" -o /tmp/icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?x=${GITHUB_SHA}" -o /tmp/icon192.png || ok=0
+            if [ "$ok" -eq 1 ] && grep -q 'V0.3' /tmp/index.html && grep -q 'src/game-v03.js' /tmp/app.js && grep -q "const VERSION='0.3.0'" /tmp/game.js && grep -q 'battleWins' /tmp/game.js && grep -q 'taixuan-v0.3.0-combat-v03' /tmp/sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then
+              break
+            fi
+            test "$i" -lt 60 || exit 1
+            sleep 5
+          done
+          node --check /tmp/game.js
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/manifest.json'))
+          assert m['display']=='standalone'
+          assert m['short_name']=='太玄界'
+          assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          assert all(x['purpose']=='any' for x in m['icons'])
+          PY
+          cd /tmp/pages
+          printf '%s\n' '{"status":"PASS","game_version":"0.3.0","milestone":"combat-loop","checks":["public HTTP 200","V0.3 app shell","direct readable source loader","source syntax","combat fields","injury/death system","standalone manifest","V6 icon regression hash"]}' > PUBLIC_V03_STATUS.json
+          git add PUBLIC_V03_STATUS.json
+          git commit -m 'chore: record V0.3 public verification [skip ci]'
+          git push origin HEAD:gh-pages
