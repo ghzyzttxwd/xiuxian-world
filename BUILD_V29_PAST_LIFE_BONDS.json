@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.9.0",
+  "build": "2901",
+  "milestone": "past-life-bonds",
+  "source": "src/game-v29.js",
+  "source_sha256": "b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99",
+  "source_bytes": 251842,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 26,
+  "checks": [
+    "deep friendship snapshot at life end",
+    "no direct relationship inheritance",
+    "old favor debt cleared on rebirth",
+    "old pending requests cleared on rebirth",
+    "one-time past-life recognition",
+    "small old-friend starting benefit",
+    "schema 25 to 26 migration",
+    "V2.8 consequence systems preserved"
+  ]
+}
