@@ -8,3 +8,4 @@ build=2901
 schema=26
 retrigger=3
 transport=same-repo-pr
+pr_transport_run=1
