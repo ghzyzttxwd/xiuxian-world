@@ -1,0 +1,7 @@
+V3.1 manual spell expansion final release
+validation_pr=31
+fallback_validation_pr=32
+base=270bea00616cb54546dd63af3bcaa8766f4e5f50
+source_sha256=492a2808ba69727ab6232e753ed25f388cc324cff0a8032a1ccc35f8549180e7
+build=3101
+schema=28
