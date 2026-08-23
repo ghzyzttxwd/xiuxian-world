@@ -1,0 +1,75 @@
+name: V3.8 mahayana origin
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V38_MAHAYANA_ORIGIN.trigger"
+      - "content/v38-mahayana-origin.cjs"
+      - "content/v38-world-actors.cjs"
+      - "tools/v38-mahayana-origin-runtime.txt"
+      - "tools/build-v38-mahayana-origin.cjs"
+      - "tests/regression-v38.mjs"
+      - ".github/workflows/v38-mahayana-origin.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taixuan-v38-mahayana-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v38:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact V3.7 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v37.js | awk '{print $1}')" = "16e5d00143d5c860671cf46b033a3cb9673c8e2ec06ae468850a13a366f74321"
+          node -e "const s=require('./PUBLIC_V37_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.7.0'||s.build!=='3701'||s.save_schema_version!==34||s.content_registry_version!==8||s.source_sha256!=='16e5d00143d5c860671cf46b033a3cb9673c8e2ec06ae468850a13a366f74321')throw new Error('V3.7 baseline mismatch')"
+      - name: Build deterministic V3.8 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v38-mahayana-origin.cjs
+          node --check src/game-v38.js
+          first=$(sha256sum src/game-v38.js | awk '{print $1}')
+          node tools/build-v38-mahayana-origin.cjs >/tmp/v38-build-second.log
+          second=$(sha256sum src/game-v38.js | awk '{print $1}')
+          test "$first" = "$second"
+          node -e "const b=require('./BUILD_V38_MAHAYANA_ORIGIN.json');const c=b.counts;if(b.status!=='PASS'||b.gameplay_version!=='3.8.0'||b.build!=='3801'||b.save_schema_version!==35||b.content_registry_version!==9||c.realms!==38||c.regions!==24||c.routes!==38||c.materials!==84||c.recipes!==48||c.manuals!==40||c.spells!==96||c.equipment!==84||c.true_artifacts!==48||c.enemies!==84||c.world_powers!==4||c.world_actors!==6||c.world_crises!==3||c.auction_pool!==24)throw new Error('V3.8 report mismatch')"
+          test "$(node -e "const b=require('./BUILD_V38_MAHAYANA_ORIGIN.json');process.stdout.write(b.source_sha256)")" = "$first"
+          grep -q "const VERSION='3.8.0'" src/game-v38.js
+          grep -q 'const SAVE_SCHEMA_VERSION=35' src/game-v38.js
+          grep -q 'realm-mahayana-perfect' src/game-v38.js
+          grep -q 'v38StartWorldCrisis' src/game-v38.js
+          grep -q 'v38PrepareTribulation' src/game-v38.js
+          echo "V38_SOURCE_SHA=$first"
+      - name: Run V2.9 through V3.8 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          node tests/regression-v38.mjs
+      - name: Frozen V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
