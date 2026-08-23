@@ -1,0 +1,2 @@
+V3.8 mahayana origin validation
+base=7e08950ca65f60b283b6c65a6ac14c052d03929d
