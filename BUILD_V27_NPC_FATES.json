@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.7.0",
+  "build": "2701",
+  "milestone": "npc-fate-network",
+  "source": "src/game-v27.js",
+  "source_sha256": "42cba54234472ec526bfdbfab01cb6fcf39dd19c41647cc2611d2e8e57d05e21",
+  "source_bytes": 225390,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 24,
+  "checks": [
+    "dynamic NPC age injury and lifespan death",
+    "persistent NPC to NPC relations",
+    "dangerous-region independent adventures",
+    "NPC secret realm participation",
+    "NPC faction war participation",
+    "friend battle assistance",
+    "persistent memorial records",
+    "schema 23 to 24 migration",
+    "V2.6 systems preserved"
+  ]
+}
