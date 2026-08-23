@@ -1,4 +1,4 @@
-mode=v13-faction-war-prerelease
-candidate=858421c9f97d07d3f76522185e99ec7105a723a5
-verifier=460bcb54bdfec4f204638094e31ffb151c40157e
-trigger=20260823-1345-v13-pre-r1
+mode=v13-public-verify
+build=1301
+release=b7025abe666bda7e08fe8adb7a8690bc28a959f3
+trigger=20260823-1346-v13-final-r1
