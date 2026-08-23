@@ -8,6 +8,8 @@ on:
       - "content/v32-equipment.cjs"
       - "tools/v32-artifact-runtime.txt"
       - "tools/build-v32-artifact-forging.cjs"
+      - "tools/release-v32-assets.cjs"
+      - "tools/verify-v32-public.sh"
       - "tests/regression-v32.mjs"
       - ".github/workflows/v32-artifact-forging.yml"
 
@@ -42,11 +44,11 @@ jobs:
           node tools/build-v32-artifact-forging.cjs
           node --check src/game-v32.js
           first=$(sha256sum src/game-v32.js | awk '{print $1}')
+          test "$first" = "750d77bbf239f98f9e0a22cea041f323824962919796ea88786e3739dc0b6037"
           node tools/build-v32-artifact-forging.cjs >/tmp/v32-build-second.log
           second=$(sha256sum src/game-v32.js | awk '{print $1}')
           test "$first" = "$second"
-          node -e "const b=require('./BUILD_V32_ARTIFACT_FORGING.json');if(b.status!=='PASS'||b.gameplay_version!=='3.2.0'||b.build!=='3201'||b.milestone!=='artifact-forging-system'||b.save_schema_version!==29||b.content_registry_version!==3||b.counts.equipment!==60||b.counts.true_artifacts!==24||b.counts.active_artifacts<12||b.counts.build_passive_artifacts<12||b.counts.base_slots!==3||b.counts.artifact_slots!==4)throw new Error('V3.2 report mismatch')"
-          test "$(node -e "const b=require('./BUILD_V32_ARTIFACT_FORGING.json');process.stdout.write(b.source_sha256)")" = "$first"
+          node -e "const b=require('./BUILD_V32_ARTIFACT_FORGING.json');if(b.status!=='PASS'||b.gameplay_version!=='3.2.0'||b.build!=='3201'||b.milestone!=='artifact-forging-system'||b.source_sha256!=='750d77bbf239f98f9e0a22cea041f323824962919796ea88786e3739dc0b6037'||b.save_schema_version!==29||b.content_registry_version!==3||b.counts.equipment!==60||b.counts.true_artifacts!==24||b.counts.active_artifacts!==21||b.counts.build_passive_artifacts!==24||b.counts.base_slots!==3||b.counts.artifact_slots!==4)throw new Error('V3.2 report mismatch')"
           grep -q "const VERSION='3.2.0'" src/game-v32.js
           grep -q 'const SAVE_SCHEMA_VERSION=29' src/game-v32.js
           grep -q 'V32_EQUIPMENT_CATALOG' src/game-v32.js
@@ -64,6 +66,20 @@ jobs:
           node tests/regression-v30.mjs
           node tests/regression-v31.mjs
           node tests/regression-v32.mjs
+
+      - name: Validate V3.2 release assets and public shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/release-v32-assets.cjs
+          bash -n tools/verify-v32-public.sh
+          node tools/release-v32-assets.cjs
+          grep -q "gameplayVersion:'3.2.0'" app.js
+          grep -q 'src/game-v32.js?v=3201' app.js
+          grep -q 'V3.2 · 法宝炼器体系' index.html
+          grep -q 'taixuan-v3.2.0-artifact-forging-system-3201' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
 
       - name: Frozen V6 icon regression
         shell: bash
