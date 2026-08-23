@@ -11,13 +11,13 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css" />
-  <title>太玄界 · 修仙大世界 V0.5</title>
+  <title>太玄界 · 修仙大世界 V0.6</title>
 </head>
 <body>
 <div id="startScreen" class="start">
   <section class="panel start-box">
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.5</p>
+    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.6</p>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions">
       <button id="newGameBtn" class="primary">穿越此界</button>
@@ -25,7 +25,7 @@
       <button id="installStartBtn" class="ghost">安装应用</button>
     </div>
     <div id="installStatus" class="install-note"></div>
-    <div class="version">V0.5 · 坊市与经济闭环</div>
+    <div class="version">V0.6 · 炼丹与资源闭环</div>
   </section>
 </div>
 
@@ -92,6 +92,12 @@
       <div id="sectInfo"></div><div id="sectActions"></div>
     </section>
     <section class="panel">
+      <h2>炼丹</h2>
+      <p class="section-tip">采来的灵草和坊市资源现在可以直接炼成丹药。每炉真实消耗材料与 1 天时间，失败也会积累炼丹经验。</p>
+      <div id="alchemyInfo"></div>
+      <div id="alchemyActions"></div>
+    </section>
+    <section class="panel">
       <h2>功法</h2><div id="manualList"></div><h3>法术与技艺</h3><div id="spellList"></div>
     </section>
   </section>
@@ -133,6 +139,6 @@
 </div>
 
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
-<script src="./app.js?v=0501"></script>
+<script src="./app.js?v=0601"></script>
 </body>
 </html>
