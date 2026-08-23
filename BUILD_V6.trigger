@@ -1,5 +1,4 @@
-mode=v11-public-verify
-build=1104
-release=53c24f5273e4e5cd3e4f00d1f904c43493fb457a
-verifier=055498416482472552c813400cb73a885f56454c
-trigger=20260823-1324-1104-r4
+mode=v12-prerelease
+candidate=7262a83bbbf67ce7b1e3a920fcd0cfe4472e54d5
+verifier=971fdf5ae66f2a32be2e68dc057efac74c56b5b7
+trigger=20260823-1324-v12-pre-r1
