@@ -1,0 +1,258 @@
+name: V2.5 sect career validation and release
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V25_SECT_CAREER.trigger"
+      - "tools/build-v25-sect-career.cjs"
+      - "tools/v25-sect-block.txt"
+      - "tests/regression-v25.mjs"
+      - ".github/workflows/v25-sect-career.yml"
+  push:
+    branches: ["main"]
+    paths: ["V25_SECT_CAREER.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v25-sect-career-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v25:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify V2.4 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const s=require('./PUBLIC_V24_STATUS.json');
+          if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='2401'||s.game_version!=='2.4.0'||s.realm_count!==26||s.location_count!==12||s.route_count!==20||s.save_schema_version!==21) throw new Error('V2.4 baseline is not verified');
+          JS
+      - name: Build V2.5 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/build-v25-sect-career.cjs
+          node tools/build-v25-sect-career.cjs
+          node --check src/game-v25.js
+          node - <<'JS'
+          const b=require('./BUILD_V25_SECT_CAREER.json');
+          if(b.status!=='PASS'||b.gameplay_version!=='2.5.0'||b.build!=='2501'||b.realm_count!==26||b.location_count!==12||b.route_count!==20||b.save_schema_version!==22) throw new Error('V2.5 build report mismatch');
+          JS
+          grep -q "const VERSION='2.5.0'" src/game-v25.js
+          grep -q 'SECT_RANKS' src/game-v25.js
+          grep -q '真传弟子' src/game-v25.js
+          grep -q '宗门执事' src/game-v25.js
+          grep -q '宗门长老' src/game-v25.js
+          grep -q 'SECT_MENTORS' src/game-v25.js
+          grep -q '古河遗迹镇禁' src/game-v25.js
+          grep -q '玄阴禁地巡狩' src/game-v25.js
+          ! grep -q '天道酬勤' src/game-v25.js
+      - name: Run V2.4 and V2.5 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v24.mjs
+          node tests/regression-v25.mjs
+      - name: V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v25:
+    if: github.event_name == 'push'
+    needs: validate-v25
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Rebuild and regress exact release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/build-v25-sect-career.cjs
+          node tools/build-v25-sect-career.cjs
+          node --check src/game-v25.js
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v24.mjs
+          node tests/regression-v25.mjs
+      - name: Switch runtime shell to V2.5 build 2501
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > app.js <<'JS'
+          // 太玄界 V2.5 青云宗门生涯加载器 · build 2501
+          (()=>{
+            const fail=(e)=>{console.error(e);document.body.innerHTML='<div style="max-width:680px;margin:40px auto;padding:20px;color:#fff;background:#171a16;border:1px solid #485042;border-radius:14px;font-family:system-ui;line-height:1.7"><h2>太玄界加载失败</h2><div>'+String(e)+'</div><p>请刷新页面；若仍失败，请把这段错误发给我。</p></div>'};
+            try{window.__TAIXUAN_BUILD__={engineeringVersion:'2.5.0',gameplayVersion:'2.5.0',build:'2501',milestone:'sect-career-mentorship',source:'src/game-v25.js',legacyPatchChain:false};document.title='太玄界 · 修仙大世界 V2.5';const script=document.createElement('script');script.src='./src/game-v25.js?v=2501';script.async=false;script.onload=()=>{if(!window.__TAIXUAN_TEST__)fail(new Error('V2.5 直接源码运行时未完成初始化'))};script.onerror=()=>fail(new Error('V2.5 游戏核心加载失败：src/game-v25.js'));document.head.appendChild(script)}catch(e){fail(e)}})();
+          JS
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html'); s=p.read_text(encoding='utf-8')
+          pairs=[
+            ('太玄界 · 修仙大世界 V2.4','太玄界 · 修仙大世界 V2.5'),
+            ('修仙大世界 · V2.4','修仙大世界 · V2.5'),
+            ('V2.4 · 凡修生存重平衡','V2.5 · 青云宗门生涯'),
+            ('./app.js?v=2401','./app.js?v=2501'),
+            ('V2.4 重做普通修士的生存难度：移除额外修炼外挂，境界需求越往后增长越快；跨大境界战斗会产生强烈压制；寿元耗尽会永久结束本世。丹药、洞府、功法、秘境与势力系统继续保留。','V2.4 的凡修生存重平衡继续保留。V2.5 深化青云宗门生涯：外门、内门、真传、执事、长老逐级展开，拜师、晋升考核、高阶差事、月俸与资源配额会长期影响成长。'),
+            ('宗门不是静态称号：任务、贡献、月俸、兑换和身份晋升都会真实影响角色成长。','青云宗现在拥有完整长期生涯：外门→内门→真传→执事→长老。晋升要看境界、任务、贡献、师承与真实战斗考核；高身份解锁高阶差事、月俸与宗门资源配额。')
+          ]
+          for old,new in pairs:
+            if old not in s: raise SystemExit(f'index anchor missing: {old}')
+            s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+          cat > sw.js <<'JS'
+          const CACHE='taixuan-v2.5.0-sect-career-2501';
+          const CORE=['./','./index.html?v=2501','./style.css','./app.js?v=2501','./src/game-v25.js?v=2501','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6'];
+          self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+          self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+          self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=2501'))));});
+          JS
+          cat > README.md <<'MD'
+          # 太玄界 · 修仙大世界
+
+          当前正式版本：**V2.5.0 · 青云宗门生涯（build 2501）**
+
+          正式运行结构：`index.html -> app.js -> src/game-v25.js`。浏览器直接加载可读源码，不使用历史补丁链或 `eval`。
+
+          ## V2.5
+          - 保留 V2.4 的 26 境界长修炼曲线、强大境界压制、寿元终结与全部既有地图/道途/势力系统；
+          - 青云宗身份扩展为外门弟子、内门弟子、真传弟子、宗门执事、宗门长老五级；
+          - 每次晋升同时要求境界、任务、贡献、师承、青云关系和真实宗门战斗考核，不能只点按钮升职；
+          - 晋升考核使用真实战斗，但属于非致命宗门试炼：失败不死亡、不掉灵石，通过后同级不能反复刷奖励；
+          - 内门后可在四位长老中择师，30日一次正式请教；师徒情分进入真传、执事、长老晋升条件，同道师承额外增长道途熟练；
+          - 真传解锁古河遗迹镇禁，执事解锁玄阴禁地巡狩，均要求真实战斗完成；
+          - 月俸与贡献兑换随身份升级，高阶弟子和长老可获得高阶灵材、悟道名额等宗门资源配额。
+
+          ## 存档
+          V2.5 使用 `saveSchemaVersion = 22`，新增宗门师承、师徒情分、晋升考核和高阶差事记录。V2.4 schema21 自动迁移；未来 schema23+ 拒绝覆盖。
+
+          V6 App 图标保持固定 SHA-256，不修改。
+          MD
+          node --check app.js
+          node --check sw.js
+          grep -q 'src/game-v25.js?v=2501' app.js
+          grep -q 'src/game-v25.js?v=2501' sw.js
+          ! grep -q 'bundle2' app.js
+          ! grep -q 'eval' app.js
+      - name: Regress after shell switch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v25.mjs
+      - name: Commit V2.5 runtime to main
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v25.js BUILD_V25_SECT_CAREER.json app.js index.html sw.js README.md
+          if ! git diff --cached --quiet; then git commit -m 'feat: V2.5 sect career and mentorship [skip ci]'; git push origin HEAD:main; fi
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Publish exact V2.5 assets to gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp src/game-v25.js /tmp/pages/src/game-v25.js
+          cp BUILD_V25_SECT_CAREER.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png /tmp/pages/
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v25.js BUILD_V25_SECT_CAREER.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png
+          if ! git diff --cached --quiet; then git commit -m "feat: publish V2.5 sect career ${RELEASE_SHA} [skip ci]"; git push origin HEAD:gh-pages; fi
+      - name: Public terminal verification
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}?v=2501&x=${RELEASE_SHA}-${i}" -o /tmp/public-index.html || ok=0
+            curl -fsSL "${BASE}app.js?v=2501&x=${RELEASE_SHA}-${i}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}src/game-v25.js?v=2501&x=${RELEASE_SHA}-${i}" -o /tmp/public-game.js || ok=0
+            curl -fsSL "${BASE}sw.js?v=2501&x=${RELEASE_SHA}-${i}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${RELEASE_SHA}-${i}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon192.png || ok=0
+            if [ "$ok" = 1 ] && grep -q "src/game-v25.js?v=2501" /tmp/public-app.js && grep -q "const VERSION='2.5.0'" /tmp/public-game.js && grep -q 'SECT_RANKS' /tmp/public-game.js && grep -q '宗门长老' /tmp/public-game.js; then break; fi
+            if [ "$i" = 60 ]; then echo 'public assets did not converge to V2.5' >&2; exit 1; fi
+            sleep 2
+          done
+          node --check /tmp/public-app.js
+          node --check /tmp/public-game.js
+          node --check /tmp/public-sw.js
+          test "$(sha256sum /tmp/public-icon512.png | awk '{print $1}')" = "$EXPECT512"
+          test "$(sha256sum /tmp/public-icon192.png | awk '{print $1}')" = "$EXPECT192"
+          node - <<'JS'
+          const fs=require('fs');const m=JSON.parse(fs.readFileSync('/tmp/public-manifest.json','utf8'));
+          if(m.display!=='standalone')throw new Error('manifest display is not standalone');
+          if(!Array.isArray(m.icons)||!m.icons.some(x=>String(x.src).includes('icon-v6-192.png'))||!m.icons.some(x=>String(x.src).includes('icon-v6-512.png')))throw new Error('manifest V6 icons missing');
+          JS
+          LOCAL_SHA="$(sha256sum src/game-v25.js | awk '{print $1}')"
+          PUBLIC_SHA="$(sha256sum /tmp/public-game.js | awk '{print $1}')"
+          test "$LOCAL_SHA" = "$PUBLIC_SHA"
+          INDEX_PATH=/tmp/public-index.html GAME_PATH=/tmp/public-game.js node tests/regression-v25.mjs
+      - name: Record V2.5 public PASS on gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          SHA="$(sha256sum src/game-v25.js | awk '{print $1}')"
+          cat > /tmp/status.json <<JSON
+          {"status":"PASS","game_version":"2.5.0","build":"2501","milestone":"sect-career-mentorship","verified_commit":"${RELEASE_SHA}","source_sha256":"${SHA}","realm_count":26,"location_count":12,"route_count":20,"save_schema_version":22,"stage":"public-pass","checks":["V2.4 public baseline PASS","V2.5 source build","five-rank Qingyun career","real nonlethal promotion assessments","four mentor lineages","mentor cooldown and bond progression","rank-gated senior sect tasks","rank-scaled stipend and exchanges","V2.4 system regression","schema 21 to 22 migration","future-save overwrite guard","public asset HTTP 200","public source hash equality","public headless regression","standalone manifest","V6 icon hash regression"]}
+          JSON
+          cd /tmp/pages
+          cp /tmp/status.json PUBLIC_V25_STATUS.json
+          git add PUBLIC_V25_STATUS.json
+          git commit -m 'chore: record V2.5 public PASS [skip ci]'
+          git push origin HEAD:gh-pages
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V25_STATUS.json'
+          for i in $(seq 1 60); do
+            if curl -fsSL "${BASE}?x=${RELEASE_SHA}-${i}" -o /tmp/public-status.json && node -e "const s=require('/tmp/public-status.json');if(s.status!=='PASS'||s.stage!=='public-pass'||s.verified_commit!=='${RELEASE_SHA}'||s.build!=='2501')process.exit(1)"; then exit 0; fi
+            sleep 2
+          done
+          echo 'PUBLIC_V25_STATUS did not become visible' >&2
+          exit 1
+      - name: Sync verified public PASS to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          cp /tmp/status.json PUBLIC_V25_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V25_STATUS.json
+          git commit -m 'chore: sync verified V2.5 public PASS to main [skip ci]'
+          git push origin HEAD:main
