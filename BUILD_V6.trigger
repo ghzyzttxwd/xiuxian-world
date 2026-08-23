@@ -1,4 +1,4 @@
-mode=v08-relations-prerelease
+mode=v08-public-verify
 patch=0801
-candidate=66bedf564d1cfb820a8658caaad83e867a15d1c4
-trigger=20260823-1244
+release=169b2004b5ed75ee5b2908e5254a02054bbf52fd
+trigger=20260823-1247
