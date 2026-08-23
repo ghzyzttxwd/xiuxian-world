@@ -44,11 +44,11 @@ jobs:
           node tools/build-v33-alchemy-materials.cjs
           node --check src/game-v33.js
           first=$(sha256sum src/game-v33.js | awk '{print $1}')
-          test "$first" = "c3371124a938ed95b1877c26f15e2430ea5cee8d30f5856beaaa3e83509e0af6"
+          test "$first" = "f478196139011917072db71697bb306e2de105d5be1abdb1e0d71820be88d425"
           node tools/build-v33-alchemy-materials.cjs >/tmp/v33-build-second.log
           second=$(sha256sum src/game-v33.js | awk '{print $1}')
           test "$first" = "$second"
-          node -e "const b=require('./BUILD_V33_ALCHEMY_MATERIALS.json');if(b.status!=='PASS'||b.gameplay_version!=='3.3.0'||b.build!=='3301'||b.milestone!=='alchemy-material-loop'||b.source_sha256!=='c3371124a938ed95b1877c26f15e2430ea5cee8d30f5856beaaa3e83509e0af6'||b.save_schema_version!==30||b.content_registry_version!==4||b.counts.materials!==48||b.counts.named_materials!==40||b.counts.recipes!==24||b.counts.pills!==24)throw new Error('V3.3 report mismatch')"
+          node -e "const b=require('./BUILD_V33_ALCHEMY_MATERIALS.json');if(b.status!=='PASS'||b.gameplay_version!=='3.3.0'||b.build!=='3301'||b.milestone!=='alchemy-material-loop'||b.source_sha256!=='f478196139011917072db71697bb306e2de105d5be1abdb1e0d71820be88d425'||b.save_schema_version!==30||b.content_registry_version!==4||b.counts.materials!==48||b.counts.named_materials!==40||b.counts.recipes!==24||b.counts.pills!==24)throw new Error('V3.3 report mismatch')"
           grep -q "const VERSION='3.3.0'" src/game-v33.js
           grep -q 'const SAVE_SCHEMA_VERSION=30' src/game-v33.js
           grep -q 'V33_MATERIAL_CATALOG' src/game-v33.js
@@ -71,16 +71,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp index.html /tmp/v33-index-before.html
-          cp app.js /tmp/v33-app-before.js
-          cp sw.js /tmp/v33-sw-before.js
           node tools/release-v33-assets.cjs
           grep -q 'V3.3 · 炼丹材料资源闭环' index.html
           grep -q 'src/game-v33.js?v=3301' app.js
           grep -q "gameplayVersion:'3.3.0'" app.js
           grep -q 'taixuan-v3.3.0-alchemy-material-loop-3301' sw.js
           bash -n tools/verify-v33-public.sh
-          test "$(grep -o "EXPECT_GAME='[^']*'" tools/verify-v33-public.sh | cut -d\' -f2)" = "c3371124a938ed95b1877c26f15e2430ea5cee8d30f5856beaaa3e83509e0af6"
+          test "$(grep -o "EXPECT_GAME='[^']*'" tools/verify-v33-public.sh | cut -d\' -f2)" = "f478196139011917072db71697bb306e2de105d5be1abdb1e0d71820be88d425"
 
       - name: Frozen V6 icon regression
         shell: bash
