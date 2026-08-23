@@ -66,7 +66,6 @@ must(/function createNPCs\(\)\{[\s\S]*?\nfunction chooseRoot/,npcCode+'\nfunctio
 const sim=`function simulateNPCs(){
  for(const n of state.npcs){if(!n.alive)continue;n.progress+=Math.max(1,Math.floor((n.talent/100)*rint(1,4)));if(n.progress>=100&&n.realmIndex<8){n.progress-=100;n.realmIndex++;if(rand()<.12){n.known=true;addWorld(\`${'${n.name}'}突破至${'${REALMS[n.realmIndex].name}'}。\`)}}
  if(rand()<.035)n.location=npcMoveTarget(n);if(rand()<.006&&n.realmIndex===0&&n.age>50){n.alive=false;if(n.known)addWorld(\`${'${n.name}'}寿终，修真路上又少了一位旧人。\`)}}
- }
 }`;
 must(/function simulateNPCs\(\)\{[\s\S]*?\n\}\nfunction cultivate/,sim+'\nfunction cultivate','npc movement');
 
