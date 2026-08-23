@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.8.0",
+  "build": "2801",
+  "milestone": "npc-life-consequences",
+  "source": "src/game-v28.js",
+  "source_sha256": "6951ff38b0817a6aabc46c126d74af99451183b5ad506e98fe5af587a8ec963a",
+  "source_bytes": 244615,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 25,
+  "checks": [
+    "NPC help requests with real resource costs",
+    "persistent player-to-NPC favor debt and returns",
+    "NPC feud escalation with injury/death",
+    "dynamic NPC faction membership",
+    "low-frequency stateful major life events",
+    "retirement affects autonomous risk-taking",
+    "schema 24 to 25 migration",
+    "V2.7 fate systems preserved"
+  ]
+}
