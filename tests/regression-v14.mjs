@@ -38,8 +38,6 @@ function cleanHtml(html) {
 
 function makeDom(seedSave = null) {
   const dom = new JSDOM(cleanHtml(htmlRaw), {
-    // Keep the headless origin non-HTTPS so production service-worker registration
-    // is not entered inside jsdom.
     url: 'http://example.test/',
     runScripts: 'outside-only',
     pretendToBeVisual: true,
@@ -100,7 +98,6 @@ let saved = dom.window.localStorage.getItem(SAVE_KEY);
 assert(saved, 'manual save did not write save key');
 assert.equal(JSON.parse(saved).saveSchemaVersion, CURRENT_SCHEMA, 'saved state was not stamped with current schema');
 
-// Reconstruct a V0.2-shaped save: no explicit schema and none of the V0.3-V1.3 fields.
 const old = JSON.parse(saved);
 delete old.saveSchemaVersion;
 old.version = '0.2.0';
@@ -134,14 +131,16 @@ assert.equal(migrated.player.secretRealmClears, 0, 'secret realm migration faile
 assert.equal(migrated.world.factionClashes, 0, 'faction war migration failed');
 assert((migrated.npcs || []).every(n => n.lastGiftDay != null && n.lastRevengeDay != null), 'NPC social migration failed');
 
-// Migration must be idempotent: loading an already-current save may not mutate game state.
+// Migration idempotence belongs at the persistence boundary. Continue intentionally
+// calls updateMajorEvents() after load(), so compare only load()->migrate->save output.
 const migratedRaw = migratedDom.window.localStorage.getItem(SAVE_KEY);
+assert(migratedRaw, 'migrated save was not persisted');
 const secondDom = makeDom(migratedRaw);
 secondDom.window.document.getElementById('continueBtn').click();
-const secondState = secondDom.window.__TAIXUAN_TEST__.getState();
-assert.deepStrictEqual(secondState, migrated, 'current-schema reload is not idempotent');
+const secondRaw = secondDom.window.localStorage.getItem(SAVE_KEY);
+assert(secondRaw, 'current-schema reload did not persist');
+assert.deepStrictEqual(JSON.parse(secondRaw), JSON.parse(migratedRaw), 'current-schema persistence migration is not idempotent');
 
-// A future schema must be rejected and, critically, must not be overwritten by this client.
 const future = JSON.parse(migratedRaw);
 future.saveSchemaVersion = CURRENT_SCHEMA + 1;
 future.version = 'future-test';
