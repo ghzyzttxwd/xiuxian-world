@@ -1,0 +1,1 @@
+{"status":"PASS","game_version":"1.2.0","milestone":"secret-realm","verified_commit":"e684388d511f091c494e90cb2c1e8d971064c29a","stage":"gameplay-pass","checks":["V0.2->V1.2 patch chain","V1.2 syntax","secret realm spawn/expiry","forage anti-repeat","guardian integration","core reward","relic decipher","old save migration"]}
