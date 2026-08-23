@@ -1,0 +1,226 @@
+name: V3.5 release fallback
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V35_RELEASE_FINAL.trigger"
+      - ".github/workflows/v35-release-fallback.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v35-release-fallback-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate exact V3.5 release machinery
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v35-economy-world.cjs
+          node --check src/game-v35.js
+          test "$(sha256sum src/game-v35.js | awk '{print $1}')" = "b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed"
+          node -e "const b=require('./BUILD_V35_ECONOMY_WORLD.json');if(b.status!=='PASS'||b.gameplay_version!=='3.5.0'||b.build!=='3501'||b.save_schema_version!==32||b.content_registry_version!==6||b.counts.shops!==4||b.counts.fixed_listings!==32||b.counts.auction_pool!==12||b.counts.total_trade_definitions!==44)throw new Error('V3.5 build mismatch')"
+          node --check tools/release-v35-assets.cjs
+          bash -n tools/verify-v35-public.sh
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tools/release-v35-assets.cjs
+          grep -q "gameplayVersion:'3.5.0'" app.js
+          grep -q 'src/game-v35.js?v=3501' app.js
+          grep -q 'V3.5 · 正常经济与世界整合' index.html
+          grep -q 'taixuan-v3.5.0-economy-world-integration-3501' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v35-final:
+    if: github.head_ref == 'v35-release-final-run'
+    needs: validate-fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 34
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - name: Checkout exact main release base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Reconfirm immutable main base and build runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          node tools/build-v35-economy-world.cjs
+          node --check src/game-v35.js
+          test "$(sha256sum src/game-v35.js | awk '{print $1}')" = "b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed"
+          node tools/release-v35-assets.cjs
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+      - name: Commit exact V3.5 runtime to main
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B main "$BASE_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v35.js BUILD_V35_ECONOMY_WORLD.json app.js index.html sw.js
+          git commit -m "feat: V3.5 economy world integration [skip ci]"
+          git push origin HEAD:main
+          echo "runtime_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact V3.5 runtime to gh-pages
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp index.html app.js sw.js BUILD_V35_ECONOMY_WORLD.json /tmp/pages/
+          cp src/game-v35.js /tmp/pages/src/game-v35.js
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html app.js sw.js BUILD_V35_ECONOMY_WORLD.json src/game-v35.js
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V3.5 economy world ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify actual GitHub Pages
+        id: public
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set +e
+          ATTEMPTS=36 bash tools/verify-v35-public.sh
+          rc=$?
+          set -e
+          public_ok=$(cat /tmp/V35_PUBLIC_OK 2>/dev/null || echo false)
+          echo "public_ok=$public_ok" >> "$GITHUB_OUTPUT"
+          echo "verifier_rc=$rc"
+          cat /tmp/V35_PUBLIC_DIAGNOSTIC.txt || true
+          exit 0
+
+      - name: Persist V3.5 diagnostic on failure
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cp /tmp/V35_PUBLIC_DIAGNOSTIC.txt /tmp/pages/PUBLIC_V35_DIAGNOSTIC.txt
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V35_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record V3.5 public diagnostic ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Stop failed public release
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Record V3.5 public PASS on gh-pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cd /tmp/pages
+          git rm -f --ignore-unmatch PUBLIC_V35_DIAGNOSTIC.txt >/dev/null 2>&1 || true
+          RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s={status:'PASS',game_version:'3.5.0',build:'3501',milestone:'economy-world-integration',verified_commit:process.env.RUNTIME_SHA,source_sha256:'b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed',save_schema_version:32,content_registry_version:6,shop_count:4,fixed_listing_count:32,auction_pool_count:12,auction_lot_count:5,stage:'public-pass',transport:'same-repo-pr-fallback',checks:['PR47 V3.5 validation PASS and closed unmerged','fallback workflow validation PASS and closed unmerged','schema31 to schema32 migration','four stable shopId venues','named material and pill trade','sect contribution economy','black market standing pricing','limited auction inventory','atomic buy and sell','war-linked market shocks','NPC named-material requests','secret-realm regional material and unknown recipe rewards','high-tier resources retain multiple sources','V3.4 combat builds preserved','actual GitHub Pages HTTP 200','public V3.5 markers','public source SHA equality','public V3.5 headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('PUBLIC_V35_STATUS.json',JSON.stringify(s)+'\n')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V35_STATUS.json
+          git commit -m "chore: record V3.5 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:gh-pages
+
+      - name: Verify PASS is actually reachable from Pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V35_STATUS.json?verify=${RUNTIME_SHA}-${i}" -o /tmp/live-v35-status.json; then
+              if RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v35-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='3.5.0'||s.build!=='3501'||s.save_schema_version!==32||s.verified_commit!==process.env.RUNTIME_SHA)process.exit(1)" && cmp -s /tmp/live-v35-status.json /tmp/pages/PUBLIC_V35_STATUS.json; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync exact PASS to main
+        if: steps.public.outputs.public_ok == 'true'
+        id: final_main
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$RUNTIME_SHA"
+          git checkout -B main origin/main
+          cp /tmp/pages/PUBLIC_V35_STATUS.json PUBLIC_V35_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V35_STATUS.json
+          git commit -m "chore: record V3.5 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:main
+          echo "final_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final V3.5 delta guard
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+          FINAL_SHA: ${{ steps.final_main.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$RUNTIME_SHA" "$FINAL_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V35_STATUS.json'
+          cmp -s PUBLIC_V35_STATUS.json /tmp/pages/PUBLIC_V35_STATUS.json
+          echo "V35_PUBLIC_TERMINAL_PASS $RUNTIME_SHA -> $FINAL_SHA"
