@@ -1,0 +1,40 @@
+{
+  "status": "PASS",
+  "gameplay_version": "3.1.0",
+  "build": "3101",
+  "milestone": "manual-spell-expansion",
+  "source": "src/game-v31.js",
+  "source_sha256": "492a2808ba69727ab6232e753ed25f388cc324cff0a8032a1ccc35f8549180e7",
+  "source_bytes": 322972,
+  "save_schema_version": 28,
+  "content_registry_version": 2,
+  "counts": {
+    "manuals": 28,
+    "spells": 60,
+    "passive_spells": 5,
+    "items": 11,
+    "artifacts": 4,
+    "materials": 8,
+    "recipes": 4,
+    "enemies": 29,
+    "drop_tables": 29,
+    "realms": 26,
+    "regions": 12,
+    "statuses": 14,
+    "active_slots": 6,
+    "passive_slots": 1
+  },
+  "checks": [
+    "28 manuals with stable IDs and differentiated effects",
+    "60 spells/divine arts with stable IDs",
+    "independent manual proficiency library",
+    "six active skill slots plus one passive slot",
+    "realm/location/path acquisition gates and real resource costs",
+    "generic combat skills use cooldowns and status engine",
+    "shield healing qi restore control dot counter execute drain and laststand mechanics",
+    "manual HP QI breakthrough damage healing incoming and artifact synergies",
+    "schema27 to schema28 migration",
+    "V3.0 and V2.9 compatibility retained",
+    "future schema29 protection preserved"
+  ]
+}

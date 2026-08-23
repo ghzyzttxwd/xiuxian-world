@@ -11,16 +11,16 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css" />
-  <title>太玄界 · 修仙大世界 V3.0</title>
+  <title>太玄界 · 修仙大世界 V3.1</title>
 </head>
 <body>
 <div id="startScreen" class="start">
   <section class="panel start-box">
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V3.0</p>
+    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V3.1</p>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions"><button id="newGameBtn" class="primary">穿越此界</button><button id="continueBtn" class="hidden">继续上次存档</button><button id="installStartBtn" class="ghost">安装应用</button></div>
-    <div id="installStatus" class="install-note"></div><div class="version">V3.0 · 成长数据底座</div>
+    <div id="installStatus" class="install-note"></div><div class="version">V3.1 · 功法术法大扩容</div>
   </section>
 </div>
 <div id="gameApp" class="app hidden">
@@ -28,7 +28,7 @@
   <section id="page-home" class="page active">
     <div class="hero-card"><div class="hero-row"><div><div class="hero-name" id="heroName">陆尘</div><div class="hero-sub" id="heroSub"></div></div><div class="realm-box"><b id="realmName">凡人</b><span id="cultivationText"></span></div></div><div class="bar"><i id="cultivationBar"></i></div><div class="quick-stats"><div class="quick-stat"><b id="spiritStoneQuick">0</b><span>灵石</span></div><div class="quick-stat"><b id="herbQuick">0</b><span>灵草</span></div><div class="quick-stat"><b id="hpQuick">0</b><span>气血</span></div><div class="quick-stat"><b id="repQuick">0</b><span>声望</span></div><div class="quick-stat"><b id="diligenceQuick">0</b><span>历练</span></div><div class="quick-stat"><b id="insightQuick">0</b><span>悟道点</span></div></div></div>
     <div id="urgentBox"></div><div id="breakthroughBox"></div><div id="legacyBox"></div>
-    <section class="panel"><h2>今日可做</h2><p class="section-tip">V3.0 完成玩家成长数据底座：旧玩法与前尘旧缘完整保留，功法、法术、装备、材料、敌人和掉落已建立稳定 ID 与统一注册表，为后续大规模内容扩容、冷却状态与法宝能力系统提供底层结构。</p><div class="actions-grid"><button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button><button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button><button class="action-btn" data-action="work"><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></button><button class="action-btn" data-action="explore"><b>附近逛一逛</b><small>1日 · 随机事件、战斗或发现</small></button><button class="action-btn" data-action="rumor"><b>打听消息</b><small>1日 · 更容易获知天下大事</small></button><button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button></div></section>
+    <section class="panel"><h2>今日可做</h2><p class="section-tip">V3.1 把玩家成长纵深真正做起来：功法扩展至 28 本、法术与神通扩展至 60 个；每本功法拥有独立熟练进度与真实偏向，战斗改为六格主动术法栏加一个被动秘术槽，冷却、护盾、控制、恢复、持续伤害、反击与保命等机制正式进入斗法。</p><div class="actions-grid"><button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button><button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button><button class="action-btn" data-action="work"><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></button><button class="action-btn" data-action="explore"><b>附近逛一逛</b><small>1日 · 随机事件、战斗或发现</small></button><button class="action-btn" data-action="rumor"><b>打听消息</b><small>1日 · 更容易获知天下大事</small></button><button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button></div></section>
     <section class="panel"><h2>最近经历</h2><div id="homeLog" class="log-list"></div></section>
   </section>
   <section id="page-character" class="page">
@@ -47,6 +47,6 @@
   <nav class="bottom-nav"><button class="nav-btn active" data-page="home"><b>☯</b>修炼</button><button class="nav-btn" data-page="character"><b>人</b>角色</button><button class="nav-btn" data-page="map"><b>图</b>地图</button><button class="nav-btn" data-page="events"><b>令</b>大事 <span id="navBadge" class="badge hidden">0</span></button><button class="nav-btn" data-page="relations"><b>缘</b>关系</button></nav>
 </div>
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
-<script src="./app.js?v=3001"></script>
+<script src="./app.js?v=3101"></script>
 </body>
 </html>
