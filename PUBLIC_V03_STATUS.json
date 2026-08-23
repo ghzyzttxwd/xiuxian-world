@@ -1,1 +1,1 @@
-{"status":"FAIL","game_version":"0.3.0","milestone":"combat-loop","note":"Registered V0.3 verification runner failed; inspect workflow logs before release."}
+{"status":"FAIL","game_version":"0.3.0","milestone":"combat-loop","stage":"gameplay-start","note":"Registered V0.3 verification runner failed."}
