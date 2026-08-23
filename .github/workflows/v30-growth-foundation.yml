@@ -1,0 +1,71 @@
+name: V3.0 growth foundation
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V30_GROWTH_FOUNDATION.trigger"
+      - "tools/build-v30-growth-foundation.cjs"
+      - "tools/v30-growth-foundation-block.txt"
+      - "tests/regression-v30.mjs"
+      - ".github/workflows/v30-growth-foundation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taixuan-v30-growth-foundation-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v30:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify V2.9 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const b=require('./BUILD_V29_PAST_LIFE_BONDS.json');if(b.status!=='PASS'||b.gameplay_version!=='2.9.0'||b.build!=='2901'||b.source_sha256!=='b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99'||b.save_schema_version!==26)throw new Error('V2.9 baseline mismatch')"
+          test "$(sha256sum src/game-v29.js | awk '{print $1}')" = "b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99"
+          test "$(node -e "const s=require('./PUBLIC_V29_STATUS.json');process.stdout.write(s.status+' '+s.game_version+' '+s.build)")" = "PASS 2.9.0 2901"
+
+      - name: Build deterministic V3.0 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v30-growth-foundation.cjs
+          node --check src/game-v30.js
+          first=$(sha256sum src/game-v30.js | awk '{print $1}')
+          node tools/build-v30-growth-foundation.cjs >/tmp/v30-build-second.log
+          second=$(sha256sum src/game-v30.js | awk '{print $1}')
+          test "$first" = "$second"
+          node -e "const b=require('./BUILD_V30_GROWTH_FOUNDATION.json');if(b.status!=='PASS'||b.gameplay_version!=='3.0.0'||b.build!=='3001'||b.milestone!=='growth-data-foundation'||b.save_schema_version!==27||b.content_registry_version!==1)throw new Error('V3.0 build report mismatch')"
+          test "$(node -e "const b=require('./BUILD_V30_GROWTH_FOUNDATION.json');process.stdout.write(b.source_sha256)")" = "$first"
+          grep -q "const VERSION='3.0.0'" src/game-v30.js
+          grep -q 'const SAVE_SCHEMA_VERSION=27' src/game-v30.js
+          grep -q 'CONTENT_STATE_VERSION=1' src/game-v30.js
+          grep -q 'dropTableRegistry' src/game-v30.js
+          grep -q 'artifactPassiveEffects' src/game-v30.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+
+      - name: Run V2.9 and V3.0 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+
+      - name: V6 frozen icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
