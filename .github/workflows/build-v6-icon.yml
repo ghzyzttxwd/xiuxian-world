@@ -22,6 +22,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo 'patch-start' > V03_STAGE.txt
           node --check v03-patch.js
           cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
           cat > /tmp/apply-patch.cjs <<'JS'
@@ -36,11 +37,13 @@ jobs:
           JS
           node /tmp/apply-patch.cjs
           node --check /tmp/v03.js
+          echo 'patch-pass' > V03_STAGE.txt
 
       - name: Headless gameplay regression
         shell: bash
         run: |
           set -euo pipefail
+          echo 'gameplay-start' > V03_STAGE.txt
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
           cat > /tmp/test-v03.mjs <<'JS'
@@ -64,11 +67,13 @@ jobs:
           console.log('GAMEPLAY_PASS',JSON.stringify({wins:s.player.battleWins,losses:s.player.battleLosses,injury:s.player.injury,dead:!!s.flags.dead}));
           JS
           node /tmp/test-v03.mjs
+          echo 'gameplay-pass' > V03_STAGE.txt
 
       - name: Public Pages verification
         shell: bash
         run: |
           set -euo pipefail
+          echo 'public-start' > V03_STAGE.txt
           BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
           EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
           EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
@@ -92,13 +97,14 @@ jobs:
           assert m['display']=='standalone' and m['short_name']=='太玄界'
           assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
           PY
+          echo 'public-pass' > V03_STAGE.txt
 
       - name: Record PASS
         shell: bash
         run: |
           set -euo pipefail
           cat > PUBLIC_V03_STATUS.json <<EOF
-          {"status":"PASS","game_version":"0.3.0","milestone":"combat-loop","verified_commit":"${GITHUB_SHA}","checks":["real V0.2 runtime patched","patched runtime syntax","headless weak-enemy win","wolf-king defeat/death","injury healing","public app loader","public V0.3 patch","public service worker","standalone manifest","V6 icon hash regression"]}
+          {"status":"PASS","game_version":"0.3.0","milestone":"combat-loop","verified_commit":"${GITHUB_SHA}","stage":"$(cat V03_STAGE.txt)","checks":["real V0.2 runtime patched","patched runtime syntax","headless weak-enemy win","wolf-king defeat/death","injury healing","public app loader","public V0.3 patch","public service worker","standalone manifest","V6 icon hash regression"]}
           EOF
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -110,9 +116,10 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          printf '%s\n' '{"status":"FAIL","game_version":"0.3.0","milestone":"combat-loop","note":"Registered V0.3 verification runner failed; inspect workflow logs before release."}' > PUBLIC_V03_STATUS.json
+          stage=$(cat V03_STAGE.txt 2>/dev/null || echo 'checkout-or-unknown')
+          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"0.3.0\",\"milestone\":\"combat-loop\",\"stage\":\"${stage}\",\"note\":\"Registered V0.3 verification runner failed.\"}" > PUBLIC_V03_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add PUBLIC_V03_STATUS.json
-          git commit -m 'chore: record V0.3 verification failure [skip ci]' || true
+          git commit -m 'chore: record V0.3 verification failure stage [skip ci]' || true
           git push origin HEAD:gh-pages || true
