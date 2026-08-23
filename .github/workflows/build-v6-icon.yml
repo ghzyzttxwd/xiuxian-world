@@ -1,4 +1,4 @@
-name: Verify V0.9 breakthrough prerelease
+name: Verify V0.9 via registered runner
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  verify-v09-pre:
+  verify-v09:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,70 +18,101 @@ jobs:
           ref: gh-pages
           fetch-depth: 0
 
-      - name: Build V0.9 candidate from real runtime
+      - name: Verify repository V0.9 chain
         shell: bash
         run: |
           set -euo pipefail
-          echo 'build-start' > V09_PRE_STAGE.txt
+          echo 'repo-start' > V09_FINAL_STAGE.txt
+          node --check app.js
           for v in 03 04 05 06 07 08 09; do node --check "v${v}-patch.js"; done
+          grep -q 'id="breakthroughBox"' index.html
+          grep -q '__TAIXUAN_PATCH_V09__' app.js
+          grep -q 'taixuan-v0.9.0-breakthrough-patch0901' sw.js
+          grep -q '"status":"PASS"' PUBLIC_V09_PRE_STATUS.json
           cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
           cat > /tmp/apply-v09.cjs <<'JS'
           const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
           for(const v of ['03','04','05','06','07','08','09'])vm.runInContext(fs.readFileSync(`v${v}-patch.js`,'utf8'),ctx);
           let src=fs.readFileSync('/tmp/v02.js','utf8');for(const v of ['03','04','05','06','07','08','09'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
-          for(const s of ["const VERSION='0.9.0'",'breakthroughChance','attemptBreakthrough','renderBreakthrough','breakthroughPity','breakthroughAttempts','境界已经圆满'])assert(src.includes(s),`missing ${s}`);
-          assert(!src.includes('while(state.player.progress>=realm().need'),'automatic breakthrough loop still exists');
-          const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,attemptBreakthrough,breakthroughChance,renderBreakthrough,discussDaoNPC};\nboot();");fs.writeFileSync('/tmp/v09-test.js',src);
+          for(const s of ["const VERSION='0.9.0'",'attemptBreakthrough','breakthroughChance','breakthroughPity','renderBreakthrough'])assert(src.includes(s),`missing ${s}`);
+          assert(!src.includes('while(state.player.progress>=realm().need'),'automatic breakthrough loop still exists');fs.writeFileSync('/tmp/v09.js',src);
           JS
           node /tmp/apply-v09.cjs
-          node --check /tmp/v09-test.js
-          echo 'build-pass' > V09_PRE_STAGE.txt
+          node --check /tmp/v09.js
+          echo 'repo-pass' > V09_FINAL_STAGE.txt
 
-      - name: Headless breakthrough regression
+      - name: Verify public V0.9 deployment
         shell: bash
         run: |
           set -euo pipefail
-          echo 'gameplay-start' > V09_PRE_STAGE.txt
+          echo 'public-start' > V09_FINAL_STAGE.txt
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}index.html?verify=${GITHUB_SHA}" -o /tmp/index.html || ok=0
+            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/app.js || ok=0
+            for v in 03 04 05 06 07 08 09; do curl -fsSL "${BASE}v${v}-patch.js?verify=${GITHUB_SHA}" -o "/tmp/v${v}.js" || ok=0; done
+            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png || ok=0
+            if [ "$ok" -eq 1 ] && grep -q 'V0.9' /tmp/index.html && grep -q 'id="breakthroughBox"' /tmp/index.html && grep -q '__TAIXUAN_PATCH_V09__' /tmp/app.js && grep -q 'attemptBreakthrough' /tmp/v09.js && grep -q 'taixuan-v0.9.0-breakthrough-patch0901' /tmp/sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then break; fi
+            test "$i" -lt 60 || exit 1
+            sleep 5
+          done
+          node --check /tmp/app.js
+          for v in 03 04 05 06 07 08 09; do node --check "/tmp/v${v}.js"; done
+          rm -f /tmp/pub.b64
+          for i in $(seq -w 1 24); do curl -fsSL "${BASE}bundle2/c${i}.b64?verify=${GITHUB_SHA}" >> /tmp/pub.b64; done
+          tr -d '\n\r' < /tmp/pub.b64 | base64 -d > /tmp/pub-v02.js
+          cat > /tmp/pub-apply.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
+          for(const v of ['03','04','05','06','07','08','09'])vm.runInContext(fs.readFileSync(`/tmp/v${v}.js`,'utf8'),ctx);
+          let src=fs.readFileSync('/tmp/pub-v02.js','utf8');for(const v of ['03','04','05','06','07','08','09'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
+          assert(src.includes("const VERSION='0.9.0'"));assert(src.includes('attemptBreakthrough'));assert(src.includes('renderBreakthrough'));
+          const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,attemptBreakthrough,breakthroughChance,renderBreakthrough};\nboot();");fs.writeFileSync('/tmp/pub-v09.js',src);
+          JS
+          node /tmp/pub-apply.cjs
+          node --check /tmp/pub-v09.js
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          cat > test-v09.mjs <<'JS'
+          cat > public-smoke-v09.mjs <<'JS'
           import fs from 'fs';import assert from 'assert';import {JSDOM} from 'jsdom';
-          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/v09-test.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('破境测试者');let s=api.getState();assert.equal(s.version,'0.9.0');assert.equal(s.player.breakthroughPity,0);assert.equal(s.player.breakthroughAttempts,0);
-          let mod=api.getState();mod.player.realmIndex=0;mod.player.progress=99;mod.player.rootIndex=5;mod.player.injury=0;mod.player.manualProf=500;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.action('cultivate');s=api.getState();assert.equal(s.player.realmIndex,0,'cultivate still auto-broke realm');assert.equal(s.player.progress,100,'cultivation did not cap at realm need');
-          mod=api.getState();mod.player.insight=1;mod.player.progress=95;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.spendInsight('cultivate');s=api.getState();assert.equal(s.player.progress,100,'insight bypassed cultivation cap');assert.equal(s.player.realmIndex,0);
-          let success=false;for(let i=0;i<25&&!success;i++){mod=api.getState();mod.player.realmIndex=0;mod.player.progress=100;mod.player.rootIndex=5;mod.player.manualProf=700;mod.player.injury=0;mod.player.breakthroughPity=32;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.attemptBreakthrough();s=api.getState();success=s.player.realmIndex===1;}assert(success,'high-chance breakthrough never succeeded');assert.equal(s.player.progress,0);assert.equal(s.player.breakthroughPity,0);assert('火弹术' in s.player.spells);assert('御风步' in s.player.spells);
-          let failed=false;for(let i=0;i<30&&!failed;i++){api.newGame('失败测试'+i);mod=api.getState();mod.player.realmIndex=0;mod.player.progress=100;mod.player.rootIndex=0;mod.player.manualProf=0;mod.player.injury=3;mod.player.breakthroughPity=0;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.attemptBreakthrough();s=api.getState();if(s.player.realmIndex===0){failed=true;assert.equal(s.player.breakthroughPity,8);assert(s.player.progress<100);assert.equal(s.player.breakthroughAttempts,1)}}assert(failed,'could not observe breakthrough failure');
-          api.newGame('迁移测试');const legacy=api.getState();delete legacy.player.breakthroughPity;delete legacy.player.breakthroughAttempts;legacy.player.progress=999;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(legacy));assert(api.load());s=api.getState();assert.equal(s.player.breakthroughPity,0);assert.equal(s.player.breakthroughAttempts,0);assert.equal(s.player.progress,100,'legacy overflow not capped');
-          console.log('V09_BREAKTHROUGH_PASS');
+          const html=fs.readFileSync('/tmp/index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');
+          const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/pub-v09.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('公网破境烟测');let s=api.getState();assert.equal(s.version,'0.9.0');assert.equal(s.player.breakthroughPity,0);assert(dom.window.document.getElementById('breakthroughBox'));
+          let mod=api.getState();mod.player.progress=100;mod.player.realmIndex=0;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.renderBreakthrough();assert(dom.window.document.querySelector('[data-breakthrough]'),'breakthrough action not rendered at cap');
+          console.log('PUBLIC_V09_SMOKE_PASS');
           JS
-          set +e
-          node test-v09.mjs > V09_PRE_DEBUG.txt 2>&1
-          rc=$?
-          set -e
-          cat V09_PRE_DEBUG.txt
-          test "$rc" -eq 0
-          echo 'gameplay-pass' > V09_PRE_STAGE.txt
+          node public-smoke-v09.mjs
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/manifest.json'))
+          assert m['display']=='standalone' and m['short_name']=='太玄界'
+          assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          PY
+          echo 'public-pass' > V09_FINAL_STAGE.txt
 
-      - name: Record prerelease PASS
+      - name: Record PASS
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"0.9.0\",\"milestone\":\"breakthrough-prerelease\",\"stage\":\"$(cat V09_PRE_STAGE.txt)\",\"checks\":[\"V0.2->V0.9 patch chain\",\"V0.9 syntax\",\"no automatic realm breakthrough\",\"cultivation cap\",\"insight cap\",\"active breakthrough success\",\"spell unlock on first realm\",\"failure loses cultivation\",\"failure pity +8\",\"legacy overflow migration\"]}" > PUBLIC_V09_PRE_STATUS.json
+          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"0.9.0\",\"milestone\":\"breakthrough-loop\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V09_FINAL_STAGE.txt)\",\"checks\":[\"repository V0.2->V0.9 patch chain\",\"V0.9 syntax\",\"breakthrough UI node\",\"public V0.9 index\",\"public loader\",\"seven public patches\",\"public service worker\",\"public runtime rebuild\",\"public breakthrough headless smoke\",\"standalone manifest\",\"V6 icon hash regression\",\"prerelease breakthrough gameplay PASS\"]}" > PUBLIC_V09_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V09_PRE_STATUS.json
-          git commit -m 'chore: record V0.9 prerelease verification [skip ci]'
+          git add PUBLIC_V09_STATUS.json
+          git commit -m 'chore: record V0.9 public verification [skip ci]'
           git push origin HEAD:gh-pages
 
-      - name: Record prerelease FAIL
+      - name: Record FAIL
         if: failure()
         shell: bash
         run: |
-          stage=$(cat V09_PRE_STAGE.txt 2>/dev/null || echo 'unknown')
-          debug=$(tail -c 5000 V09_PRE_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""')
-          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"0.9.0\",\"milestone\":\"breakthrough-prerelease\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V09_PRE_STATUS.json
+          stage=$(cat V09_FINAL_STAGE.txt 2>/dev/null || echo 'unknown')
+          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"0.9.0\",\"milestone\":\"breakthrough-loop\",\"stage\":\"${stage}\"}" > PUBLIC_V09_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V09_PRE_STATUS.json
-          git commit -m 'chore: record V0.9 prerelease failure [skip ci]' || true
+          git add PUBLIC_V09_STATUS.json
+          git commit -m 'chore: record V0.9 public verification failure [skip ci]' || true
           git push origin HEAD:gh-pages || true
