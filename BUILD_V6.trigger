@@ -1,3 +1,3 @@
-build=original-spacing
-source=icon-v6-base.png
-version=6
+mode=v03-public-verify
+patch=0301
+trigger=20260823-1126
