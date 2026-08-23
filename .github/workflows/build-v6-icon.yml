@@ -1,4 +1,4 @@
-name: Verify V1.0 via registered runner
+name: Verify V1.1 legacy prerelease
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  verify-v10:
+  verify-v11-pre:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,101 +18,70 @@ jobs:
           ref: gh-pages
           fetch-depth: 0
 
-      - name: Verify repository V1.0 chain
+      - name: Build V1.1 candidate from real runtime
         shell: bash
         run: |
           set -euo pipefail
-          echo 'repo-start' > V10_FINAL_STAGE.txt
-          node --check app.js
-          for v in 03 04 05 06 07 08 09 10; do node --check "v${v}-patch.js"; done
-          grep -q 'id="dwellingInfo"' index.html
-          grep -q 'id="dwellingActions"' index.html
-          grep -q '__TAIXUAN_PATCH_V10__' app.js
-          grep -q 'taixuan-v1.0.0-dwelling-patch1001' sw.js
-          grep -q '"status":"PASS"' PUBLIC_V10_PRE_STATUS.json
+          echo 'build-start' > V11_PRE_STAGE.txt
+          for v in 03 04 05 06 07 08 09 10 11; do node --check "v${v}-patch.js"; done
           cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
-          cat > /tmp/apply-v10.cjs <<'JS'
+          cat > /tmp/apply-v11.cjs <<'JS'
           const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
-          for(const v of ['03','04','05','06','07','08','09','10'])vm.runInContext(fs.readFileSync(`v${v}-patch.js`,'utf8'),ctx);
-          let src=fs.readFileSync('/tmp/v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
-          for(const s of ["const VERSION='1.0.0'",'DWELLINGS','buildOrUpgradeDwelling','retreatSevenDays','plantHerbPlot','harvestHerbPlot','renderDwelling'])assert(src.includes(s),`missing ${s}`);fs.writeFileSync('/tmp/v10.js',src);
+          for(const v of ['03','04','05','06','07','08','09','10','11'])vm.runInContext(fs.readFileSync(`v${v}-patch.js`,'utf8'),ctx);
+          let src=fs.readFileSync('/tmp/v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10','11'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
+          for(const s of ["const VERSION='1.1.0'",'legacyGainThisLife','ensureLegacyDeathRecorded','reincarnate','renderLegacy','birthDay','totalDeaths'])assert(src.includes(s),`missing ${s}`);
+          const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,legacyGainThisLife,ensureLegacyDeathRecorded,reincarnate,renderLegacy};\nboot();");fs.writeFileSync('/tmp/v11-test.js',src);
           JS
-          node /tmp/apply-v10.cjs
-          node --check /tmp/v10.js
-          echo 'repo-pass' > V10_FINAL_STAGE.txt
+          node /tmp/apply-v11.cjs
+          node --check /tmp/v11-test.js
+          echo 'build-pass' > V11_PRE_STAGE.txt
 
-      - name: Verify public V1.0 deployment
+      - name: Headless legacy regression
         shell: bash
         run: |
           set -euo pipefail
-          echo 'public-start' > V10_FINAL_STAGE.txt
-          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
-          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
-          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
-          for i in $(seq 1 60); do
-            ok=1
-            curl -fsSL "${BASE}index.html?verify=${GITHUB_SHA}" -o /tmp/index.html || ok=0
-            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/app.js || ok=0
-            for v in 03 04 05 06 07 08 09 10; do curl -fsSL "${BASE}v${v}-patch.js?verify=${GITHUB_SHA}" -o "/tmp/v${v}.js" || ok=0; done
-            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/sw.js || ok=0
-            curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/manifest.json || ok=0
-            curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png || ok=0
-            curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png || ok=0
-            if [ "$ok" -eq 1 ] && grep -q 'V1.0' /tmp/index.html && grep -q 'id="dwellingInfo"' /tmp/index.html && grep -q '__TAIXUAN_PATCH_V10__' /tmp/app.js && grep -q 'buildOrUpgradeDwelling' /tmp/v10.js && grep -q 'taixuan-v1.0.0-dwelling-patch1001' /tmp/sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then break; fi
-            test "$i" -lt 60 || exit 1
-            sleep 5
-          done
-          node --check /tmp/app.js
-          for v in 03 04 05 06 07 08 09 10; do node --check "/tmp/v${v}.js"; done
-          rm -f /tmp/pub.b64
-          for i in $(seq -w 1 24); do curl -fsSL "${BASE}bundle2/c${i}.b64?verify=${GITHUB_SHA}" >> /tmp/pub.b64; done
-          tr -d '\n\r' < /tmp/pub.b64 | base64 -d > /tmp/pub-v02.js
-          cat > /tmp/pub-apply.cjs <<'JS'
-          const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
-          for(const v of ['03','04','05','06','07','08','09','10'])vm.runInContext(fs.readFileSync(`/tmp/v${v}.js`,'utf8'),ctx);
-          let src=fs.readFileSync('/tmp/pub-v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
-          assert(src.includes("const VERSION='1.0.0'"));assert(src.includes('renderDwelling'));assert(src.includes('retreatSevenDays'));
-          const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,buildOrUpgradeDwelling,retreatSevenDays,plantHerbPlot,harvestHerbPlot,renderDwelling};\nboot();");fs.writeFileSync('/tmp/pub-v10.js',src);
-          JS
-          node /tmp/pub-apply.cjs
-          node --check /tmp/pub-v10.js
+          echo 'gameplay-start' > V11_PRE_STAGE.txt
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          cat > public-smoke-v10.mjs <<'JS'
+          cat > test-v11.mjs <<'JS'
           import fs from 'fs';import assert from 'assert';import {JSDOM} from 'jsdom';
-          const html=fs.readFileSync('/tmp/index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');
-          const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/pub-v10.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('公网洞府烟测');let s=api.getState();assert.equal(s.version,'1.0.0');assert(dom.window.document.getElementById('dwellingInfo'));assert(dom.window.document.getElementById('dwellingActions'));
-          let mod=api.getState();mod.player.location='青石镇';mod.player.spiritStones=80;mod.player.beastMaterials=20;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.buildOrUpgradeDwelling();s=api.getState();assert.equal(s.player.dwellingTier,1);api.renderDwelling();assert(dom.window.document.getElementById('dwellingInfo').textContent.includes('凡阶静室'));
-          console.log('PUBLIC_V10_SMOKE_PASS');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/v11-test.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);
+          api.newGame('早夭测试');let s=api.getState();assert.equal(s.version,'1.1.0');assert.equal(s.legacy.merit,0);assert.equal(s.legacy.cycles,0);let mod=s;mod.flags.dead=true;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());assert.equal(api.ensureLegacyDeathRecorded(),0);s=api.getState();assert.equal(s.legacy.merit,0,'early death farmed merit');assert.equal(s.legacy.totalDeaths,1);api.ensureLegacyDeathRecorded();s=api.getState();assert.equal(s.legacy.totalDeaths,1,'death was recorded twice');
+          api.newGame('成果测试');mod=api.getState();mod.player.realmIndex=6;mod.player.reputation=45;mod.player.kills=17;mod.player.retreatSessions=4;mod.player.spiritStones=99;mod.player.herbs=50;mod.player.dwellingTier=3;mod.world.casualties=777;mod.npcs[0].name='传承见证人';mod.flags.dead=true;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());const gain=api.ensureLegacyDeathRecorded();assert.equal(gain,9);s=api.getState();assert.equal(s.legacy.merit,9);assert.equal(s.legacy.bestRealm,6);assert.equal(s.legacy.totalDeaths,1);api.ensureLegacyDeathRecorded();assert.equal(api.getState().legacy.merit,9,'merit doubled on repeated death render');
+          api.reincarnate('root');s=api.getState();assert.equal(s.flags.dead,undefined);assert.equal(s.legacy.cycles,1);assert.equal(s.legacy.merit,4);assert(s.player.rootIndex>=2,'root inheritance did not guarantee three-root or better');assert.equal(s.player.realmIndex,0);assert.equal(s.player.progress,0);assert.equal(s.player.dwellingTier,0,'old dwelling leaked into new life');assert.equal(s.player.spiritStones,3,'old stones leaked into root rebirth');assert.equal(s.world.casualties,777,'world state was reset');assert.equal(s.npcs[0].name,'传承见证人','NPC world continuity was lost');assert.equal(s.player.startAge,16);assert.equal(s.player.startAge+Math.floor(0),16);
+          mod=s;mod.flags.dead=true;mod.flags.legacyRecorded=true;mod.legacy.merit=10;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.reincarnate('resource');s=api.getState();assert.equal(s.legacy.merit,7);assert.equal(s.player.spiritStones,12);assert.equal(s.player.herbs,6);
+          mod=s;mod.flags.dead=true;mod.flags.legacyRecorded=true;mod.legacy.merit=10;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.reincarnate('insight');s=api.getState();assert.equal(s.legacy.merit,7);assert.equal(s.player.insight,2);assert.equal(s.player.manualProf,20);
+          api.newGame('迁移测试');const legacy=api.getState();delete legacy.player.birthDay;delete legacy.legacy;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(legacy));assert(api.load());s=api.getState();assert.equal(s.player.birthDay,1);assert.equal(s.legacy.cycles,0);assert.equal(s.legacy.merit,0);assert.equal(s.legacy.totalDeaths,0);
+          console.log('V11_LEGACY_PASS');
           JS
-          node public-smoke-v10.mjs
-          python3 - <<'PY'
-          import json
-          m=json.load(open('/tmp/manifest.json'))
-          assert m['display']=='standalone' and m['short_name']=='太玄界'
-          assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
-          PY
-          echo 'public-pass' > V10_FINAL_STAGE.txt
+          set +e
+          node test-v11.mjs > V11_PRE_DEBUG.txt 2>&1
+          rc=$?
+          set -e
+          cat V11_PRE_DEBUG.txt
+          test "$rc" -eq 0
+          echo 'gameplay-pass' > V11_PRE_STAGE.txt
 
-      - name: Record PASS
+      - name: Record prerelease PASS
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.0.0\",\"milestone\":\"dwelling-loop\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V10_FINAL_STAGE.txt)\",\"checks\":[\"repository V0.2->V1.0 patch chain\",\"V1.0 syntax\",\"dwelling UI nodes\",\"public V1.0 index\",\"public loader\",\"eight public patches\",\"public service worker\",\"public runtime rebuild\",\"public dwelling headless smoke\",\"standalone manifest\",\"V6 icon hash regression\",\"prerelease dwelling gameplay PASS\"]}" > PUBLIC_V10_STATUS.json
+          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.1.0\",\"milestone\":\"legacy-prerelease\",\"stage\":\"$(cat V11_PRE_STAGE.txt)\",\"checks\":[\"V0.2->V1.1 patch chain\",\"V1.1 syntax\",\"early death gives zero merit\",\"death reward idempotent\",\"meaningful life merit formula\",\"root rebirth cost and minimum root\",\"world continuity across rebirth\",\"old assets reset\",\"resource inheritance\",\"insight inheritance\",\"legacy save migration\"]}" > PUBLIC_V11_PRE_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V10_STATUS.json
-          git commit -m 'chore: record V1.0 public verification [skip ci]'
+          git add PUBLIC_V11_PRE_STATUS.json
+          git commit -m 'chore: record V1.1 prerelease verification [skip ci]'
           git push origin HEAD:gh-pages
 
-      - name: Record FAIL
+      - name: Record prerelease FAIL
         if: failure()
         shell: bash
         run: |
-          stage=$(cat V10_FINAL_STAGE.txt 2>/dev/null || echo 'unknown')
-          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.0.0\",\"milestone\":\"dwelling-loop\",\"stage\":\"${stage}\"}" > PUBLIC_V10_STATUS.json
+          stage=$(cat V11_PRE_STAGE.txt 2>/dev/null || echo 'unknown')
+          debug=$(tail -c 5000 V11_PRE_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""')
+          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.1.0\",\"milestone\":\"legacy-prerelease\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V11_PRE_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V10_STATUS.json
-          git commit -m 'chore: record V1.0 public verification failure [skip ci]' || true
+          git add PUBLIC_V11_PRE_STATUS.json
+          git commit -m 'chore: record V1.1 prerelease failure [skip ci]' || true
           git push origin HEAD:gh-pages || true
