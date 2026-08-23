@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.4.0",
+  "build": "2401",
+  "milestone": "mortal-balance-lifespan",
+  "source": "src/game-v24.js",
+  "source_sha256": "64206372f3a97f95f484efbdab86264e4ef3ae6042ed88d5352c3a683f4b8688",
+  "source_bytes": 177448,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 21,
+  "checks": [
+    "removed 天道酬勤 cultivation and diligence cheats",
+    "exponential cultivation need curve",
+    "percentage-preserving schema20 to21 migration",
+    "major-realm combat suppression",
+    "later breakthrough difficulty curve",
+    "balanced seven-day retreat",
+    "terminal lifespan death lock",
+    "lifespan warning UI",
+    "slower NPC cultivation",
+    "V2.3 systems preserved"
+  ]
+}
