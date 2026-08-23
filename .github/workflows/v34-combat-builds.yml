@@ -8,6 +8,8 @@ on:
       - "content/v34-combat-builds.cjs"
       - "tools/v34-combat-runtime.txt"
       - "tools/build-v34-combat-builds.cjs"
+      - "tools/release-v34-assets.cjs"
+      - "tools/verify-v34-public.sh"
       - "tests/regression-v34.mjs"
       - ".github/workflows/v34-combat-builds.yml"
 
@@ -42,15 +44,16 @@ jobs:
           node tools/build-v34-combat-builds.cjs
           node --check src/game-v34.js
           first=$(sha256sum src/game-v34.js | awk '{print $1}')
+          test "$first" = "d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec"
           node tools/build-v34-combat-builds.cjs >/tmp/v34-build-second.log
           second=$(sha256sum src/game-v34.js | awk '{print $1}')
           test "$first" = "$second"
-          node -e "const b=require('./BUILD_V34_COMBAT_BUILDS.json');if(b.status!=='PASS'||b.gameplay_version!=='3.4.0'||b.build!=='3401'||b.milestone!=='combat-dao-builds'||b.save_schema_version!==31||b.content_registry_version!==5||b.counts.enemies!==48||b.counts.new_enemies!==19||b.counts.mechanic_enemies<12||b.counts.builds!==8||b.counts.sword_builds!==2||b.counts.flame_builds!==2||b.counts.body_builds!==2||b.counts.spirit_builds!==2)throw new Error('V3.4 report mismatch')"
-          test "$(node -e "const b=require('./BUILD_V34_COMBAT_BUILDS.json');process.stdout.write(b.source_sha256)")" = "$first"
+          node -e "const b=require('./BUILD_V34_COMBAT_BUILDS.json');if(b.status!=='PASS'||b.gameplay_version!=='3.4.0'||b.build!=='3401'||b.milestone!=='combat-dao-builds'||b.source_sha256!=='d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec'||b.save_schema_version!==31||b.content_registry_version!==5||b.counts.enemies!==48||b.counts.new_enemies!==19||b.counts.mechanic_enemies!==19||b.counts.mechanics!==19||b.counts.builds!==8||b.counts.sword_builds!==2||b.counts.flame_builds!==2||b.counts.body_builds!==2||b.counts.spirit_builds!==2)throw new Error('V3.4 report mismatch')"
           grep -q "const VERSION='3.4.0'" src/game-v34.js
           grep -q 'const SAVE_SCHEMA_VERSION=31' src/game-v34.js
           grep -q 'V34_BUILD_CATALOG' src/game-v34.js
           grep -q 'v34EnemyAttackEffect' src/game-v34.js
+          grep -q 'function onGearCombatWin(){return true}' src/game-v34.js
 
       - name: Run V2.9 through V3.4 headless regression
         shell: bash
@@ -64,6 +67,20 @@ jobs:
           node tests/regression-v32.mjs
           node tests/regression-v33.mjs
           node tests/regression-v34.mjs
+
+      - name: Validate V3.4 release assets and public verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/release-v34-assets.cjs
+          grep -q 'V3.4 · 战斗与四大道途 Build' index.html
+          grep -q 'src/game-v34.js?v=3401' app.js
+          grep -q "gameplayVersion:'3.4.0'" app.js
+          grep -q 'taixuan-v3.4.0-combat-dao-builds-3401' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          bash -n tools/verify-v34-public.sh
+          test "$(grep -o "EXPECT_GAME='[^']*'" tools/verify-v34-public.sh | cut -d\' -f2)" = "d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec"
 
       - name: Frozen V6 icon regression
         shell: bash
