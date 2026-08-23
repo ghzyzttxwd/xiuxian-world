@@ -1,0 +1,87 @@
+name: V3.7 unity law
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V37_UNITY_LAW.trigger"
+      - "content/v37-unity-law.cjs"
+      - "tools/v37-unity-law-runtime.txt"
+      - "tools/build-v37-unity-law.cjs"
+      - "tests/regression-v37.mjs"
+      - "tools/release-v37-assets.cjs"
+      - "tools/verify-v37-public.sh"
+      - ".github/workflows/v37-unity-law.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taixuan-v37-unity-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v37:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact V3.6 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v36.js | awk '{print $1}')" = "9935e93df2418bd1ccfa1f87f3d9123312ce702ba3660e19b50d1938da24b39d"
+          node -e "const s=require('./PUBLIC_V36_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.6.0'||s.build!=='3601'||s.save_schema_version!==33||s.content_registry_version!==7||s.source_sha256!=='9935e93df2418bd1ccfa1f87f3d9123312ce702ba3660e19b50d1938da24b39d')throw new Error('V3.6 baseline mismatch')"
+      - name: Build deterministic frozen V3.7 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v37-unity-law.cjs
+          node --check src/game-v37.js
+          first=$(sha256sum src/game-v37.js | awk '{print $1}')
+          test "$first" = "16e5d00143d5c860671cf46b033a3cb9673c8e2ec06ae468850a13a366f74321"
+          node tools/build-v37-unity-law.cjs >/tmp/v37-build-second.log
+          second=$(sha256sum src/game-v37.js | awk '{print $1}')
+          test "$first" = "$second"
+          node -e "const b=require('./BUILD_V37_UNITY_LAW.json');const c=b.counts;if(b.status!=='PASS'||b.gameplay_version!=='3.7.0'||b.build!=='3701'||b.save_schema_version!==34||b.content_registry_version!==8||b.source_sha256!=='16e5d00143d5c860671cf46b033a3cb9673c8e2ec06ae468850a13a366f74321'||c.realms!==34||c.regions!==20||c.routes!==32||c.materials!==72||c.recipes!==40||c.manuals!==36||c.spells!==84||c.equipment!==76||c.true_artifacts!==40||c.enemies!==72||c.laws!==4||c.war_fronts!==3||c.auction_pool!==20)throw new Error('V3.7 report mismatch')"
+          grep -q "const VERSION='3.7.0'" src/game-v37.js
+          grep -q 'const SAVE_SCHEMA_VERSION=34' src/game-v37.js
+          grep -q 'realm-unity-perfect' src/game-v37.js
+          grep -q 'v37ActivateDomain' src/game-v37.js
+          grep -q 'v37ActivateAvatar' src/game-v37.js
+          grep -q 'v37StartHighWar' src/game-v37.js
+      - name: Run V2.9 through V3.7 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+      - name: Validate V3.7 release transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/release-v37-assets.cjs
+          grep -q '<title>太玄界 · 修仙大世界 V3.7</title>' index.html
+          grep -q 'V3.7 · 合体法则与高阶战争篇' index.html
+          grep -q 'src/game-v37.js?v=3701' app.js
+          grep -q "gameplayVersion:'3.7.0'" app.js
+          grep -q 'taixuan-v3.7.0-unity-law-domain-avatar-war-3701' sw.js
+          bash -n tools/verify-v37-public.sh
+          grep -q "EXPECT_GAME='16e5d00143d5c860671cf46b033a3cb9673c8e2ec06ae468850a13a366f74321'" tools/verify-v37-public.sh
+      - name: Frozen V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
