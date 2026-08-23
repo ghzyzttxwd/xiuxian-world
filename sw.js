@@ -1,8 +1,8 @@
-const CACHE='taixuan-v0.2.3-icon-v3-svg';
-const CORE=['./','./index.html','./style.css','./app.js','./manifest.webmanifest','./icon-v3.svg','./bundle2/c01.b64','./bundle2/c02.b64','./bundle2/c03.b64','./bundle2/c04.b64','./bundle2/c05.b64','./bundle2/c06.b64','./bundle2/c07.b64','./bundle2/c08.b64','./bundle2/c09.b64','./bundle2/c10.b64','./bundle2/c11.b64','./bundle2/c12.b64','./bundle2/c13.b64','./bundle2/c14.b64','./bundle2/c15.b64','./bundle2/c16.b64','./bundle2/c17.b64','./bundle2/c18.b64','./bundle2/c19.b64','./bundle2/c20.b64','./bundle2/c21.b64','./bundle2/c22.b64','./bundle2/c23.b64','./bundle2/c24.b64'];
+const CACHE='taixuan-v0.2.4-sample-icon-v4';
+const CORE=['./','./index.html?v=4','./style.css','./app.js','./manifest.webmanifest?v=4','./icon-v4-192.jpg?v=4','./icon-v4-512.jpg?v=4','./bundle2/c01.b64','./bundle2/c02.b64','./bundle2/c03.b64','./bundle2/c04.b64','./bundle2/c05.b64','./bundle2/c06.b64','./bundle2/c07.b64','./bundle2/c08.b64','./bundle2/c09.b64','./bundle2/c10.b64','./bundle2/c11.b64','./bundle2/c12.b64','./bundle2/c13.b64','./bundle2/c14.b64','./bundle2/c15.b64','./bundle2/c16.b64','./bundle2/c17.b64','./bundle2/c18.b64','./bundle2/c19.b64','./bundle2/c20.b64','./bundle2/c21.b64','./bundle2/c22.b64','./bundle2/c23.b64','./bundle2/c24.b64'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET') return;
-  event.respondWith(caches.match(event.request,{ignoreSearch:true}).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html'))));
+  event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=4'))));
 });
