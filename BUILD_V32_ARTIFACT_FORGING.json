@@ -1,0 +1,41 @@
+{
+  "status": "PASS",
+  "gameplay_version": "3.2.0",
+  "build": "3201",
+  "milestone": "artifact-forging-system",
+  "source": "src/game-v32.js",
+  "source_sha256": "750d77bbf239f98f9e0a22cea041f323824962919796ea88786e3739dc0b6037",
+  "source_bytes": 376004,
+  "save_schema_version": 29,
+  "content_registry_version": 3,
+  "counts": {
+    "equipment": 60,
+    "true_artifacts": 24,
+    "active_artifacts": 21,
+    "build_passive_artifacts": 24,
+    "base_slots": 3,
+    "artifact_slots": 4,
+    "manuals": 28,
+    "spells": 60,
+    "enemies": 29,
+    "regions": 12
+  },
+  "checks": [
+    "60 differentiated equipment and artifacts",
+    "24 true artifacts",
+    "at least 12 active artifact abilities",
+    "at least 12 build-level artifact passives",
+    "three base equipment slots and four artifact slots",
+    "forging success chance and quality fluctuation",
+    "independent forging proficiency",
+    "artifact binding refinement warmth and natal conversion",
+    "major refinement failure can damage artifacts",
+    "repairable artifact damage without per-hit durability",
+    "artifact active cooldowns integrated into combat",
+    "path and manual artifact synergy",
+    "schema28 to schema29 migration",
+    "legacy seven gear preserved",
+    "V3.1 manual spell system preserved",
+    "future schema30 protection preserved"
+  ]
+}
