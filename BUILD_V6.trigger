@@ -1,4 +1,4 @@
-mode=v06-alchemy-prerelease
-patch=0603
-candidate=a1fe2910292995bea8893f4f96cff76346c6f33a
-trigger=20260823-1229
+mode=v06-public-verify
+patch=0601
+release=e4d413b8a87e7cb5f3edc60f726bad0eeb0fc7b4
+trigger=20260823-1231
