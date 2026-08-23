@@ -46,7 +46,7 @@ jobs:
           echo 'gameplay-start' > V03_STAGE.txt
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          cat > /tmp/test-v03.mjs <<'JS'
+          cat > test-v03.mjs <<'JS'
           import fs from 'fs';
           import assert from 'assert';
           import {JSDOM} from 'jsdom';
@@ -66,7 +66,7 @@ jobs:
           if(!s.flags.dead){const before=s.player.injury;assert(before>=1,'defeat did not create injury');api.action('rest');s=api.getState();assert.equal(s.player.injury,before-1,'rest did not heal injury');}
           console.log('GAMEPLAY_PASS',JSON.stringify({wins:s.player.battleWins,losses:s.player.battleLosses,injury:s.player.injury,dead:!!s.flags.dead}));
           JS
-          node /tmp/test-v03.mjs
+          node test-v03.mjs
           echo 'gameplay-pass' > V03_STAGE.txt
 
       - name: Public Pages verification
