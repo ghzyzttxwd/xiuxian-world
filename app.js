@@ -1,4 +1,4 @@
-// V0.3 public verification trigger 20260823-1148
+// V0.3 public verification trigger 20260823-1151
 (async()=>{
   try{
     const patchRes=await fetch('./v03-patch.js?v=0301',{cache:'no-cache'});
