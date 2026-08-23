@@ -1,4 +1,4 @@
 mode=v10-public-verify
 patch=1001
 release=3725ef531cfd502330762452913633786ba66a44
-trigger=20260823-1308
+trigger=20260823-1310
