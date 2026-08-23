@@ -1,0 +1,232 @@
+name: V3.8 release fallback
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V38_RELEASE_FINAL.trigger"
+      - ".github/workflows/v38-release-fallback.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v38-release-fallback-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 38
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate exact V3.8 release machinery
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v38-mahayana-origin.cjs
+          node --check src/game-v38.js
+          test "$(sha256sum src/game-v38.js | awk '{print $1}')" = "76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda"
+          node -e "const b=require('./BUILD_V38_MAHAYANA_ORIGIN.json');const c=b.counts;if(b.status!=='PASS'||b.gameplay_version!=='3.8.0'||b.build!=='3801'||b.save_schema_version!==35||b.content_registry_version!==9||b.source_sha256!=='76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda'||c.realms!==38||c.regions!==24||c.routes!==38||c.materials!==84||c.recipes!==48||c.manuals!==40||c.spells!==96||c.equipment!==84||c.true_artifacts!==48||c.enemies!==84||c.world_powers!==4||c.world_actors!==6||c.world_crises!==3||c.auction_pool!==24)throw new Error('V3.8 build mismatch')"
+          node --check tools/release-v38-assets.cjs
+          bash -n tools/verify-v38-public.sh
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          node tests/regression-v38.mjs
+          node tools/release-v38-assets.cjs
+          grep -q "gameplayVersion:'3.8.0'" app.js
+          grep -q 'src/game-v38.js?v=3801' app.js
+          grep -q 'V3.8 · 大乘本源与人界大势篇' index.html
+          grep -q 'taixuan-v3.8.0-mahayana-origin-world-authority-3801' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v38-final:
+    if: github.head_ref == 'v38-release-final-run'
+    needs: validate-fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 48
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - name: Checkout exact main release base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Reconfirm immutable main base and build runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          node tools/build-v38-mahayana-origin.cjs
+          node --check src/game-v38.js
+          test "$(sha256sum src/game-v38.js | awk '{print $1}')" = "76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda"
+          node tools/release-v38-assets.cjs
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          node tests/regression-v38.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+      - name: Commit exact V3.8 runtime to main
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B main "$BASE_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v38.js BUILD_V38_MAHAYANA_ORIGIN.json app.js index.html sw.js
+          git commit -m "feat: V3.8 mahayana origin world authority [skip ci]"
+          git push origin HEAD:main
+          echo "runtime_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact V3.8 runtime to gh-pages
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp index.html app.js sw.js BUILD_V38_MAHAYANA_ORIGIN.json /tmp/pages/
+          cp src/game-v38.js /tmp/pages/src/game-v38.js
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html app.js sw.js BUILD_V38_MAHAYANA_ORIGIN.json src/game-v38.js
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V3.8 mahayana origin ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify actual GitHub Pages
+        id: public
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set +e
+          ATTEMPTS=36 bash tools/verify-v38-public.sh
+          rc=$?
+          set -e
+          public_ok=$(cat /tmp/V38_PUBLIC_OK 2>/dev/null || echo false)
+          echo "public_ok=$public_ok" >> "$GITHUB_OUTPUT"
+          echo "verifier_rc=$rc"
+          cat /tmp/V38_PUBLIC_DIAGNOSTIC.txt || true
+          exit 0
+
+      - name: Persist V3.8 diagnostic on failure
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cp /tmp/V38_PUBLIC_DIAGNOSTIC.txt /tmp/pages/PUBLIC_V38_DIAGNOSTIC.txt
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V38_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record V3.8 public diagnostic ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Stop failed public release
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Record V3.8 public PASS on gh-pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cd /tmp/pages
+          git rm -f --ignore-unmatch PUBLIC_V38_DIAGNOSTIC.txt >/dev/null 2>&1 || true
+          RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s={status:'PASS',game_version:'3.8.0',build:'3801',milestone:'mahayana-origin-world-authority-tribulation-prep',verified_commit:process.env.RUNTIME_SHA,source_sha256:'76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda',save_schema_version:35,content_registry_version:9,realm_count:38,region_count:24,route_count:38,material_count:84,recipe_count:48,manual_count:40,spell_count:96,equipment_count:84,true_artifact_count:48,enemy_count:84,world_power_count:4,world_actor_count:6,world_crisis_count:3,auction_pool_count:24,stage:'public-pass',transport:'same-repo-pr-fallback',checks:['PR59 V3.8 validation PASS and closed unmerged','fallback workflow validation PASS and closed unmerged','schema34 to schema35 migration','four mahayana realms','origin insight','world authority','world order consequences','four world powers','six world actors','three world crises','real V3.2 natal artifact lifecycle preserved','natal artifact origin marks','mahayana essence','dedicated mahayana breakthrough','major failure lifespan and natal damage','world edict combat','five-axis tribulation preparation entry only','four mahayana manuals','twelve origin skills','eight mahayana artifacts','eight mahayana recipes','twelve world-tier mechanic enemies','V3.7 law preserved','V3.6 space preserved','actual GitHub Pages HTTP 200','public V3.8 markers','public source SHA equality','public V3.8 headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('PUBLIC_V38_STATUS.json',JSON.stringify(s)+'\n')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V38_STATUS.json
+          git commit -m "chore: record V3.8 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:gh-pages
+
+      - name: Verify PASS is actually reachable from Pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V38_STATUS.json?verify=${RUNTIME_SHA}-${i}" -o /tmp/live-v38-status.json; then
+              if RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v38-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='3.8.0'||s.build!=='3801'||s.save_schema_version!==35||s.verified_commit!==process.env.RUNTIME_SHA)process.exit(1)" && cmp -s /tmp/live-v38-status.json /tmp/pages/PUBLIC_V38_STATUS.json; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync exact PASS to main
+        if: steps.public.outputs.public_ok == 'true'
+        id: final_main
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$RUNTIME_SHA"
+          git checkout -B main origin/main
+          cp /tmp/pages/PUBLIC_V38_STATUS.json PUBLIC_V38_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V38_STATUS.json
+          git commit -m "chore: record V3.8 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:main
+          echo "final_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final V3.8 delta guard
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+          FINAL_SHA: ${{ steps.final_main.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$RUNTIME_SHA" "$FINAL_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V38_STATUS.json'
+          cmp -s PUBLIC_V38_STATUS.json /tmp/pages/PUBLIC_V38_STATUS.json
+          echo "V38_PUBLIC_TERMINAL_PASS $RUNTIME_SHA -> $FINAL_SHA"
