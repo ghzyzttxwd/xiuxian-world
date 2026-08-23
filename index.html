@@ -11,13 +11,13 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css" />
-  <title>太玄界 · 修仙大世界 V0.4</title>
+  <title>太玄界 · 修仙大世界 V0.5</title>
 </head>
 <body>
 <div id="startScreen" class="start">
   <section class="panel start-box">
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.4</p>
+    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.5</p>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions">
       <button id="newGameBtn" class="primary">穿越此界</button>
@@ -25,7 +25,7 @@
       <button id="installStartBtn" class="ghost">安装应用</button>
     </div>
     <div id="installStatus" class="install-note"></div>
-    <div class="version">V0.4 · 宗门身份与任务体系</div>
+    <div class="version">V0.5 · 坊市与经济闭环</div>
   </section>
 </div>
 
@@ -83,26 +83,16 @@
       </div>
     </section>
     <div class="desktop-grid">
-      <section class="panel">
-        <h2>人物</h2>
-        <div id="characterStats"></div>
-      </section>
-      <section class="panel">
-        <h2>灵根</h2>
-        <div id="rootInfo"></div>
-      </section>
+      <section class="panel"><h2>人物</h2><div id="characterStats"></div></section>
+      <section class="panel"><h2>灵根</h2><div id="rootInfo"></div></section>
     </div>
     <section class="panel">
       <h2>宗门</h2>
       <p class="section-tip">宗门不是静态称号：任务、贡献、月俸、兑换和身份晋升都会真实影响角色成长。</p>
-      <div id="sectInfo"></div>
-      <div id="sectActions"></div>
+      <div id="sectInfo"></div><div id="sectActions"></div>
     </section>
     <section class="panel">
-      <h2>功法</h2>
-      <div id="manualList"></div>
-      <h3>法术与技艺</h3>
-      <div id="spellList"></div>
+      <h2>功法</h2><div id="manualList"></div><h3>法术与技艺</h3><div id="spellList"></div>
     </section>
   </section>
 
@@ -112,17 +102,17 @@
       <p class="section-tip">赶路会真实消耗时间；大事件不会因为你在路上而暂停。</p>
       <div id="mapList"></div>
     </section>
+    <section class="panel">
+      <h2>临江坊市</h2>
+      <p class="section-tip">坊市行情会随世界经济波动。买价始终高于卖价，不能靠原地倒卖刷灵石；回春散可在受伤后直接疗伤。</p>
+      <div id="marketInfo"></div>
+      <div id="marketActions"></div>
+    </section>
   </section>
 
   <section id="page-events" class="page">
-    <section class="panel">
-      <h2>天下大事 <span id="eventBadge" class="badge">0</span></h2>
-      <div id="majorEvents"></div>
-    </section>
-    <section class="panel">
-      <h2>修真界传闻</h2>
-      <div id="worldLog" class="log-list"></div>
-    </section>
+    <section class="panel"><h2>天下大事 <span id="eventBadge" class="badge">0</span></h2><div id="majorEvents"></div></section>
+    <section class="panel"><h2>修真界传闻</h2><div id="worldLog" class="log-list"></div></section>
   </section>
 
   <section id="page-relations" class="page">
@@ -143,7 +133,6 @@
 </div>
 
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
-
-<script src="./app.js?v=0401"></script>
+<script src="./app.js?v=0501"></script>
 </body>
 </html>
