@@ -66,8 +66,9 @@ api.action('work');
 state=api.getState();
 assert(state.player.spiritStones-stonesBefore>=2,'regional work range was not applied in 苍梧郡城');
 
-// World ticks must keep NPCs inside the connected regional network and create a valid weighted secret realm.
-api.advanceDays(24);
+// We are roughly at day 10 here. Advance to about day 20: the first realm
+// has definitely spawned at day 18, while its earliest close day is day 32.
+api.advanceDays(10);
 state=api.getState();
 assert((state.npcs||[]).every(n=>LOCATIONS.includes(n.location)),'NPC movement escaped the regional network');
 assert(state.world.secretRealm,'regional secret realm did not appear after world time advanced');
