@@ -1,1 +1,1 @@
-{"status":"PENDING","game_version":"0.7.0","milestone":"gear-loop","note":"Awaiting final public V0.7 verification"}
+{"status":"PASS","game_version":"0.7.0","milestone":"gear-loop","verified_commit":"cbe336c7be775cb186dfbb5a120b41b712bf24b3","stage":"public-pass","checks":["repository V0.2->V0.3->V0.4->V0.5->V0.6->V0.7 chain","V0.7 syntax","gear UI nodes","public V0.7 index","public loader","public patches","public service worker","public runtime rebuild","public headless smoke","standalone manifest","V6 icon hash regression","prerelease gear gameplay PASS"]}
