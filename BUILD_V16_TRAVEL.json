@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "gameplay_version": "1.6.0",
+  "build": "1601",
+  "milestone": "travel-routes-risk",
+  "source": "src/game-v16.js",
+  "source_sha256": "7576b183af677379a839983d6adc1dc1aa681d568759b1fbba33b774efa225e1",
+  "source_bytes": 117920,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 13,
+  "checks": [
+    "alternate route choices",
+    "route travel time",
+    "route fees",
+    "regional route risk",
+    "sect/faction risk modifiers",
+    "travel combat encounters",
+    "travel resource/rumor events",
+    "V1.5 regional ecology preserved"
+  ]
+}
