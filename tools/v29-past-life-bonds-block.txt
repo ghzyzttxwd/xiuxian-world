@@ -1,0 +1,33 @@
+function ensurePastLifeShape(){
+ const p=state.player,lg=state.legacy||(state.legacy={cycles:0,merit:0,bestRealm:0,totalDeaths:0});
+ if(p.pastLifeRecognitions==null)p.pastLifeRecognitions=0;
+ if(!Array.isArray(lg.pastLifeBonds))lg.pastLifeBonds=[];
+ if(!lg.pastLifeEncounters||typeof lg.pastLifeEncounters!=='object'||Array.isArray(lg.pastLifeEncounters))lg.pastLifeEncounters={};
+ if(lg.pastLifeSnapshots==null)lg.pastLifeSnapshots=0;
+}
+function currentLifeNumber(){ensurePastLifeShape();return (state.legacy.cycles||0)+1}
+function capturePastLifeBonds(){
+ ensurePastLifeShape();const lg=state.legacy,life=currentLifeNumber(),day=dayNumber();if(state.flags.pastLifeBondsCapturedLife===life)return 0;
+ let count=0;for(const n of state.npcs){if(!n.known||(n.relation||0)<60)continue;const key=life+':'+n.id;if(lg.pastLifeBonds.some(x=>x&&x.key===key))continue;lg.pastLifeBonds.push({key,npcId:n.id,name:n.name,life,relation:n.relation||0,faction:n.faction,realmIndex:n.realmIndex,aliveAtCapture:!!n.alive,day});count++}
+ lg.pastLifeBonds=lg.pastLifeBonds.slice(-80);lg.pastLifeSnapshots=(lg.pastLifeSnapshots||0)+1;state.flags.pastLifeBondsCapturedLife=life;if(count)addPersonal('【前尘留痕】这一世有 '+count+' 位交情深厚的故人被写入轮回旧缘。','major');return count
+}
+function latestPastLifeBondForNpc(n){
+ if(!n)return null;ensurePastLifeShape();const life=currentLifeNumber(),rows=state.legacy.pastLifeBonds.filter(x=>x&&x.npcId===n.id&&x.life<life);if(!rows.length)return null;rows.sort((a,b)=>b.life-a.life||b.relation-a.relation);return rows[0]
+}
+function pastLifeEncounterKey(n){return currentLifeNumber()+':'+n.id}
+function pastLifeRecognitionAvailable(n){if(!n||!n.alive||currentLifeNumber()<=1)return false;const bond=latestPastLifeBondForNpc(n);if(!bond)return false;return !state.legacy.pastLifeEncounters[pastLifeEncounterKey(n)]}
+function recognizePastLifeNpc(n,forced=false){
+ if(typeof n!=='object')n=state.npcs.find(x=>x.id===Number(n));if(!n||!n.alive)return null;ensurePastLifeShape();const bond=latestPastLifeBondForNpc(n);if(!bond)return null;if(!forced&&n.location!==state.player.location)return null;const key=pastLifeEncounterKey(n);if(state.legacy.pastLifeEncounters[key])return {...state.legacy.pastLifeEncounters[key],already:true};
+ const gain=bond.relation>=85?6:bond.relation>=70?5:4;n.relation=clamp((n.relation||0)+gain,-100,100);n.known=true;let bonus='';let insight=0,herbs=0;if(bond.relation>=90){state.player.insight=(state.player.insight||0)+1;insight=1;bonus='。交谈间你心头掠过一丝莫名熟悉的感悟，悟道点 +1'}else if(bond.relation>=75){state.player.herbs=(state.player.herbs||0)+1;herbs=1;bonus='。对方临别时顺手赠你一株灵草'}
+ const row={npcId:n.id,bondLife:bond.life,day:dayNumber(),relationGain:gain,insight,herbs};state.legacy.pastLifeEncounters[key]=row;state.player.pastLifeRecognitions=(state.player.pastLifeRecognitions||0)+1;addPersonal('【前尘重逢】'+n.name+'盯着你看了许久，只说了一句：“不知为何，总觉得你有些熟悉。” 这一世你们从头认识，关系仅 +'+gain+bonus+'。','major');save();render();return {...row}
+}
+function resetPlayerNpcTiesForRebirth(){
+ ensurePastLifeShape();state.world.npcPendingRequest=null;for(const n of state.npcs){n.relation=0;n.grudge=0;n.lastGiftDay=0;n.lastDaoDay=0;n.lastSparDay=0;n.lastHelpMonth=0;n.lastRevengeDay=0;n.favorDebt=0;n.lastRequestDay=0;n.lastFavorReturnDay=0}
+}
+function pastLifeSnapshot(){
+ ensurePastLifeShape();const life=currentLifeNumber(),latest={};for(const b of state.legacy.pastLifeBonds){if(!b||b.life>=life)continue;const old=latest[b.npcId];if(!old||b.life>old.life)latest[b.npcId]=b}
+ return {life,recognitions:state.player.pastLifeRecognitions||0,snapshots:state.legacy.pastLifeSnapshots||0,bonds:Object.values(latest).map(b=>{const n=state.npcs.find(x=>x.id===b.npcId),enc=state.legacy.pastLifeEncounters[life+':'+b.npcId]||null;return {...b,currentAlive:!!n?.alive,currentFaction:n?.faction||b.faction,currentLocation:n?.location||'',currentRelation:n?.relation||0,recognized:!!enc,encounter:enc?{...enc}:null}}).sort((a,b)=>b.life-a.life||b.relation-a.relation)}
+}
+function renderPastLifePanel(){
+ let panel=$('pastLifePanel');if(!panel){const page=$('page-relations');if(!page)return;panel=document.createElement('section');panel.className='panel';panel.id='pastLifePanel';panel.innerHTML='<h2>前尘旧缘</h2><p class="section-tip">轮回不会直接继承上一世的人情和关系。只有真正的深交会留下旧缘记录；新一世重逢后，也只会得到一点“似曾相识”的起步影响。</p><div id="pastLifeInfo"></div>';page.appendChild(panel)}const box=$('pastLifeInfo');if(!box)return;const snap=pastLifeSnapshot();let html='<div class="kv"><span>当前人生</span><b>第 '+snap.life+' 世</b></div><div class="kv"><span>旧缘重逢</span><b>'+snap.recognitions+' 人</b></div><div class="kv"><span>历世旧缘记录</span><b>'+state.legacy.pastLifeBonds.length+' 条</b></div>';if(!snap.bonds.length){box.innerHTML=html+'<div class="section-tip">上一世还没有留下足够深的故人缘分。</div>';return}html+='<h3>可追溯故人</h3>'+snap.bonds.slice(0,12).map(b=>{const n=state.npcs.find(x=>x.id===b.npcId),status=!b.currentAlive?'已故':b.recognized?'这一世已重逢':'尚未重逢',where=b.currentAlive?' · '+esc(b.currentLocation):'',can=n&&b.currentAlive&&!b.recognized&&n.location===state.player.location;return '<div class="skill-card"><div class="skill-head"><b>'+esc(b.name)+'</b><span>前世关系 '+b.relation+'</span></div><div class="skill-desc">第 '+b.life+' 世旧缘 · '+esc(b.currentFaction)+' · '+status+where+(b.recognized?' · 当前关系 '+b.currentRelation:'')+'</div>'+(can?'<div class="event-actions"><button data-past-life="'+b.npcId+'">似曾相识 · 上前交谈</button></div>':'')+'</div>'}).join('');box.innerHTML=html;box.querySelectorAll('[data-past-life]').forEach(b=>b.onclick=()=>{const r=recognizePastLifeNpc(Number(b.dataset.pastLife));if(r)showResult('前尘重逢','关系 +'+r.relationGain+(r.insight?'\n悟道点 +1':'')+(r.herbs?'\n灵草 +1':'')+'\n旧缘只提供小额起步，不继承上一世关系。','good')})
+}
