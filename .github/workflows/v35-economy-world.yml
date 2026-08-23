@@ -1,0 +1,85 @@
+name: V3.5 economy world integration
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V35_ECONOMY_WORLD.trigger"
+      - "content/v35-economy-world.cjs"
+      - "tools/v35-economy-runtime.txt"
+      - "tools/build-v35-economy-world.cjs"
+      - "tools/release-v35-assets.cjs"
+      - "tools/verify-v35-public.sh"
+      - "tests/regression-v35.mjs"
+      - ".github/workflows/v35-economy-world.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taixuan-v35-economy-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v35:
+    runs-on: ubuntu-latest
+    timeout-minutes: 26
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify V3.4 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v34.js | awk '{print $1}')" = "d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec"
+          node -e "const s=require('./PUBLIC_V34_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.4.0'||s.build!=='3401'||s.save_schema_version!==31||s.source_sha256!=='d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec')throw new Error('V3.4 baseline mismatch')"
+      - name: Build deterministic V3.5 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v35-economy-world.cjs
+          node --check src/game-v35.js
+          first=$(sha256sum src/game-v35.js | awk '{print $1}')
+          test "$first" = "b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed"
+          node tools/build-v35-economy-world.cjs >/tmp/v35-build-second.log
+          second=$(sha256sum src/game-v35.js | awk '{print $1}')
+          test "$first" = "$second"
+          node -e "const b=require('./BUILD_V35_ECONOMY_WORLD.json');if(b.status!=='PASS'||b.gameplay_version!=='3.5.0'||b.build!=='3501'||b.source_sha256!=='b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed'||b.save_schema_version!==32||b.content_registry_version!==6||b.counts.shops!==4||b.counts.fixed_listings!==32||b.counts.auction_pool!==12||b.counts.total_trade_definitions!==44)throw new Error('V3.5 report mismatch')"
+          grep -q "const VERSION='3.5.0'" src/game-v35.js
+          grep -q 'const SAVE_SCHEMA_VERSION=32' src/game-v35.js
+          grep -q 'shop-cangwu-auction' src/game-v35.js
+          grep -q 'v35SecretRealmTradeReward' src/game-v35.js
+      - name: Run V2.9 through V3.5 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+      - name: Validate V3.5 release assets and public verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/release-v35-assets.cjs
+          bash -n tools/verify-v35-public.sh
+          node tools/release-v35-assets.cjs
+          grep -q 'V3.5 · 正常经济与世界整合' index.html
+          grep -q 'src/game-v35.js?v=3501' app.js
+          grep -q "gameplayVersion:'3.5.0'" app.js
+          grep -q 'taixuan-v3.5.0-economy-world-integration-3501' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          test "$(grep -o "EXPECT_GAME='[^']*'" tools/verify-v35-public.sh | cut -d\' -f2)" = "b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed"
+      - name: Frozen V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
