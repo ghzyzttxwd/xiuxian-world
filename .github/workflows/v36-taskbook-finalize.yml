@@ -1,0 +1,58 @@
+name: V3.6 taskbook finalize
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V36_TASKBOOK_FINALIZE.trigger"
+      - "tools/finalize-v36-taskbook.cjs"
+      - ".github/workflows/v36-taskbook-finalize.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-v36-taskbook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact V3.6 terminal baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "ad4255ccf61dd3334578afec12fa781cebf274f8"
+          test "$(git show ${BASE_SHA}:src/game-v36.js | sha256sum | awk '{print $1}')" = "9935e93df2418bd1ccfa1f87f3d9123312ce702ba3660e19b50d1938da24b39d"
+          git show ${BASE_SHA}:PUBLIC_V36_STATUS.json >/tmp/v36-status.json
+          node -e "const s=require('/tmp/v36-status.json');if(s.status!=='PASS'||s.game_version!=='3.6.0'||s.build!=='3601'||s.save_schema_version!==33||s.verified_commit!=='b0ba936e4b6502515968bf1e51c5082a5c28f1a5'||s.source_sha256!=='9935e93df2418bd1ccfa1f87f3d9123312ce702ba3660e19b50d1938da24b39d')throw new Error('V3.6 terminal baseline mismatch')"
+      - name: Generate and validate taskbook
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/finalize-v36-taskbook.cjs
+          grep -q '当前正式基线：V3.6.0 · 炼虚与空间篇 · build 3601 · save schema 33' docs/PROJECT_TASKBOOK.md
+          grep -q '| V3.6 炼虚篇 | DONE |' docs/PROJECT_TASKBOOK.md
+          grep -q '| V3.7 合体篇 | TODO / CURRENT |' docs/PROJECT_TASKBOOK.md
+          grep -q '\- \[x\] 炼虚完整' docs/PROJECT_TASKBOOK.md
+          grep -q '正式 runtime commit：`b0ba936e4b6502515968bf1e51c5082a5c28f1a5`' docs/PROJECT_TASKBOOK.md
+          cp tools/finalize-v36-taskbook.cjs /tmp/finalize-v36-taskbook.cjs
+      - name: Commit only finalized taskbook to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          git checkout -B main "$BASE_SHA"
+          node /tmp/finalize-v36-taskbook.cjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_TASKBOOK.md
+          mapfile -t changed < <(git diff --cached --name-only)
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'docs/PROJECT_TASKBOOK.md'
+          git commit -m "docs: mark V3.6 refining void complete [skip ci]"
+          git push origin HEAD:main
