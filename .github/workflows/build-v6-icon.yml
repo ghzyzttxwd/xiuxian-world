@@ -1,4 +1,4 @@
-name: Build V6 original-spacing icon
+name: Verify V0.3 via registered runner
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-verify:
+  verify-v03:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,87 +18,101 @@ jobs:
           ref: gh-pages
           fetch-depth: 0
 
-      - name: Build exact-layout PNG icons
+      - name: Rebuild patched runtime
         shell: bash
         run: |
           set -euo pipefail
-          echo '313f77862133dcbf1b8456b32678079b199ca79f46cf20ca28ac19a3e3deb6d5  icon-v6-base.png' | sha256sum -c -
-          python3 -m pip install --quiet pillow
-          python3 - <<'PY'
-          from PIL import Image
-          src=Image.open('icon-v6-base.png').convert('RGB')
-          for n in (192,512):
-              im=src.resize((n,n),Image.Resampling.LANCZOS)
-              im.save(f'icon-v6-{n}.png',optimize=True)
-          PY
-          python3 - <<'PY'
-          import json,re
-          manifest={
-            'id':'./','name':'太玄界 · 修仙大世界','short_name':'太玄界',
-            'description':'低美术、高事件、高数值、持续世界演化的修仙沙盒 RPG。',
-            'lang':'zh-CN','start_url':'./index.html?v=6','scope':'./','display':'standalone',
-            'orientation':'portrait-primary','background_color':'#0d110c','theme_color':'#10150f',
-            'icons':[
-              {'src':'./icon-v6-192.png?v=6','sizes':'192x192','type':'image/png','purpose':'any'},
-              {'src':'./icon-v6-512.png?v=6','sizes':'512x512','type':'image/png','purpose':'any'}
-            ]
-          }
-          text=json.dumps(manifest,ensure_ascii=False,indent=2)+'\n'
-          open('manifest-v6.webmanifest','w',encoding='utf-8').write(text)
-          open('manifest.webmanifest','w',encoding='utf-8').write(text)
-          p=open('index.html',encoding='utf-8').read()
-          p=re.sub(r'href="\./manifest(?:-v\d+)?\.webmanifest(?:\?v=\d+)?"','href="./manifest-v6.webmanifest?v=6"',p)
-          p=re.sub(r'href="\./icon-v\d+-192\.(?:png|jpg)(?:\?v=\d+)?"','href="./icon-v6-192.png?v=6"',p)
-          open('index.html','w',encoding='utf-8').write(p)
-          chunks=[f'./bundle2/c{i:02}.b64' for i in range(1,25)]
-          core=['./','./index.html?v=6','./style.css','./app.js','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6']+chunks
-          sw="const CACHE='taixuan-v0.2.6-original-spacing-v6';\nconst CORE="+repr(core).replace("'",'"')+";\n"+'''self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
-self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=6'))));});
-'''
-          open('sw.js','w',encoding='utf-8').write(sw)
-          PY
-          python3 - <<'PY'
-          from PIL import Image
-          assert Image.open('icon-v6-192.png').size==(192,192)
-          assert Image.open('icon-v6-512.png').size==(512,512)
-          PY
+          node --check v03-patch.js
+          cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
+          cat > /tmp/apply-patch.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),assert=require('assert');
+          const ctx={window:{}};vm.createContext(ctx);
+          vm.runInContext(fs.readFileSync('v03-patch.js','utf8'),ctx);
+          assert.equal(typeof ctx.window.__TAIXUAN_PATCH_V03__,'function');
+          const out=ctx.window.__TAIXUAN_PATCH_V03__(fs.readFileSync('/tmp/v02.js','utf8'));
+          fs.writeFileSync('/tmp/v03.js',out);
+          for(const s of ["const VERSION='0.3.0'","battleWins","battleLosses","injuryLabel","deathRisk","黑风岭狼王","data-combat=\"wind\""])assert(out.includes(s),`missing ${s}`);
+          console.log('PATCH_PASS',out.length);
+          JS
+          node /tmp/apply-patch.cjs
+          node --check /tmp/v03.js
 
-      - name: Publish V6 files to gh-pages
+      - name: Headless gameplay regression
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add icon-v6-192.png icon-v6-512.png manifest-v6.webmanifest manifest.webmanifest index.html sw.js
-          git commit -m 'fix: publish V6 icon with original sample spacing [skip ci]'
-          git push origin HEAD:gh-pages
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          cat > /tmp/test-v03.mjs <<'JS'
+          import fs from 'fs';
+          import assert from 'assert';
+          import {JSDOM} from 'jsdom';
+          const html=fs.readFileSync('index.html','utf8').replace(/<script src="\.\/app\.js"><\/script>/,'');
+          const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});
+          dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
+          Object.defineProperty(dom.window.navigator,'serviceWorker',{value:undefined,configurable:true});
+          dom.window.console=console;
+          dom.window.eval(fs.readFileSync('/tmp/v03.js','utf8'));
+          const api=dom.window.__TAIXUAN_TEST__;assert(api,'test API missing');
+          api.newGame('回归测试者');
+          let s=api.getState();assert.equal(s.version,'0.3.0');assert.equal(s.player.injury,0);assert.equal(s.player.battleWins,0);
+          api.startCombat('灰背野狼');for(let i=0;i<30&&api.getCombat();i++)api.combatAction('attack');
+          s=api.getState();assert(s.player.battleWins>=1,'weak enemy did not produce a win');assert(s.player.kills>=1,'kill stat missing');
+          api.startCombat('黑风岭狼王');for(let i=0;i<30&&api.getCombat();i++)api.combatAction('attack');
+          s=api.getState();assert(s.flags.dead||s.player.battleLosses>=1,'wolf king produced neither defeat nor death');
+          if(!s.flags.dead){const before=s.player.injury;assert(before>=1,'defeat did not create injury');api.action('rest');s=api.getState();assert.equal(s.player.injury,before-1,'rest did not heal injury');}
+          console.log('GAMEPLAY_PASS',JSON.stringify({wins:s.player.battleWins,losses:s.player.battleLosses,injury:s.player.injury,dead:!!s.flags.dead}));
+          JS
+          node /tmp/test-v03.mjs
 
-      - name: Verify public V6 resources
+      - name: Public Pages verification
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
-          LOCAL512=$(sha256sum icon-v6-512.png | awk '{print $1}')
-          LOCAL192=$(sha256sum icon-v6-192.png | awk '{print $1}')
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
           for i in $(seq 1 60); do
             ok=1
-            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&n=${GITHUB_SHA}" -o /tmp/m.json || ok=0
-            curl -fsSL "${BASE}icon-v6-512.png?v=6&n=${GITHUB_SHA}" -o /tmp/i512.png || ok=0
-            curl -fsSL "${BASE}icon-v6-192.png?v=6&n=${GITHUB_SHA}" -o /tmp/i192.png || ok=0
-            curl -fsSL "${BASE}sw.js?v=6&n=${GITHUB_SHA}" -o /tmp/sw.js || ok=0
-            if [ "$ok" -eq 1 ] && grep -q 'icon-v6-512.png' /tmp/m.json && grep -q 'original-spacing-v6' /tmp/sw.js && [ "$(sha256sum /tmp/i512.png|awk '{print $1}')" = "$LOCAL512" ] && [ "$(sha256sum /tmp/i192.png|awk '{print $1}')" = "$LOCAL192" ]; then break; fi
+            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}v03-patch.js?verify=${GITHUB_SHA}" -o /tmp/public-patch.js || ok=0
+            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png || ok=0
+            if [ "$ok" -eq 1 ] && grep -q '__TAIXUAN_PATCH_V03__' /tmp/public-app.js && grep -q '黑风岭狼王' /tmp/public-patch.js && grep -q 'taixuan-v0.3.0-combat-patch0301' /tmp/public-sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then break; fi
             test "$i" -lt 60 || exit 1
             sleep 5
           done
+          node --check /tmp/public-app.js
+          node --check /tmp/public-patch.js
           python3 - <<'PY'
           import json
-          m=json.load(open('/tmp/m.json'))
-          assert m['short_name']=='太玄界' and m['display']=='standalone'
+          m=json.load(open('/tmp/public-manifest.json'))
+          assert m['display']=='standalone' and m['short_name']=='太玄界'
           assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
-          assert all(x['purpose']=='any' for x in m['icons'])
           PY
-          printf '%s\n' "{\"status\":\"PASS\",\"icon_version\":\"v6-original-spacing\",\"verified_url\":\"${BASE}?v=6\",\"icon_512_sha256\":\"${LOCAL512}\",\"icon_192_sha256\":\"${LOCAL192}\"}" > PUBLIC_V6_STATUS.json
-          git add PUBLIC_V6_STATUS.json
-          git commit -m 'chore: record V6 public verification [skip ci]'
+
+      - name: Record PASS
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > PUBLIC_V03_STATUS.json <<EOF
+          {"status":"PASS","game_version":"0.3.0","milestone":"combat-loop","verified_commit":"${GITHUB_SHA}","checks":["real V0.2 runtime patched","patched runtime syntax","headless weak-enemy win","wolf-king defeat/death","injury healing","public app loader","public V0.3 patch","public service worker","standalone manifest","V6 icon hash regression"]}
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V03_STATUS.json
+          git commit -m 'chore: record V0.3 public verification [skip ci]'
           git push origin HEAD:gh-pages
+
+      - name: Record failure marker
+        if: failure()
+        shell: bash
+        run: |
+          printf '%s\n' '{"status":"FAIL","game_version":"0.3.0","milestone":"combat-loop","note":"Registered V0.3 verification runner failed; inspect workflow logs before release."}' > PUBLIC_V03_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V03_STATUS.json
+          git commit -m 'chore: record V0.3 verification failure [skip ci]' || true
+          git push origin HEAD:gh-pages || true
