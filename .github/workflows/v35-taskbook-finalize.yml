@@ -1,0 +1,64 @@
+name: V3.5 taskbook finalize
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V35_TASKBOOK_FINALIZE.trigger"
+      - "tools/finalize-v35-taskbook.cjs"
+      - ".github/workflows/v35-taskbook-finalize.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-v35-taskbook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      EXPECT_BASE: fb4b935d9f41aff232704686010b59ff3e156ecd
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact V3.5 terminal baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.base.sha }}" = "$EXPECT_BASE"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$EXPECT_BASE"
+          node -e "const s=require('./PUBLIC_V35_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.5.0'||s.build!=='3501'||s.verified_commit!=='cf99063b4be9d0ce38ef8b1039e3efc839a79cc6'||s.source_sha256!=='b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed'||s.save_schema_version!==32||s.shop_count!==4)throw new Error('V3.5 terminal baseline mismatch')"
+          test "$(sha256sum src/game-v35.js | awk '{print $1}')" = "b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed"
+      - name: Generate and validate taskbook
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/finalize-v35-taskbook.cjs
+          TASKBOOK_OUTPUT=/tmp/PROJECT_TASKBOOK.md node tools/finalize-v35-taskbook.cjs
+          grep -q '> 当前正式基线：V3.5.0 · 正常经济与世界整合 · build 3501 · save schema 32' /tmp/PROJECT_TASKBOOK.md
+          grep -q '^# 2. V3.5 当前真实基线$' /tmp/PROJECT_TASKBOOK.md
+          grep -q '4 个稳定 shopId 场所' /tmp/PROJECT_TASKBOOK.md
+          grep -q '^\*\*状态：DONE\*\*$' /tmp/PROJECT_TASKBOOK.md
+          grep -q '| V3.5 正常经济 / 世界整合 | DONE |' /tmp/PROJECT_TASKBOOK.md
+          grep -q '| V3.6 炼虚篇 | TODO / CURRENT |' /tmp/PROJECT_TASKBOOK.md
+          grep -q '正式 runtime commit：`cf99063b4be9d0ce38ef8b1039e3efc839a79cc6`' /tmp/PROJECT_TASKBOOK.md
+          grep -q 'runtime → final release main `fb4b935d9f41aff232704686010b59ff3e156ecd`' /tmp/PROJECT_TASKBOOK.md
+          grep -q -- '- \[ \] 正常经济无严重死锁' /tmp/PROJECT_TASKBOOK.md
+          grep -q -- '- \[ \] 高阶资源有多来源但仍然稀缺' /tmp/PROJECT_TASKBOOK.md
+      - name: Commit only finalized taskbook to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$EXPECT_BASE"
+          git checkout -B v35-taskbook-main origin/main
+          cp /tmp/PROJECT_TASKBOOK.md docs/PROJECT_TASKBOOK.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_TASKBOOK.md
+          mapfile -t staged < <(git diff --cached --name-only)
+          test "${#staged[@]}" -eq 1
+          test "${staged[0]}" = 'docs/PROJECT_TASKBOOK.md'
+          git commit -m "docs: mark V3.5 economy world complete [skip ci]"
+          git push origin HEAD:main
