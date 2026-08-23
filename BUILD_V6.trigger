@@ -1,4 +1,4 @@
-mode=v07-gear-prerelease
+mode=v07-public-verify
 patch=0701
-candidate=0a77146cd769e93407cf9092ba50f227168f8175
-trigger=20260823-1238
+release=7552ec74323c99226049f382f001d773178455fa
+trigger=20260823-1240
