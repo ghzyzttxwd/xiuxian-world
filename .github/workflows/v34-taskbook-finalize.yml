@@ -1,0 +1,72 @@
+name: V3.4 taskbook finalize
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V34_TASKBOOK_FINALIZE.trigger"
+      - "tools/finalize-v34-taskbook.cjs"
+      - ".github/workflows/v34-taskbook-finalize.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v34-taskbook-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  finalize-v34-taskbook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      EXPECT_BASE: c231ba93d8647d1cadbe2d60ed9e1dac0813e59f
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact V3.4 terminal baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.base.sha }}" = "$EXPECT_BASE"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$EXPECT_BASE"
+          node -e "const s=require('./PUBLIC_V34_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.4.0'||s.build!=='3401'||s.verified_commit!=='aa2c0e690ee8cf282602edeb047c3acd37914c0f'||s.source_sha256!=='d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec'||s.save_schema_version!==31||s.enemy_count!==48||s.mechanic_enemy_count!==19||s.build_count!==8)throw new Error('V3.4 terminal baseline mismatch')"
+          test "$(sha256sum src/game-v34.js | awk '{print $1}')" = "d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec"
+
+      - name: Generate and validate taskbook
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/finalize-v34-taskbook.cjs
+          TASKBOOK_OUTPUT=/tmp/PROJECT_TASKBOOK.md node tools/finalize-v34-taskbook.cjs
+          grep -q '> 当前正式基线：V3.4.0 · 战斗与四大道途 Build · build 3401 · save schema 31' /tmp/PROJECT_TASKBOOK.md
+          grep -q '^# 2. V3.4 当前真实基线$' /tmp/PROJECT_TASKBOOK.md
+          grep -q '^\*\*状态：DONE\*\*$' /tmp/PROJECT_TASKBOOK.md
+          grep -q '\[x\] 敌人 ≥ 45' /tmp/PROJECT_TASKBOOK.md
+          grep -q '\[x\] 独立战斗机制敌人 ≥ 12' /tmp/PROJECT_TASKBOOK.md
+          grep -q '\[x\] 四大道途各至少 2 套中高阶构筑' /tmp/PROJECT_TASKBOOK.md
+          grep -q '| V3.4 战斗 / 四大道途 Build | DONE |' /tmp/PROJECT_TASKBOOK.md
+          grep -q '| V3.5 正常经济 / 世界整合 | TODO / CURRENT |' /tmp/PROJECT_TASKBOOK.md
+          grep -q '正式 runtime commit：`aa2c0e690ee8cf282602edeb047c3acd37914c0f`' /tmp/PROJECT_TASKBOOK.md
+          grep -q 'runtime → final release main `c231ba93d8647d1cadbe2d60ed9e1dac0813e59f`' /tmp/PROJECT_TASKBOOK.md
+
+      - name: Commit only finalized taskbook to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$EXPECT_BASE"
+          git checkout -B main "$EXPECT_BASE"
+          cp /tmp/PROJECT_TASKBOOK.md docs/PROJECT_TASKBOOK.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_TASKBOOK.md
+          mapfile -t staged < <(git diff --cached --name-only)
+          test "${#staged[@]}" -eq 1
+          test "${staged[0]}" = 'docs/PROJECT_TASKBOOK.md'
+          git commit -m "docs: mark V3.4 combat dao builds complete [skip ci]"
+          git push origin HEAD:main
+          echo "V34_TASKBOOK_MAIN $(git rev-parse HEAD)"
