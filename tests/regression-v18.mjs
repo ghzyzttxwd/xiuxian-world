@@ -65,7 +65,7 @@ assert.equal(futureDom.window.__TAIXUAN_TEST__.getState(),null,'future schema un
 
 // High-realm inheritance must consume resources and enter real manual/spell state.
 const inherit=JSON.parse(JSON.stringify(raw));
-inherit.version='1.8.0';inherit.saveSchemaVersion=15;inherit.player.realmIndex=15;inherit.player.progress=0;inherit.player.location='青云山';inherit.player.spiritStones=80;inherit.player.insight=8;inherit.player.relicFragments=5;inherit.player.nascentEssence=0;inherit.player.nascentFailures=0;inherit.flags={};
+inherit.version='1.8.0';inherit.saveSchemaVersion=15;inherit.player.realmIndex=15;inherit.player.progress=0;inherit.player.location='青云山';inherit.player.spiritStones=80;inherit.player.insight=8;inherit.player.relicFragments=5;inherit.player.qi=430;inherit.player.hp=560;inherit.player.nascentEssence=0;inherit.player.nascentFailures=0;inherit.flags={};
 const inheritDom=makeDom(JSON.stringify(inherit));inheritDom.window.document.getElementById('continueBtn').click();const inheritApi=inheritDom.window.__TAIXUAN_TEST__;
 const inheritBefore=inheritApi.getState();inheritApi.claimGoldenCoreInheritance();const inheritAfter=inheritApi.getState();
 assert.equal(inheritAfter.player.manual,'丹霞金章','high manual was not equipped');
