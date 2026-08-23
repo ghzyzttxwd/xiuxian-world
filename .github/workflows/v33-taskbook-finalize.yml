@@ -1,0 +1,64 @@
+name: V3.3 taskbook finalize
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V33_TASKBOOK_FINALIZE.trigger"
+      - "tools/finalize-v33-taskbook.py"
+      - ".github/workflows/v33-taskbook-finalize.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v33-taskbook-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  finalize-taskbook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      EXPECT_BASE: aa0b7360fca032959ee9fac3c8e43d9b34007114
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate exact V3.3 taskbook
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "$EXPECT_BASE"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$EXPECT_BASE"
+          python tools/finalize-v33-taskbook.py
+          grep -q '当前正式基线：V3.3.0 · 炼丹材料资源闭环 · build 3301 · save schema 30' docs/PROJECT_TASKBOOK.md
+          grep -q '## V3.3 — 炼丹、材料与资源闭环' docs/PROJECT_TASKBOOK.md
+          grep -q '\*\*状态：DONE\*\*' docs/PROJECT_TASKBOOK.md
+          grep -q '\- \[x\] 丹药 ≥ 20' docs/PROJECT_TASKBOOK.md
+          grep -q '\- \[x\] 材料 ≥ 40' docs/PROJECT_TASKBOOK.md
+          grep -q '| V3.3 炼丹 / 材料 | DONE |' docs/PROJECT_TASKBOOK.md
+          grep -q '| V3.4 战斗 / 四大道途 Build | TODO / CURRENT |' docs/PROJECT_TASKBOOK.md
+          grep -q '正式 runtime commit：`0409590948171580921f11416ab1af26360b199a`' docs/PROJECT_TASKBOOK.md
+          grep -q '正式源码 SHA256：`f478196139011917072db71697bb306e2de105d5be1abdb1e0d71820be88d425`' docs/PROJECT_TASKBOOK.md
+          cp docs/PROJECT_TASKBOOK.md /tmp/PROJECT_TASKBOOK.md
+
+      - name: Commit only taskbook to frozen main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B taskbook-main "$EXPECT_BASE"
+          cp /tmp/PROJECT_TASKBOOK.md docs/PROJECT_TASKBOOK.md
+          mapfile -t changed < <(git diff --name-only)
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'docs/PROJECT_TASKBOOK.md'
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_TASKBOOK.md
+          git commit -m 'docs: mark V3.3 alchemy material loop complete [skip ci]'
+          git push origin HEAD:main
+          echo "TASKBOOK_V33_FINALIZE_PASS $(git rev-parse HEAD)"
