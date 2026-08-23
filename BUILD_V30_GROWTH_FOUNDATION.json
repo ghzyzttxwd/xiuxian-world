@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "gameplay_version": "3.0.0",
+  "build": "3001",
+  "milestone": "growth-data-foundation",
+  "source": "src/game-v30.js",
+  "source_sha256": "5d2cf4cd48e9a485457546fbed222ed21b70a7258895dfde8965bffb08f9979d",
+  "source_bytes": 269420,
+  "save_schema_version": 27,
+  "content_registry_version": 1,
+  "counts": {
+    "manuals": 9,
+    "spells": 11,
+    "items": 11,
+    "artifacts": 4,
+    "materials": 8,
+    "recipes": 4,
+    "enemies": 29,
+    "drop_tables": 29,
+    "realms": 26,
+    "regions": 12,
+    "statuses": 7
+  },
+  "checks": [
+    "stable IDs for realms regions manuals spells items artifacts materials recipes enemies and drop tables",
+    "schema 26 to 27 migration",
+    "legacy V2.9 content mirrors retained",
+    "unified quality tiers",
+    "skill category and cooldown metadata",
+    "generic combat cooldown interface",
+    "generic combat status interface",
+    "artifact active/passive interface",
+    "unified enemy drop tables",
+    "future schema protection preserved"
+  ]
+}
