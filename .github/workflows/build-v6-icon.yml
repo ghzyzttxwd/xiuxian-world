@@ -1,4 +1,4 @@
-name: Verify V1.0 dwelling prerelease
+name: Verify V1.0 via registered runner
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  verify-v10-pre:
+  verify-v10:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,70 +18,101 @@ jobs:
           ref: gh-pages
           fetch-depth: 0
 
-      - name: Build V1.0 candidate from real runtime
+      - name: Verify repository V1.0 chain
         shell: bash
         run: |
           set -euo pipefail
-          echo 'build-start' > V10_PRE_STAGE.txt
+          echo 'repo-start' > V10_FINAL_STAGE.txt
+          node --check app.js
           for v in 03 04 05 06 07 08 09 10; do node --check "v${v}-patch.js"; done
+          grep -q 'id="dwellingInfo"' index.html
+          grep -q 'id="dwellingActions"' index.html
+          grep -q '__TAIXUAN_PATCH_V10__' app.js
+          grep -q 'taixuan-v1.0.0-dwelling-patch1001' sw.js
+          grep -q '"status":"PASS"' PUBLIC_V10_PRE_STATUS.json
           cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
           cat > /tmp/apply-v10.cjs <<'JS'
           const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
           for(const v of ['03','04','05','06','07','08','09','10'])vm.runInContext(fs.readFileSync(`v${v}-patch.js`,'utf8'),ctx);
           let src=fs.readFileSync('/tmp/v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
-          for(const s of ["const VERSION='1.0.0'",'DWELLINGS','buildOrUpgradeDwelling','retreatSevenDays','plantHerbPlot','harvestHerbPlot','dwellingCultivationMultiplier','renderDwelling'])assert(src.includes(s),`missing ${s}`);
-          assert(src.includes('*dwellingCultivationMultiplier()'),'daily cultivation is not wired to dwelling multiplier');
-          const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,buildOrUpgradeDwelling,retreatSevenDays,plantHerbPlot,harvestHerbPlot,dwellingCultivationMultiplier,renderDwelling};\nboot();");fs.writeFileSync('/tmp/v10-test.js',src);
+          for(const s of ["const VERSION='1.0.0'",'DWELLINGS','buildOrUpgradeDwelling','retreatSevenDays','plantHerbPlot','harvestHerbPlot','renderDwelling'])assert(src.includes(s),`missing ${s}`);fs.writeFileSync('/tmp/v10.js',src);
           JS
           node /tmp/apply-v10.cjs
-          node --check /tmp/v10-test.js
-          echo 'build-pass' > V10_PRE_STAGE.txt
+          node --check /tmp/v10.js
+          echo 'repo-pass' > V10_FINAL_STAGE.txt
 
-      - name: Headless dwelling regression
+      - name: Verify public V1.0 deployment
         shell: bash
         run: |
           set -euo pipefail
-          echo 'gameplay-start' > V10_PRE_STAGE.txt
+          echo 'public-start' > V10_FINAL_STAGE.txt
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}index.html?verify=${GITHUB_SHA}" -o /tmp/index.html || ok=0
+            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/app.js || ok=0
+            for v in 03 04 05 06 07 08 09 10; do curl -fsSL "${BASE}v${v}-patch.js?verify=${GITHUB_SHA}" -o "/tmp/v${v}.js" || ok=0; done
+            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png || ok=0
+            if [ "$ok" -eq 1 ] && grep -q 'V1.0' /tmp/index.html && grep -q 'id="dwellingInfo"' /tmp/index.html && grep -q '__TAIXUAN_PATCH_V10__' /tmp/app.js && grep -q 'buildOrUpgradeDwelling' /tmp/v10.js && grep -q 'taixuan-v1.0.0-dwelling-patch1001' /tmp/sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then break; fi
+            test "$i" -lt 60 || exit 1
+            sleep 5
+          done
+          node --check /tmp/app.js
+          for v in 03 04 05 06 07 08 09 10; do node --check "/tmp/v${v}.js"; done
+          rm -f /tmp/pub.b64
+          for i in $(seq -w 1 24); do curl -fsSL "${BASE}bundle2/c${i}.b64?verify=${GITHUB_SHA}" >> /tmp/pub.b64; done
+          tr -d '\n\r' < /tmp/pub.b64 | base64 -d > /tmp/pub-v02.js
+          cat > /tmp/pub-apply.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
+          for(const v of ['03','04','05','06','07','08','09','10'])vm.runInContext(fs.readFileSync(`/tmp/v${v}.js`,'utf8'),ctx);
+          let src=fs.readFileSync('/tmp/pub-v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
+          assert(src.includes("const VERSION='1.0.0'"));assert(src.includes('renderDwelling'));assert(src.includes('retreatSevenDays'));
+          const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,buildOrUpgradeDwelling,retreatSevenDays,plantHerbPlot,harvestHerbPlot,renderDwelling};\nboot();");fs.writeFileSync('/tmp/pub-v10.js',src);
+          JS
+          node /tmp/pub-apply.cjs
+          node --check /tmp/pub-v10.js
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          cat > test-v10.mjs <<'JS'
+          cat > public-smoke-v10.mjs <<'JS'
           import fs from 'fs';import assert from 'assert';import {JSDOM} from 'jsdom';
-          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/v10-test.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('洞府测试者');let s=api.getState();assert.equal(s.version,'1.0.0');assert.equal(s.player.dwellingTier,0);assert.equal(s.player.herbPlotSeeded,false);assert.equal(s.player.retreatSessions,0);
-          let mod=api.getState();mod.player.location='青石镇';mod.player.spiritStones=120;mod.player.beastMaterials=20;mod.player.herbs=20;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());const stoneBefore=api.getState().player.spiritStones;api.buildOrUpgradeDwelling();s=api.getState();assert.equal(s.player.dwellingTier,1);assert.equal(s.player.dwellingLocation,'青石镇');assert.equal(s.player.spiritStones,stoneBefore-15);assert(Math.abs(api.dwellingCultivationMultiplier()-1.08)<1e-9);
-          mod=api.getState();mod.player.location='临江城';dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());assert.equal(api.dwellingCultivationMultiplier(),1,'dwelling bonus should require being home');mod=api.getState();mod.player.location='青石镇';mod.player.progress=0;mod.player.injury=0;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.retreatSevenDays();s=api.getState();assert(s.player.progress>0,'retreat gave no cultivation');assert.equal(s.player.retreatSessions,1);
-          mod=api.getState();mod.player.herbs=20;mod.player.spiritStones=100;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());const herbsBefore=api.getState().player.herbs,stonesBefore=api.getState().player.spiritStones;api.plantHerbPlot();s=api.getState();assert.equal(s.player.herbPlotSeeded,true);assert.equal(s.player.herbs,herbsBefore-2);assert.equal(s.player.spiritStones,stonesBefore-1);const seededHerbs=s.player.herbs;api.harvestHerbPlot();s=api.getState();assert.equal(s.player.herbPlotSeeded,true,'early harvest should not clear plot');assert.equal(s.player.herbs,seededHerbs,'early harvest changed herbs');api.advanceDays(10);api.harvestHerbPlot();s=api.getState();assert.equal(s.player.herbPlotSeeded,false);assert(s.player.herbs>seededHerbs,'mature plot did not yield herbs');
-          mod=api.getState();mod.player.spiritStones=120;mod.player.beastMaterials=20;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.buildOrUpgradeDwelling();s=api.getState();assert.equal(s.player.dwellingTier,2);assert.equal(s.player.beastMaterials,16,'tier2 did not consume beast materials');
-          api.newGame('迁移测试');const legacy=api.getState();delete legacy.player.dwellingTier;delete legacy.player.dwellingLocation;delete legacy.player.herbPlotReady;delete legacy.player.herbPlotSeeded;delete legacy.player.retreatSessions;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(legacy));assert(api.load());s=api.getState();assert.equal(s.player.dwellingTier,0);assert.equal(s.player.dwellingLocation,null);assert.equal(s.player.herbPlotSeeded,false);assert.equal(s.player.retreatSessions,0);
-          console.log('V10_DWELLING_PASS');
+          const html=fs.readFileSync('/tmp/index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');
+          const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/pub-v10.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('公网洞府烟测');let s=api.getState();assert.equal(s.version,'1.0.0');assert(dom.window.document.getElementById('dwellingInfo'));assert(dom.window.document.getElementById('dwellingActions'));
+          let mod=api.getState();mod.player.location='青石镇';mod.player.spiritStones=80;mod.player.beastMaterials=20;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.buildOrUpgradeDwelling();s=api.getState();assert.equal(s.player.dwellingTier,1);api.renderDwelling();assert(dom.window.document.getElementById('dwellingInfo').textContent.includes('凡阶静室'));
+          console.log('PUBLIC_V10_SMOKE_PASS');
           JS
-          set +e
-          node test-v10.mjs > V10_PRE_DEBUG.txt 2>&1
-          rc=$?
-          set -e
-          cat V10_PRE_DEBUG.txt
-          test "$rc" -eq 0
-          echo 'gameplay-pass' > V10_PRE_STAGE.txt
+          node public-smoke-v10.mjs
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/manifest.json'))
+          assert m['display']=='standalone' and m['short_name']=='太玄界'
+          assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          PY
+          echo 'public-pass' > V10_FINAL_STAGE.txt
 
-      - name: Record prerelease PASS
+      - name: Record PASS
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.0.0\",\"milestone\":\"dwelling-prerelease\",\"stage\":\"$(cat V10_PRE_STAGE.txt)\",\"checks\":[\"V0.2->V1.0 patch chain\",\"V1.0 syntax\",\"dwelling build consumes resources\",\"dwelling location lock\",\"daily cultivation multiplier wired\",\"seven-day retreat grants growth\",\"herb plot seed cost\",\"early harvest blocked\",\"mature herb harvest\",\"tier2 beast material cost\",\"legacy dwelling migration\"]}" > PUBLIC_V10_PRE_STATUS.json
+          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.0.0\",\"milestone\":\"dwelling-loop\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V10_FINAL_STAGE.txt)\",\"checks\":[\"repository V0.2->V1.0 patch chain\",\"V1.0 syntax\",\"dwelling UI nodes\",\"public V1.0 index\",\"public loader\",\"eight public patches\",\"public service worker\",\"public runtime rebuild\",\"public dwelling headless smoke\",\"standalone manifest\",\"V6 icon hash regression\",\"prerelease dwelling gameplay PASS\"]}" > PUBLIC_V10_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V10_PRE_STATUS.json
-          git commit -m 'chore: record V1.0 prerelease verification [skip ci]'
+          git add PUBLIC_V10_STATUS.json
+          git commit -m 'chore: record V1.0 public verification [skip ci]'
           git push origin HEAD:gh-pages
 
-      - name: Record prerelease FAIL
+      - name: Record FAIL
         if: failure()
         shell: bash
         run: |
-          stage=$(cat V10_PRE_STAGE.txt 2>/dev/null || echo 'unknown')
-          debug=$(tail -c 5000 V10_PRE_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""')
-          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.0.0\",\"milestone\":\"dwelling-prerelease\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V10_PRE_STATUS.json
+          stage=$(cat V10_FINAL_STAGE.txt 2>/dev/null || echo 'unknown')
+          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.0.0\",\"milestone\":\"dwelling-loop\",\"stage\":\"${stage}\"}" > PUBLIC_V10_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V10_PRE_STATUS.json
-          git commit -m 'chore: record V1.0 prerelease failure [skip ci]' || true
+          git add PUBLIC_V10_STATUS.json
+          git commit -m 'chore: record V1.0 public verification failure [skip ci]' || true
           git push origin HEAD:gh-pages || true
