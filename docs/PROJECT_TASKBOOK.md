@@ -2,9 +2,9 @@
 
 > **状态：ACTIVE / 后续开发唯一任务基准**  
 > 创建日期：2026-08-23  
-> 最近重大修订：2026-08-23 · V2.9 公网终验 P0 正式完成  
-> 当前正式基线：V2.9.0 · 前尘旧缘 · build 2901 · save schema 26  
-> 长期范围：V2.9 公网终验收口 → 玩家成长体系重构 → 化神后人界篇 → 渡劫飞升真仙 → 正常游戏总平衡 → 深度模拟充值 / VIP / 商城 / 运营  
+> 最近重大修订：2026-08-23 · V3.0 玩家成长数据底座正式完成  
+> 当前正式基线：V3.0.0 · 成长数据底座 · build 3001 · save schema 27  
+> 长期范围：玩家成长体系深化 → 化神后人界篇 → 渡劫飞升真仙 → 正常游戏总平衡 → 深度模拟充值 / VIP / 商城 / 运营  
 > 本文件路径：`docs/PROJECT_TASKBOOK.md`
 
 ---
@@ -53,28 +53,33 @@
 
 ---
 
-# 2. V2.9 当前真实基线
+# 2. V3.0 当前真实基线
 
 | 系统 | 当前规模 | 判断 |
 |---|---:|---|
 | 境界 | 26 档：凡人 → 化神后期 | 中前期框架已有，高境界尚未扩展 |
 | 地图 | 12 区域 | 中等 |
 | 路线 | 20 条 | 中等 |
-| 功法 | 9 本 | 明显不足 |
-| 法术 / 神通 | 11 个（含基础拳脚） | 明显不足 |
+| 功法 | 9 本 | 明显不足，V3.1 扩容 |
+| 法术 / 神通 | 11 个（含基础拳脚） | 明显不足，V3.1 扩容 |
 | 道途 | 剑 / 火 / 体 / 神魂，共 4 条 | 有框架，内容不足 |
-| 装备 / 法宝 | 7 件 | 严重不足 |
+| 装备 / 法宝 | 7 件，其中 4 件已接入 artifact 稳定接口 | 数量严重不足，V3.2 深化 |
 | 丹药 / 丹方 | 4 种 | 严重不足 |
-| 真正法宝养成 | 基本没有 | 未成体系 |
-| 炼器 | 固定材料 → 固定装备 | 很浅 |
-| NPC / 轮回 | 求援、人情债、仇怨伤亡、动态势力、重大人生、前尘旧缘等 | 当前较深系统 |
-| 模拟充值 / VIP / 商城 | 0 | 尚未开发 |
+| 命名材料注册 | 8 类当前核心材料 | 仅为底座，V3.3 扩容 |
+| 敌人 | 29 个现有模板均已获得稳定 enemyId | 数量仍不足 |
+| 掉落表 | 29 份，与现有敌人逐一对应 | 统一结构已建立 |
+| 品质体系 | 凡俗 / 凡阶 / 黄阶 / 玄阶 / 地阶 | 基础统一完成 |
+| 技能底座 | 11 技能均有稳定 spellId；已建立分类、冷却、状态接口 | 底座完成，实际战斗深度待 V3.1 / V3.4 |
+| 状态系统 | 7 个基础状态定义 | 接口完成，内容待扩容 |
+| 存档 | schema27；保留 `xiuxian_world_v02` | schema26 → 27 迁移 PASS |
+| NPC / 轮回 | 求援、人情债、仇怨伤亡、动态势力、重大人生、前尘旧缘等 | 旧系统完整保留 |
+| 模拟充值 / VIP / 商城 | 0 | 尚未开发，继续被 Gate 阻塞 |
 
-核心问题：
+核心问题已经从“没有可扩展的玩家成长数据结构”变成：
 
-> 当前“世界 / NPC 横向模拟”明显深于“玩家自己可收集、可培养、可搭配的纵向成长”。
+> **底座已建立，但实际可收集、可培养、可搭配的玩家内容密度仍明显不足。**
 
-后续开发首先补玩家成长纵深，然后扩展化神之后至真仙，最后才做模拟充值。
+因此下一阶段直接进入 V3.1，先扩功法、法术、神通，再继续法宝、炼丹和战斗 Build。
 
 ---
 
@@ -114,9 +119,11 @@
 
 ## 3.4 存档兼容
 
-- V2.9 schema26 必须可迁移至后续版本。
+- V2.9 schema26 已可迁移至 V3.0 schema27。
+- V3.0 schema27 是当前正式存档基线，后续版本必须继续提供逐级迁移。
 - 已有装备、功法、法术、NPC、前尘旧缘不得因重构无故消失。
-- 长期内容全部逐步改用稳定 ID，显示名称不得继续承担永久主键。
+- 长期内容使用稳定 ID；显示名称不得继续承担永久主键。
+- V3.0 采用兼容镜像过渡：旧 V2.9 字段继续保留并可运行，同时同步 `realmId`、`regionId`、`manualId`、`spellProficiencyById`、`gearOwnedIds`、`equippedItemIds`、`artifactOwnedIds`、`materialCountsById`、`itemCountsById` 等稳定字段。
 
 ---
 
@@ -149,7 +156,7 @@
 
 # 5. 数据与内容架构
 
-随着内容规模扩张，逐步建立稳定注册表：
+长期稳定注册表：
 
 - `manualId`
 - `spellId`
@@ -164,7 +171,22 @@
 - `regionId`
 - `tribulationId`
 
-内容定义至少包含：
+V3.0 已实际建立：
+
+- `manualId`
+- `spellId`
+- `itemId`
+- `artifactId`
+- `materialId`
+- `recipeId`
+- `dropTableId`
+- `enemyId`
+- `realmId`
+- `regionId`
+
+`shopId` 与 `tribulationId` 留到对应系统出现时建立，不提前制造无用途空数据。
+
+内容定义逐步覆盖：
 
 - 品质；
 - 境界要求；
@@ -287,23 +309,14 @@
 
 **状态：DONE**
 
-- [x] 修复并验证 V2.9 public reverify / fallback 验证链。
-- [x] 临时验证 PR 跑绿后关闭且不合并。
-- [x] 固定 main 正式终验基线。
-- [x] 检查真实 GitHub Pages 的 HTTP、版本标记、game SHA、manifest、固定图标 hash、public headless regression。
-- [x] `PUBLIC_V29_STATUS.json = PASS` 已真实从 Pages 下载并精确核对。
-- [x] 同一 PASS 已回写 main。
-- [x] 最终 compare 仅有 `PUBLIC_V29_STATUS.json` 一个额外变化文件。
+已完成：
 
-终验记录：
-
-- 验证基线 main：`e351a69e8365ce999d451272390247b23a3751a7`
-- 公网 V2.9 源码 SHA256：`b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99`
-- 公网终验 run：`32646823702`
-- PASS gh-pages commit：`bf3f023c36b60509ebabb8e27c6bcac94d87caa1`
-- PASS main commit：`e196de8761d7971b8e7f514544c9758fd93a149a`
-- 独立 PASS 公网可达验证 PR：#27，关闭且未合并。
-- 说明：公网资源核验本身一次通过；自动写 PASS 时仅因不存在的诊断文件被作为 `git add` pathspec 而退出，因此在已取得完整公网 PASS 后由 GitHub 连接器写入同一状态文件，再通过独立 GitHub Actions 从真实 Pages 地址重新下载核对。
+- 修复并验证 V2.9 public reverify workflow；
+- 多个临时验证 PR 全绿后关闭且不合并；
+- 真实 GitHub Pages HTTP、版本标记、game SHA、manifest、固定图标 hash、public headless regression 全部 PASS；
+- `PUBLIC_V29_STATUS.json = PASS` 已真实可从 Pages 下载；
+- 同一 PASS 已回写 main；
+- runtime → final main 最终 compare 仅状态文件变化。
 
 完成标志：`P0 = DONE`。
 
@@ -311,22 +324,36 @@
 
 ## V3.0 — 玩家成长数据底座
 
+**状态：DONE**
+
 目标：先让项目能维护大量内容。
 
-任务：
+已完成：
 
-- 稳定 ID；
-- schema 迁移；
-- 统一物品 / 材料 / 法术 / 功法 / 法宝注册表；
-- 统一掉落表；
-- 品质体系；
-- 技能分类、冷却、状态系统；
-- 法宝主动 / 被动能力接口；
-- 旧 V2.9 内容完整兼容。
+- save schema 26 → 27 无损迁移；
+- 现有 26 境界、12 地区、9 功法、11 法术、7 装备、4 丹药、8 核心材料、29 敌人建立稳定 ID；
+- 统一功法 / 法术 / 物品 / 材料 / 法宝 / 丹方 / 敌人 / 境界 / 地区注册表；
+- 29 份统一敌人掉落表；
+- 统一品质层级；
+- 技能分类与冷却元数据；
+- 通用战斗冷却容器与接口；
+- 通用战斗状态容器与接口，首批 7 种状态定义；
+- 法宝主动能力接口与被动效果接口；
+- 4 件现有高阶装备建立 artifactId 与法宝接口；
+- V2.9 旧字段与玩法保持兼容，并同步稳定 ID 镜像字段；
+- future schema28 存档拒绝加载和覆盖；
+- V2.9 旧回归 + V3.0 专项回归全部 PASS；
+- V6 固定图标 hash PASS；
+- `src/game-v30.js` 正式 source SHA256：`5d2cf4cd48e9a485457546fbed222ed21b70a7258895dfde8965bffb08f9979d`；
+- 正式 runtime commit：`8e960d1bbaab61062c92afde74bd21ebd4a8353a`；
+- `PUBLIC_V30_STATUS.json = PASS` 已从真实 GitHub Pages 重新下载验证并同步 main；
+- runtime → final main compare 仅 `PUBLIC_V30_STATUS.json` 一个文件变化。
 
 ---
 
 ## V3.1 — 功法、法术、神通大扩容
+
+**状态：TODO / 当前最高优先级**
 
 ### 功法
 
@@ -574,7 +601,7 @@
 以下全部通过才能进入 V4.0：
 
 - [x] P0 V2.9 公网终验 PASS
-- [ ] 稳定 ID / schema 重构完成
+- [x] 稳定 ID / schema 重构完成
 - [ ] 功法 ≥ 28
 - [ ] 法术 / 神通 ≥ 60
 - [ ] 装备 / 法宝 ≥ 60
@@ -594,6 +621,8 @@
 - [ ] 存档迁移 PASS
 - [ ] public headless PASS
 - [ ] GitHub Pages 正式终验 PASS
+
+说明：最后三项是整个模拟充值前 Gate 的最终版本级检查；V3.0 自身已经完成 schema 迁移、public headless 与 Pages 终验，但后续版本仍必须重复验证，不能提前把全项目 Gate 勾掉。
 
 任意一项失败：**不得因为想先看充值界面而提前做商城。**
 
@@ -860,6 +889,16 @@ V4.0 稳定后再做：
 - 同一 PASS 回写 main；
 - 最终 compare 只允许预期状态文件额外变化。
 
+如果连接器写入 main 的 push 无法触发 GitHub Actions，可使用已验证的 **same-repo PR fallback transport**：
+
+- fallback workflow 先单独 PR 验证；
+- 验证 PR 全绿后关闭不合并；
+- 精确 workflow blob 才可进入 main；
+- final-run PR 自身只改 trigger；
+- release job 必须 checkout 该 PR 的精确 main base SHA，并确认 `origin/main` 未漂移；
+- final-run PR 最终仍关闭不合并；
+- 这只是发布传输层兜底，不降低任何 runtime / public Gate。
+
 只有全部通过才允许宣布：
 
 > **“Vx.x 正式完成。”**
@@ -872,8 +911,8 @@ V4.0 稳定后再做：
 |---|---|
 | V2.9 游戏功能 | DONE |
 | P0 V2.9 公网终验 | DONE |
-| V3.0 数据底座 | TODO |
-| V3.1 功法 / 法术 | TODO |
+| V3.0 数据底座 | DONE |
+| V3.1 功法 / 法术 | TODO / CURRENT |
 | V3.2 法宝 / 炼器 | TODO |
 | V3.3 炼丹 / 材料 | TODO |
 | V3.4 战斗 / 四大道途 Build | TODO |
@@ -906,10 +945,26 @@ V4.0 稳定后再做：
 - 模拟充值从原 V3.6 顺延至 **V4.0**。
 - 新增强制 Gate：必须先完成无充值凡人→真仙全流程，再允许开发充值 / VIP / 商城。
 
-## 2026-08-23 · P0 V2.9 公网终验完成
+## 2026-08-23 · V2.9 公网终验收口
 
-- V2.9 公网资源通过真实 GitHub Pages HTTP、版本标记、源码 SHA、manifest、V6 固定图标和 public headless 全项验证。
-- `PUBLIC_V29_STATUS.json` 已写入 gh-pages，并由独立 GitHub Actions 从实际 Pages URL 下载验证可达。
-- 相同状态文件已回写 main。
-- 验证基线 `e351a69e8365ce999d451272390247b23a3751a7` 到终验 main `e196de8761d7971b8e7f514544c9758fd93a149a` 仅新增 `PUBLIC_V29_STATUS.json`。
-- P0 正式由 TODO 改为 DONE，后续允许进入 V3.0 数据底座开发。
+- P0 正式完成。
+- 真实 GitHub Pages runtime、source SHA、manifest、public headless 与固定 V6 图标全部 PASS。
+- `PUBLIC_V29_STATUS.json` 已真实可从 Pages 下载并同步 main。
+- 充值前 Gate 的 P0 项正式勾选。
+
+## 2026-08-23 · V3.0 玩家成长数据底座
+
+- 正式版本：V3.0.0 / build 3001 / save schema27。
+- schema26 → 27 迁移 PASS，future schema28 保护 PASS。
+- 为现有功法、技能、物品、法宝、材料、丹方、敌人、掉落表、境界与地区建立稳定 ID。
+- 建立统一品质、技能分类/冷却、状态、法宝主动/被动接口。
+- 现有 V2.9 内容和 NPC / 宗门 / 前尘旧缘系统全部保留。
+- PR #28 完整功能/回归验证 PASS 后关闭不合并。
+- PR #29 同仓发布 fallback 验证 PASS 后关闭不合并。
+- PR #30 以 main `516f681589ac40fd2bd0063f6d2a681fc6abffa6` 为固定发布基线执行最终发布，最终关闭不合并。
+- 正式 runtime commit：`8e960d1bbaab61062c92afde74bd21ebd4a8353a`。
+- 正式源码 SHA256：`5d2cf4cd48e9a485457546fbed222ed21b70a7258895dfde8965bffb08f9979d`。
+- `PUBLIC_V30_STATUS.json = PASS` 已从真实 GitHub Pages 下载验证，并以相同 blob 同步到 main。
+- runtime → final release main `1b9ece1ff81a536575758572a2b361487a6f98d1` 仅新增 `PUBLIC_V30_STATUS.json`。
+- 充值前 Gate 的“稳定 ID / schema 重构完成”正式勾选。
+- 下一阶段：V3.1 功法、法术、神通大扩容。
