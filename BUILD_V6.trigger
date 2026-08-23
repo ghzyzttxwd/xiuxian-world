@@ -1,4 +1,4 @@
-mode=v10-public-verify
-patch=1001
-release=3725ef531cfd502330762452913633786ba66a44
-trigger=20260823-1310
+mode=v11-legacy-prerelease
+patch=1101
+candidate=833d7edd4f2d0c2bccc98bcc80d766d0c334223d
+trigger=20260823-1313
