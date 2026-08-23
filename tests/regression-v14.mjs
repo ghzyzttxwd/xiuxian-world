@@ -134,12 +134,16 @@ assert.equal(migrated.player.secretRealmClears, 0, 'secret realm migration faile
 assert.equal(migrated.world.factionClashes, 0, 'faction war migration failed');
 assert((migrated.npcs || []).every(n => n.lastGiftDay != null && n.lastRevengeDay != null), 'NPC social migration failed');
 
-// Migration must be idempotent: loading an already-current save may not mutate game state.
+// Migration idempotence belongs at the persistence boundary. The Continue UI
+// intentionally calls updateMajorEvents() after load(), which may change in-memory
+// state without saving it. Therefore compare the JSON written by load()->migrate->save.
 const migratedRaw = migratedDom.window.localStorage.getItem(SAVE_KEY);
+assert(migratedRaw, 'migrated save was not persisted');
 const secondDom = makeDom(migratedRaw);
 secondDom.window.document.getElementById('continueBtn').click();
-const secondState = secondDom.window.__TAIXUAN_TEST__.getState();
-assert.deepStrictEqual(secondState, migrated, 'current-schema reload is not idempotent');
+const secondRaw = secondDom.window.localStorage.getItem(SAVE_KEY);
+assert(secondRaw, 'current-schema reload did not persist');
+assert.deepStrictEqual(JSON.parse(secondRaw), JSON.parse(migratedRaw), 'current-schema persistence migration is not idempotent');
 
 // A future schema must be rejected and, critically, must not be overwritten by this client.
 const future = JSON.parse(migratedRaw);
