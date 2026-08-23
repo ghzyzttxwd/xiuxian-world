@@ -1,0 +1,245 @@
+name: V1.8 nascent soul validation and release
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V18_NASCENT_SOUL.trigger"
+      - "tools/build-v18-nascent-soul.cjs"
+      - "tests/regression-v18.mjs"
+      - ".github/workflows/v18-nascent-soul.yml"
+  push:
+    branches: ["main"]
+    paths: ["V18_NASCENT_SOUL.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v18-nascent-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v18:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify V1.7 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const s=require('./PUBLIC_V17_STATUS.json');
+          if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='1701'||s.game_version!=='1.7.0'||s.realm_count!==18||s.save_schema_version!==14) throw new Error('V1.7 baseline is not verified');
+          JS
+      - name: Build V1.8 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v18-nascent-soul.cjs
+          node --check src/game-v18.js
+          node - <<'JS'
+          const b=require('./BUILD_V18_NASCENT_SOUL.json');
+          if(b.status!=='PASS'||b.gameplay_version!=='1.8.0'||b.build!=='1801'||b.realm_count!==22||b.location_count!==12||b.route_count!==20||b.save_schema_version!==15) throw new Error('V1.8 build report mismatch');
+          JS
+          grep -q "const VERSION='1.8.0'" src/game-v18.js
+          grep -q '元婴后期' src/game-v18.js
+          grep -q 'craftNascentEssence' src/game-v18.js
+          grep -q '金焰剑诀' src/game-v18.js
+          grep -q '护体灵罡' src/game-v18.js
+      - name: Run V1.8 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v18.mjs
+      - name: V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v18:
+    if: github.event_name == 'push'
+    needs: validate-v18
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Rebuild and regress exact release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v18-nascent-soul.cjs
+          node --check src/game-v18.js
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v18.mjs
+      - name: Switch runtime shell to V1.8 build 1801
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > app.js <<'JS'
+          // 太玄界 V1.8 元婴长线加载器 · build 1801
+          (()=>{
+            const fail=(e)=>{console.error(e);document.body.innerHTML='<div style="max-width:680px;margin:40px auto;padding:20px;color:#fff;background:#171a16;border:1px solid #485042;border-radius:14px;font-family:system-ui;line-height:1.7"><h2>太玄界加载失败</h2><div>'+String(e)+'</div><p>请刷新页面；若仍失败，请把这段错误发给我。</p></div>'};
+            try{window.__TAIXUAN_BUILD__={engineeringVersion:'1.8.0',gameplayVersion:'1.8.0',build:'1801',milestone:'nascent-soul-ladder',source:'src/game-v18.js',legacyPatchChain:false};document.title='太玄界 · 修仙大世界 V1.8';const script=document.createElement('script');script.src='./src/game-v18.js?v=1801';script.async=false;script.onload=()=>{if(!window.__TAIXUAN_TEST__)fail(new Error('V1.8 直接源码运行时未完成初始化'))};script.onerror=()=>fail(new Error('V1.8 游戏核心加载失败：src/game-v18.js'));document.head.appendChild(script)}catch(e){fail(e)}})();
+          JS
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html'); s=p.read_text(encoding='utf-8')
+          pairs=[
+            ('太玄界 · 修仙大世界 V1.7','太玄界 · 修仙大世界 V1.8'),
+            ('修仙大世界 · V1.7','修仙大世界 · V1.8'),
+            ('V1.7 · 结丹与金丹长线','V1.8 · 金丹圆满与元婴长线'),
+            ('./app.js?v=1701','./app.js?v=1801'),
+            ('修为圆满后仍需主动破境。普通小境界沿用 3 日突破；筑基圆满后的结丹与凝结金丹属于大境界突破，需要结丹灵髓、悟道点和更长闭关时间，失败会伤根基并损寿元。','修为圆满后仍需主动破境。金丹圆满后的【碎丹化婴】需要结丹灵髓、化婴灵胎、悟道点和 18 日闭关；失败会重伤并损失大量寿元。金丹阶段还可获取真正用于高阶斗法的功法与攻防法术。')]
+          for old,new in pairs:
+            if old not in s: raise SystemExit(f'index anchor missing: {old}')
+            s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+          cat > sw.js <<'JS'
+          const CACHE='taixuan-v1.8.0-nascent-soul-1801';
+          const CORE=['./','./index.html?v=1801','./style.css','./app.js?v=1801','./src/game-v18.js?v=1801','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6'];
+          self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+          self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+          self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=1801'))));});
+          JS
+          cat > README.md <<'MD'
+          # 太玄界 · 修仙大世界
+
+          当前正式版本：**V1.8.0 · 金丹圆满与元婴长线（build 1801）**
+
+          正式运行结构仍为 `index.html -> app.js -> src/game-v18.js`，浏览器直接加载可读源码，不恢复历史补丁链或 `eval`。
+
+          ## V1.8
+          - 境界扩展至：金丹圆满、元婴初期、元婴中期、元婴后期；
+          - 金丹后期可在古河遗迹/玄阴禁地淬炼【化婴灵胎】；
+          - 金丹圆满冲元婴为独立大境界：结丹灵髓2、化婴灵胎4、悟道点6、闭关18日；
+          - 化婴失败会严重跌修为、重伤、损寿，并积累独立失败记录与破境感悟；
+          - 元婴成功后寿元最低提升至1000年；
+          - 金丹阶段可获取《丹霞金章》、金焰剑诀、护体灵罡，高阶攻防法术直接进入战斗公式；
+          - 新增高阶敌人与化婴资源掉落；
+          - V1.7 的18境界前段、12地域、20路线、宗门、坊市、炼丹、法器、NPC、秘境、轮回、宗门大战全部保留。
+
+          ## 存档
+          V1.8 使用 `saveSchemaVersion = 15`，新增 `nascentEssence` 与 `nascentFailures`。V1.7 schema14 存档自动迁移；未来 schema16+ 继续拒绝覆盖。
+
+          V6 App 图标保持固定 SHA-256，不修改。
+          MD
+          node --check app.js
+          node --check sw.js
+          grep -q 'src/game-v18.js?v=1801' app.js
+          grep -q 'src/game-v18.js?v=1801' sw.js
+          ! grep -q 'bundle2' app.js
+          ! grep -q 'eval' app.js
+      - name: Regress after shell switch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v18.mjs
+      - name: Commit V1.8 runtime to main
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v18.js BUILD_V18_NASCENT_SOUL.json app.js index.html sw.js README.md
+          if ! git diff --cached --quiet; then git commit -m 'feat: V1.8 nascent soul ladder [skip ci]'; git push origin HEAD:main; fi
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Publish exact V1.8 assets to gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp src/game-v18.js /tmp/pages/src/game-v18.js
+          cp BUILD_V18_NASCENT_SOUL.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png /tmp/pages/
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v18.js BUILD_V18_NASCENT_SOUL.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png
+          if ! git diff --cached --quiet; then git commit -m "feat: publish V1.8 nascent soul ${RELEASE_SHA} [skip ci]"; git push origin HEAD:gh-pages; fi
+      - name: Public terminal verification
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}?v=1801&x=${RELEASE_SHA}-${i}" -o /tmp/public-index.html || ok=0
+            curl -fsSL "${BASE}app.js?v=1801&x=${RELEASE_SHA}-${i}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}src/game-v18.js?v=1801&x=${RELEASE_SHA}-${i}" -o /tmp/public-game.js || ok=0
+            curl -fsSL "${BASE}sw.js?v=1801&x=${RELEASE_SHA}-${i}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${RELEASE_SHA}-${i}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon192.png || ok=0
+            if [ "$ok" -eq 1 ] && grep -q 'V1.8' /tmp/public-index.html && grep -q 'src/game-v18.js?v=1801' /tmp/public-app.js && grep -q "const VERSION='1.8.0'" /tmp/public-game.js && grep -q '元婴后期' /tmp/public-game.js && grep -q '金焰剑诀' /tmp/public-game.js && grep -q 'src/game-v18.js?v=1801' /tmp/public-sw.js && ! grep -q 'bundle2' /tmp/public-app.js && ! grep -q 'eval' /tmp/public-app.js && [ "$(sha256sum /tmp/public-icon512.png | awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/public-icon192.png | awk '{print $1}')" = "$EXPECT192" ]; then break; fi
+            test "$i" -lt 60 || { echo 'public V1.8 assets did not converge'; exit 1; }
+            sleep 5
+          done
+          node --check /tmp/public-app.js
+          node --check /tmp/public-game.js
+          node --check /tmp/public-sw.js
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/public-manifest.json'))
+          assert m['display']=='standalone' and m['short_name']=='太玄界'
+          assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          assert all(x['purpose']=='any' for x in m['icons'])
+          PY
+          INDEX_PATH=/tmp/public-index.html GAME_PATH=/tmp/public-game.js node tests/regression-v18.mjs
+          LOCAL_SHA=$(node -p "require('./BUILD_V18_NASCENT_SOUL.json').source_sha256")
+          PUBLIC_SHA=$(sha256sum /tmp/public-game.js | awk '{print $1}')
+          test "$LOCAL_SHA" = "$PUBLIC_SHA"
+      - name: Record and serve V1.8 public PASS
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          SOURCE_SHA=$(node -p "require('./BUILD_V18_NASCENT_SOUL.json').source_sha256")
+          cd /tmp/pages
+          cat > PUBLIC_V18_STATUS.json <<JSON
+          {"status":"PASS","game_version":"1.8.0","build":"1801","milestone":"nascent-soul-ladder","verified_commit":"${RELEASE_SHA}","source_sha256":"${SOURCE_SHA}","realm_count":22,"location_count":12,"route_count":20,"save_schema_version":15,"stage":"public-pass","checks":["V1.7 public baseline PASS","V1.8 source build","金丹圆满至元婴后期 realm ladder","化婴灵胎 crafting and drops","碎丹化婴 material gate","major failure severe injury/lifespan cost","元婴 lifespan 1000","金丹高阶功法与攻防法术","high-realm enemies","V1.7 system regression","schema 14 to 15 migration","future-save overwrite guard","public asset HTTP 200","public source hash equality","public headless regression","standalone manifest","V6 icon hash regression"]}
+          JSON
+          git add PUBLIC_V18_STATUS.json
+          git commit -m 'chore: record V1.8 public PASS [skip ci]'
+          git push origin HEAD:gh-pages
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V18_STATUS.json?x=${RELEASE_SHA}-${i}" -o /tmp/public-v18-status.json && RELEASE_SHA="$RELEASE_SHA" node -e "const s=require('/tmp/public-v18-status.json');if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='1801'||s.realm_count!==22||s.verified_commit!==process.env.RELEASE_SHA)process.exit(1)"; then break; fi
+            test "$i" -lt 60 || { echo 'PUBLIC_V18_STATUS not served'; exit 1; }
+            sleep 5
+          done
+      - name: Sync verified V1.8 PASS back to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          cp /tmp/public-v18-status.json PUBLIC_V18_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V18_STATUS.json
+          git commit -m 'chore: sync verified V1.8 public PASS to main [skip ci]'
+          git push origin HEAD:main
