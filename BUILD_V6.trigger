@@ -1,4 +1,5 @@
-mode=v11-public-verify
+mode=v11-public-diagnostic
 patch=1103
 release=c737b55e20313122b46c72f2a92ee7c8084fdd89
-trigger=20260823-1331
+verifier=18e459ecc7117fee7653f0aeebbbb40e30ae5592
+trigger=20260823-1324-diagnostic
