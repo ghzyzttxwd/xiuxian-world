@@ -1,4 +1,4 @@
-mode=v12-prerelease
-candidate=7262a83bbbf67ce7b1e3a920fcd0cfe4472e54d5
-verifier=971fdf5ae66f2a32be2e68dc057efac74c56b5b7
-trigger=20260823-1324-v12-pre-r1
+mode=v12-public-verify
+build=1201
+release=5aab3e199f887837f91dbb968b5c67e56319d5c4
+trigger=20260823-1343-v12-final
