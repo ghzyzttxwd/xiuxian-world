@@ -2,6 +2,10 @@
 
 当前正式版本：**V2.9.0 · 前尘旧缘（build 2901）**
 
+## 开发唯一任务基准
+
+后续开发统一按 [`docs/PROJECT_TASKBOOK.md`](docs/PROJECT_TASKBOOK.md) 执行。该任务书覆盖 V2.9 公网终验收口、V3.0～V3.5 玩家成长体系扩容、模拟充值前置门槛、V3.6 深度模拟充值/VIP/商城以及 V3.7 模拟运营深化。
+
 正式运行结构：`index.html -> app.js -> src/game-v29.js`。浏览器直接加载可读源码，不使用历史补丁链或 `eval`。
 
 ## V2.9
