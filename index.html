@@ -11,13 +11,13 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css" />
-  <title>太玄界 · 修仙大世界 V0.8</title>
+  <title>太玄界 · 修仙大世界 V0.9</title>
 </head>
 <body>
 <div id="startScreen" class="start">
   <section class="panel start-box">
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.8</p>
+    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V0.9</p>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions">
       <button id="newGameBtn" class="primary">穿越此界</button>
@@ -25,7 +25,7 @@
       <button id="installStartBtn" class="ghost">安装应用</button>
     </div>
     <div id="installStatus" class="install-note"></div>
-    <div class="version">V0.8 · 人情与恩怨闭环</div>
+    <div class="version">V0.9 · 主动破境闭环</div>
   </section>
 </div>
 
@@ -52,9 +52,10 @@
       </div>
     </div>
     <div id="urgentBox"></div>
+    <div id="breakthroughBox"></div>
     <section class="panel">
       <h2>今日可做</h2>
-      <p class="section-tip">点完行动，结果会直接弹出来，不用再往页面下面找。</p>
+      <p class="section-tip">修为圆满后不会自动升境；首页会出现“尝试突破”，破境需要 3 日并承担失败风险。</p>
       <div class="actions-grid">
         <button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button>
         <button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button>
@@ -113,6 +114,6 @@
 </div>
 
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
-<script src="./app.js?v=0801"></script>
+<script src="./app.js?v=0901"></script>
 </body>
 </html>
