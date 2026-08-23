@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.3.0",
+  "build": "2301",
+  "milestone": "faction-standing-contracts",
+  "source": "src/game-v23.js",
+  "source_sha256": "e5ea9701b9bce7f03b5d387e76bef0697b7ad96a6836226e425c4f6b4050b90c",
+  "source_bytes": 174345,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 20,
+  "checks": [
+    "three persistent faction standings",
+    "three real combat contracts",
+    "standing-aware route risk",
+    "Xuanshui market pricing",
+    "hostile NPC social refusal",
+    "faction-war standing integration",
+    "schema 19 to 20 migration",
+    "V2.2 systems preserved"
+  ]
+}
