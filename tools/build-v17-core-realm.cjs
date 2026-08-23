@@ -30,7 +30,7 @@ const realms=`const REALMS=[
 ];`;
 must(/const REALMS=\[[\s\S]*?\n\];\nconst ROOTS=/,realms+'\nconst ROOTS=','realm ladder');
 
-const highEnemies=`
+const highEnemies=`,
  {name:'赤霞火猿王',kind:'妖兽',realm:8,hp:330,atk:[36,52],reward:{stones:[16,28],herbs:[3,6],rep:12,core:[0,1]},weight:7,areas:['赤霞谷','万兽山脉']},
  {name:'星陨铁甲兽',kind:'妖兽',realm:10,hp:430,atk:[48,68],reward:{stones:[22,36],herbs:[2,5],rep:15,core:[0,1]},weight:6,areas:['落星矿脉']},
  {name:'古河阵尸',kind:'阴物',realm:11,hp:500,atk:[55,78],reward:{stones:[25,42],herbs:[2,5],rep:17,core:[0,1]},weight:6,areas:['古河遗迹']},
