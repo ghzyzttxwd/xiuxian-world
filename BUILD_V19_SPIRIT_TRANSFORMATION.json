@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "gameplay_version": "1.9.0",
+  "build": "1901",
+  "milestone": "spirit-transformation-ladder",
+  "source": "src/game-v19.js",
+  "source_sha256": "72b5a7a5f1c7e36237dd3c2c2f61bd9806426bcfbe353aa6c9ad8d2958fc5ad7",
+  "source_bytes": 140996,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 16,
+  "checks": [
+    "元婴圆满→化神后期 realm ladder",
+    "化神道种 crafting and drops",
+    "炼神化神 material gate",
+    "major failure near-death/lifespan cost",
+    "化神 lifespan 2000",
+    "化神功法与神念攻防法术",
+    "high-realm enemies",
+    "V1.8 systems preserved"
+  ]
+}
