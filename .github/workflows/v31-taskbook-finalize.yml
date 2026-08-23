@@ -1,0 +1,54 @@
+name: V3.1 taskbook finalize
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V31_TASKBOOK_FINALIZE.trigger"
+      - "tools/finalize-v31-taskbook.py"
+      - ".github/workflows/v31-taskbook-finalize.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-taskbook:
+    if: github.head_ref == 'v31-taskbook-finalize'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Produce exact V3.1 taskbook update
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/finalize-v31-taskbook.py
+          grep -q '当前正式基线：V3.1.0 · 功法术法大扩容 · build 3101 · save schema 28' docs/PROJECT_TASKBOOK.md
+          grep -q 'V3.1 功法 / 法术 | DONE' docs/PROJECT_TASKBOOK.md
+          grep -q 'V3.2 法宝 / 炼器 | TODO / CURRENT' docs/PROJECT_TASKBOOK.md
+          grep -q '\[x\] 功法 ≥ 28' docs/PROJECT_TASKBOOK.md
+          grep -q '\[x\] 法术 / 神通 ≥ 60' docs/PROJECT_TASKBOOK.md
+          cp docs/PROJECT_TASKBOOK.md /tmp/PROJECT_TASKBOOK.md
+
+      - name: Commit only taskbook to immutable main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          git checkout -B main origin/main
+          cp /tmp/PROJECT_TASKBOOK.md docs/PROJECT_TASKBOOK.md
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_TASKBOOK.md
+          mapfile -t changed < <(git diff --cached --name-only)
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'docs/PROJECT_TASKBOOK.md'
+          git commit -m 'docs: mark V3.1 manual spell expansion complete [skip ci]'
+          git push origin HEAD:main
