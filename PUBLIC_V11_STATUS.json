@@ -1,0 +1,1 @@
+{"status":"PASS","game_version":"1.1.0","build":"1104","milestone":"legacy-loop","verified_commit":"1d4f12d09a5c5927458db29e0c31cf58960897c1","stage":"public-pass","checks":["repository 1104","public 1104 assets","nine-patch runtime rebuild","death and reincarnation smoke","world continuity","social reset","manifest","V6 icon hash regression"]}
