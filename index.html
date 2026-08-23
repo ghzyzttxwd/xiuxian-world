@@ -11,30 +11,30 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css" />
-  <title>太玄界 · 修仙大世界 V2.3</title>
+  <title>太玄界 · 修仙大世界 V2.4</title>
 </head>
 <body>
 <div id="startScreen" class="start">
   <section class="panel start-box">
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V2.3</p>
+    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V2.4</p>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions"><button id="newGameBtn" class="primary">穿越此界</button><button id="continueBtn" class="hidden">继续上次存档</button><button id="installStartBtn" class="ghost">安装应用</button></div>
-    <div id="installStatus" class="install-note"></div><div class="version">V2.3 · 三方势力与长期立场</div>
+    <div id="installStatus" class="install-note"></div><div class="version">V2.4 · 凡修生存重平衡</div>
   </section>
 </div>
 <div id="gameApp" class="app hidden">
   <header class="topbar"><div class="brand"><b>太玄界</b><span id="dateTop"></span></div><div class="top-actions"><button id="installBtn" class="mini-btn ghost">安装</button><button id="saveBtn" class="mini-btn">存档</button></div></header>
   <section id="page-home" class="page active">
-    <div class="hero-card"><div class="hero-row"><div><div class="hero-name" id="heroName">陆尘</div><div class="hero-sub" id="heroSub"></div></div><div class="realm-box"><b id="realmName">凡人</b><span id="cultivationText"></span></div></div><div class="bar"><i id="cultivationBar"></i></div><div class="quick-stats"><div class="quick-stat"><b id="spiritStoneQuick">0</b><span>灵石</span></div><div class="quick-stat"><b id="herbQuick">0</b><span>灵草</span></div><div class="quick-stat"><b id="hpQuick">0</b><span>气血</span></div><div class="quick-stat"><b id="repQuick">0</b><span>声望</span></div><div class="quick-stat"><b id="diligenceQuick">0</b><span>勤勉</span></div><div class="quick-stat"><b id="insightQuick">0</b><span>悟道点</span></div></div></div>
+    <div class="hero-card"><div class="hero-row"><div><div class="hero-name" id="heroName">陆尘</div><div class="hero-sub" id="heroSub"></div></div><div class="realm-box"><b id="realmName">凡人</b><span id="cultivationText"></span></div></div><div class="bar"><i id="cultivationBar"></i></div><div class="quick-stats"><div class="quick-stat"><b id="spiritStoneQuick">0</b><span>灵石</span></div><div class="quick-stat"><b id="herbQuick">0</b><span>灵草</span></div><div class="quick-stat"><b id="hpQuick">0</b><span>气血</span></div><div class="quick-stat"><b id="repQuick">0</b><span>声望</span></div><div class="quick-stat"><b id="diligenceQuick">0</b><span>历练</span></div><div class="quick-stat"><b id="insightQuick">0</b><span>悟道点</span></div></div></div>
     <div id="urgentBox"></div><div id="breakthroughBox"></div><div id="legacyBox"></div>
-    <section class="panel"><h2>今日可做</h2><p class="section-tip">四大道途与道途世界反馈继续保留。V2.3 增加青云宗、玄水帮、血刀门三方长期势力关系：完成真实战斗委托或参与宗门大战会改变立场；友善/敌对会进一步影响路线风险、临江坊市价格与NPC态度。</p><div class="actions-grid"><button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button><button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button><button class="action-btn" data-action="work"><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></button><button class="action-btn" data-action="explore"><b>附近逛一逛</b><small>1日 · 随机事件、战斗或发现</small></button><button class="action-btn" data-action="rumor"><b>打听消息</b><small>1日 · 更容易获知天下大事</small></button><button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button></div></section>
+    <section class="panel"><h2>今日可做</h2><p class="section-tip">V2.4 重做普通修士的生存难度：移除额外修炼外挂，境界需求越往后增长越快；跨大境界战斗会产生强烈压制；寿元耗尽会永久结束本世。丹药、洞府、功法、秘境与势力系统继续保留。</p><div class="actions-grid"><button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button><button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button><button class="action-btn" data-action="work"><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></button><button class="action-btn" data-action="explore"><b>附近逛一逛</b><small>1日 · 随机事件、战斗或发现</small></button><button class="action-btn" data-action="rumor"><b>打听消息</b><small>1日 · 更容易获知天下大事</small></button><button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button></div></section>
     <section class="panel"><h2>最近经历</h2><div id="homeLog" class="log-list"></div></section>
   </section>
   <section id="page-character" class="page">
-    <section class="panel cheat"><h2>穿越者外挂</h2><div class="cheat-name">【天道酬勤】</div><div class="cheat-desc">凡有所练，必有所得。修炼收益提高 50%，功法与法术熟练度获取翻倍；任何消耗时间的有效行动都会积累“勤勉”。每满 20 点勤勉自动凝聚 1 点“悟道点”，可直接用于顿悟。</div><div class="cheat-points"><span class="pill" id="diligencePill"></span><span class="pill" id="insightPill"></span></div><div class="cheat-buttons"><button id="insightCultivate">顿悟修为</button><button id="insightManual">顿悟功法</button><button id="insightSpell">顿悟法术</button></div></section>
+    <section class="panel cheat"><h2>修行参悟</h2><div class="cheat-name">【凡修之路】</div><div class="cheat-desc">本世没有额外修炼外挂。灵根、功法、洞府、丹药、机缘与时间共同决定修炼速度；越往高境需求越大。修行历练只记录你真正投入过的行动，不会自动赠送悟道点。悟道点需要通过论道、遗迹、秘境、丹药或特殊机缘获得。</div><div class="cheat-points"><span class="pill" id="diligencePill"></span><span class="pill" id="insightPill"></span></div><div class="cheat-buttons"><button id="insightCultivate">顿悟修为</button><button id="insightManual">顿悟功法</button><button id="insightSpell">顿悟法术</button></div></section>
     <div class="desktop-grid"><section class="panel"><h2>人物</h2><div id="characterStats"></div></section><section class="panel"><h2>灵根</h2><div id="rootInfo"></div></section></div>
-    <section class="panel"><h2>轮回传承</h2><p class="section-tip">身死或寿尽后，本世成果会凝成传承点。世界和修真界人物继续前行，但新的一世会重置本世资产与人际恩怨。</p><div id="legacyInfo"></div><div id="legacyActions"></div></section>
+    <section class="panel"><h2>轮回传承</h2><p class="section-tip">身死或寿尽后，本世会被永久锁死并凝成传承点；不能继续用这一世行动。只有进入轮回才能开启新的角色，世界和修真界人物仍会继续前行。</p><div id="legacyInfo"></div><div id="legacyActions"></div></section>
     <section class="panel"><h2>宗门</h2><p class="section-tip">宗门不是静态称号：任务、贡献、月俸、兑换和身份晋升都会真实影响角色成长。</p><div id="sectInfo"></div><div id="sectActions"></div></section>
     <section class="panel"><h2>洞府</h2><p class="section-tip">可在青石镇、临江城或青云山择地筑府。洞府提升在家修炼效率；闭关与药圃都会真实推进世界时间。</p><div id="dwellingInfo"></div><div id="dwellingActions"></div></section>
     <section class="panel"><h2>炼丹</h2><p class="section-tip">低阶丹药继续保留；金丹后可炼金元丹，元婴后可炼养魂丹。高阶丹药会消耗高阶灵材和对应境界资源，失败同样真实损失材料。</p><div id="alchemyInfo"></div><div id="alchemyActions"></div></section>
@@ -47,6 +47,6 @@
   <nav class="bottom-nav"><button class="nav-btn active" data-page="home"><b>☯</b>修炼</button><button class="nav-btn" data-page="character"><b>人</b>角色</button><button class="nav-btn" data-page="map"><b>图</b>地图</button><button class="nav-btn" data-page="events"><b>令</b>大事 <span id="navBadge" class="badge hidden">0</span></button><button class="nav-btn" data-page="relations"><b>缘</b>关系</button></nav>
 </div>
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
-<script src="./app.js?v=2301"></script>
+<script src="./app.js?v=2401"></script>
 </body>
 </html>
