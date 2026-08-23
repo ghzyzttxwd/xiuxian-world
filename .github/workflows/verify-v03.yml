@@ -50,6 +50,7 @@ jobs:
           echo 'gameplay-start' > V03_STAGE.txt
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
+          echo 'gameplay-deps-pass' > V03_STAGE.txt
           cat > test-v03.mjs <<'JS'
           import fs from 'fs';
           import assert from 'assert';
@@ -57,7 +58,6 @@ jobs:
           const html=fs.readFileSync('index.html','utf8').replace(/<script src="\.\/app\.js"><\/script>/,'');
           const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});
           dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
-          Object.defineProperty(dom.window.navigator,'serviceWorker',{value:undefined,configurable:true});
           dom.window.console=console;
           dom.window.eval(fs.readFileSync('/tmp/v03.js','utf8'));
           const api=dom.window.__TAIXUAN_TEST__;
@@ -85,7 +85,12 @@ jobs:
           }
           console.log('GAMEPLAY_PASS',JSON.stringify({wins:s.player.battleWins,losses:s.player.battleLosses,injury:s.player.injury,dead:!!s.flags.dead}));
           JS
-          node test-v03.mjs
+          set +e
+          node test-v03.mjs > V03_DEBUG.txt 2>&1
+          rc=$?
+          set -e
+          cat V03_DEBUG.txt
+          if [ "$rc" -ne 0 ]; then exit "$rc"; fi
           echo 'gameplay-pass' > V03_STAGE.txt
 
       - name: Verify public Pages deployment
@@ -139,9 +144,10 @@ jobs:
         shell: bash
         run: |
           stage=$(cat V03_STAGE.txt 2>/dev/null || echo 'checkout-or-unknown')
-          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"0.3.0\",\"milestone\":\"combat-loop\",\"stage\":\"${stage}\",\"note\":\"V0.3 verifier failed; inspect exact stage before release.\"}" > PUBLIC_V03_STATUS.json
+          debug=$(tail -c 3000 V03_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""')
+          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"0.3.0\",\"milestone\":\"combat-loop\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V03_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add PUBLIC_V03_STATUS.json
-          git commit -m 'chore: record V0.3 verifier failure stage [skip ci]' || true
+          git commit -m 'chore: record V0.3 verifier debug [skip ci]' || true
           git push origin HEAD:gh-pages || true
