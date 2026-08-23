@@ -2,7 +2,7 @@
 
 > **状态：ACTIVE / 后续开发唯一任务基准**  
 > 创建日期：2026-08-23  
-> 最近重大修订：2026-08-23 · 增加化神之后至飞升真仙完整篇章  
+> 最近重大修订：2026-08-23 · V2.9 公网终验 P0 正式完成  
 > 当前正式基线：V2.9.0 · 前尘旧缘 · build 2901 · save schema 26  
 > 长期范围：V2.9 公网终验收口 → 玩家成长体系重构 → 化神后人界篇 → 渡劫飞升真仙 → 正常游戏总平衡 → 深度模拟充值 / VIP / 商城 / 运营  
 > 本文件路径：`docs/PROJECT_TASKBOOK.md`
@@ -285,15 +285,25 @@
 
 ## P0 — V2.9 公网终验收口
 
-**状态：TODO / 当前最高优先级**
+**状态：DONE**
 
-- 修复并验证 V2.9 public reverify workflow。
-- 临时验证 PR 跑绿后关闭且不合并。
-- main 正式 trigger。
-- 检查真实 GitHub Pages 的 HTTP、版本标记、game SHA、manifest、固定图标 hash、public headless regression。
-- `PUBLIC_V29_STATUS.json = PASS` 必须真实可从 Pages 下载。
-- 同一 PASS 回写 main。
-- 最终 compare 仅允许状态文件产生额外变化。
+- [x] 修复并验证 V2.9 public reverify / fallback 验证链。
+- [x] 临时验证 PR 跑绿后关闭且不合并。
+- [x] 固定 main 正式终验基线。
+- [x] 检查真实 GitHub Pages 的 HTTP、版本标记、game SHA、manifest、固定图标 hash、public headless regression。
+- [x] `PUBLIC_V29_STATUS.json = PASS` 已真实从 Pages 下载并精确核对。
+- [x] 同一 PASS 已回写 main。
+- [x] 最终 compare 仅有 `PUBLIC_V29_STATUS.json` 一个额外变化文件。
+
+终验记录：
+
+- 验证基线 main：`e351a69e8365ce999d451272390247b23a3751a7`
+- 公网 V2.9 源码 SHA256：`b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99`
+- 公网终验 run：`32646823702`
+- PASS gh-pages commit：`bf3f023c36b60509ebabb8e27c6bcac94d87caa1`
+- PASS main commit：`e196de8761d7971b8e7f514544c9758fd93a149a`
+- 独立 PASS 公网可达验证 PR：#27，关闭且未合并。
+- 说明：公网资源核验本身一次通过；自动写 PASS 时仅因不存在的诊断文件被作为 `git add` pathspec 而退出，因此在已取得完整公网 PASS 后由 GitHub 连接器写入同一状态文件，再通过独立 GitHub Actions 从真实 Pages 地址重新下载核对。
 
 完成标志：`P0 = DONE`。
 
@@ -563,7 +573,7 @@
 
 以下全部通过才能进入 V4.0：
 
-- [ ] P0 V2.9 公网终验 PASS
+- [x] P0 V2.9 公网终验 PASS
 - [ ] 稳定 ID / schema 重构完成
 - [ ] 功法 ≥ 28
 - [ ] 法术 / 神通 ≥ 60
@@ -861,7 +871,7 @@ V4.0 稳定后再做：
 | 阶段 | 状态 |
 |---|---|
 | V2.9 游戏功能 | DONE |
-| P0 V2.9 公网终验 | TODO |
+| P0 V2.9 公网终验 | DONE |
 | V3.0 数据底座 | TODO |
 | V3.1 功法 / 法术 | TODO |
 | V3.2 法宝 / 炼器 | TODO |
@@ -895,3 +905,11 @@ V4.0 稳定后再做：
 - 真仙之后仙界高境界只保留扩展口，暂不纳入当前强制交付。
 - 模拟充值从原 V3.6 顺延至 **V4.0**。
 - 新增强制 Gate：必须先完成无充值凡人→真仙全流程，再允许开发充值 / VIP / 商城。
+
+## 2026-08-23 · P0 V2.9 公网终验完成
+
+- V2.9 公网资源通过真实 GitHub Pages HTTP、版本标记、源码 SHA、manifest、V6 固定图标和 public headless 全项验证。
+- `PUBLIC_V29_STATUS.json` 已写入 gh-pages，并由独立 GitHub Actions 从实际 Pages URL 下载验证可达。
+- 相同状态文件已回写 main。
+- 验证基线 `e351a69e8365ce999d451272390247b23a3751a7` 到终验 main `e196de8761d7971b8e7f514544c9758fd93a149a` 仅新增 `PUBLIC_V29_STATUS.json`。
+- P0 正式由 TODO 改为 DONE，后续允许进入 V3.0 数据底座开发。
