@@ -1,0 +1,35 @@
+name: V2.9 status public reachability
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/v29-status-public-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Poll actual GitHub Pages status
+        shell: bash
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in $(seq 1 60); do
+            url="https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V29_STATUS.json?public-check=e351a69e8365ce999d451272390247b23a3751a7-${i}"
+            code=$(curl -sS -L -o /tmp/status.json -w '%{http_code}' "$url" || true)
+            if [ "$code" = "200" ]; then
+              if node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/status.json','utf8'));if(s.status!=='PASS'||s.game_version!=='2.9.0'||s.build!=='2901'||s.milestone!=='past-life-bonds'||s.verified_commit!=='e351a69e8365ce999d451272390247b23a3751a7'||s.source_sha256!=='b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99'||s.save_schema_version!==26||s.stage!=='public-pass'||s.transport!=='same-repo-pr-fallback'||s.verification_run!==32646823702)process.exit(1)"; then
+                ok=1
+                cat /tmp/status.json
+                break
+              fi
+            fi
+            sleep 5
+          done
+          test "$ok" = 1
+          echo V29_STATUS_PUBLIC_REACHABILITY_PASS
