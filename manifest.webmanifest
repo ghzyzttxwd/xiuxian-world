@@ -4,15 +4,14 @@
   "short_name": "太玄界",
   "description": "低美术、高事件、高数值、持续世界演化的修仙沙盒 RPG。",
   "lang": "zh-CN",
-  "start_url": "./",
+  "start_url": "./index.html?v=4",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#061824",
-  "theme_color": "#061824",
-  "categories": ["games", "role-playing"],
+  "background_color": "#0d110c",
+  "theme_color": "#10150f",
   "icons": [
-    {"src":"./icon-v3.svg","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},
-    {"src":"./icon-v3.svg","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}
+    {"src":"./icon-v4-192.jpg?v=4","sizes":"192x192","type":"image/jpeg","purpose":"any maskable"},
+    {"src":"./icon-v4-512.jpg?v=4","sizes":"512x512","type":"image/jpeg","purpose":"any maskable"}
   ]
 }
