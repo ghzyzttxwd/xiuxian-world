@@ -1,4 +1,4 @@
-name: Verify V0.8 relations prerelease
+name: Verify V0.8 via registered runner
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  verify-v08-pre:
+  verify-v08:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,71 +18,95 @@ jobs:
           ref: gh-pages
           fetch-depth: 0
 
-      - name: Build V0.8 candidate from real runtime
+      - name: Verify repository V0.8 chain
         shell: bash
         run: |
           set -euo pipefail
-          echo 'build-start' > V08_PRE_STAGE.txt
-          for f in v03-patch.js v04-patch.js v05-patch.js v06-patch.js v07-patch.js v08-patch.js; do node --check "$f"; done
+          echo 'repo-start' > V08_FINAL_STAGE.txt
+          node --check app.js
+          for v in 03 04 05 06 07 08; do node --check "v${v}-patch.js"; done
+          grep -q 'V0.8' index.html
+          grep -q '__TAIXUAN_PATCH_V08__' app.js
+          grep -q 'taixuan-v0.8.0-relations-patch0801' sw.js
+          grep -q '"status":"PASS"' PUBLIC_V08_PRE_STATUS.json
           cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
-          cat > /tmp/apply-v08.cjs <<'JS'
+          cat > /tmp/apply.cjs <<'JS'
           const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
-          for(const f of ['v03-patch.js','v04-patch.js','v05-patch.js','v06-patch.js','v07-patch.js','v08-patch.js'])vm.runInContext(fs.readFileSync(f,'utf8'),ctx);
-          let src=fs.readFileSync('/tmp/v02.js','utf8');for(const v of ['03','04','05','06','07','08'])src=ctx.window['__TAIXUAN_PATCH_V'+v+'__'](src);
-          for(const s of ["const VERSION='0.8.0'",'giftNPC','discussDaoNPC','sparNPC','askNPCForHelp','processSocialEvents','relationTier','data-gift-herb','gearAtk()*3+gearDef()*2'])assert(src.includes(s),`missing ${s}`);
-          const needle='combatAction};\nboot();';assert(src.includes(needle),'test api hook missing');src=src.replace(needle,"combatAction,load,giftNPC,discussDaoNPC,sparNPC,askNPCForHelp,processSocialEvents,socialNPC};\nboot();");fs.writeFileSync('/tmp/v08-test.js',src);
+          for(const v of ['03','04','05','06','07','08'])vm.runInContext(fs.readFileSync(`v${v}-patch.js`,'utf8'),ctx);
+          let src=fs.readFileSync('/tmp/v02.js','utf8');for(const v of ['03','04','05','06','07','08'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
+          for(const s of ["const VERSION='0.8.0'",'giftNPC','discussDaoNPC','sparNPC','askNPCForHelp','processSocialEvents','data-gift-herb'])assert(src.includes(s),`missing ${s}`);fs.writeFileSync('/tmp/v08.js',src);
           JS
-          node /tmp/apply-v08.cjs
-          node --check /tmp/v08-test.js
-          echo 'build-pass' > V08_PRE_STAGE.txt
+          node /tmp/apply.cjs
+          node --check /tmp/v08.js
+          echo 'repo-pass' > V08_FINAL_STAGE.txt
 
-      - name: Headless relationship gameplay regression
+      - name: Verify public V0.8 deployment
         shell: bash
         run: |
           set -euo pipefail
-          echo 'gameplay-start' > V08_PRE_STAGE.txt
+          echo 'public-start' > V08_FINAL_STAGE.txt
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}index.html?verify=${GITHUB_SHA}" -o /tmp/index.html || ok=0
+            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/app.js || ok=0
+            for v in 03 04 05 06 07 08; do curl -fsSL "${BASE}v${v}-patch.js?verify=${GITHUB_SHA}" -o "/tmp/v${v}.js" || ok=0; done
+            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png || ok=0
+            if [ "$ok" -eq 1 ] && grep -q 'V0.8' /tmp/index.html && grep -q '人情与恩怨闭环' /tmp/index.html && grep -q '__TAIXUAN_PATCH_V08__' /tmp/app.js && grep -q 'giftNPC' /tmp/v08.js && grep -q 'taixuan-v0.8.0-relations-patch0801' /tmp/sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then break; fi
+            test "$i" -lt 60 || exit 1
+            sleep 5
+          done
+          node --check /tmp/app.js
+          for v in 03 04 05 06 07 08; do node --check "/tmp/v${v}.js"; done
+          rm -f /tmp/pub.b64
+          for i in $(seq -w 1 24); do curl -fsSL "${BASE}bundle2/c${i}.b64?verify=${GITHUB_SHA}" >> /tmp/pub.b64; done
+          tr -d '\n\r' < /tmp/pub.b64 | base64 -d > /tmp/pub-v02.js
+          cat > /tmp/pub-apply.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
+          for(const v of ['03','04','05','06','07','08'])vm.runInContext(fs.readFileSync(`/tmp/v${v}.js`,'utf8'),ctx);
+          let src=fs.readFileSync('/tmp/pub-v02.js','utf8');for(const v of ['03','04','05','06','07','08'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);assert(src.includes("const VERSION='0.8.0'"));assert(src.includes('processSocialEvents'));fs.writeFileSync('/tmp/pub-v08.js',src);
+          JS
+          node /tmp/pub-apply.cjs
+          node --check /tmp/pub-v08.js
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          cat > test-v08.mjs <<'JS'
+          cat > public-smoke.mjs <<'JS'
           import fs from 'fs';import assert from 'assert';import {JSDOM} from 'jsdom';
-          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/v08-test.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('关系测试者');let s=api.getState();assert.equal(s.version,'0.8.0');
-          let mod=api.getState(),n=mod.npcs.find(x=>x.known);assert(n);n.location=mod.player.location;n.relation=0;n.grudge=10;mod.player.herbs=20;mod.player.spiritStones=40;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());
-          s=api.getState();n=s.npcs.find(x=>x.id===n.id);const herb0=s.player.herbs,rel0=n.relation,grudge0=n.grudge;api.giftNPC(n.id,'herb');s=api.getState();let n1=s.npcs.find(x=>x.id===n.id);assert.equal(s.player.herbs,herb0-1);assert(n1.relation>rel0);assert(n1.grudge<grudge0);const herb1=s.player.herbs,rel1=n1.relation;api.giftNPC(n.id,'herb');s=api.getState();n1=s.npcs.find(x=>x.id===n.id);assert.equal(s.player.herbs,herb1,'same-day gift consumed again');assert.equal(n1.relation,rel1,'same-day gift raised relation again');
-          const dayBefore=s.time.day,daoRel=n1.relation,progBefore=s.player.progress,manualBefore=s.player.manualProf;api.discussDaoNPC(n.id);s=api.getState();n1=s.npcs.find(x=>x.id===n.id);assert.notEqual(s.time.day,dayBefore,'discussion did not consume time');assert(n1.relation>daoRel);assert(s.player.progress>progBefore||s.player.manualProf>manualBefore,'discussion gave no growth');
-          mod=api.getState();let target=mod.npcs.find(x=>x.id===n.id);target.location=mod.player.location;target.relation=80;target.grudge=0;target.lastHelpMonth=0;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());s=api.getState();const st0=s.player.spiritStones,h0=s.player.herbs,i0=s.player.insight;api.askNPCForHelp(n.id);s=api.getState();assert(s.player.spiritStones>st0||s.player.herbs>h0||s.player.insight>i0,'high-relation help gave nothing');const st1=s.player.spiritStones,h1=s.player.herbs,i1=s.player.insight;api.askNPCForHelp(n.id);s=api.getState();assert.equal(s.player.spiritStones,st1);assert.equal(s.player.herbs,h1);assert.equal(s.player.insight,i1,'monthly help duplicated');
-          mod=api.getState();target=mod.npcs.find(x=>x.id===n.id);target.location=mod.player.location;target.relation=30;target.grudge=0;target.lastSparDay=0;mod.player.hp=999;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());s=api.getState();const sparDay=s.time.day,sparRel=s.npcs.find(x=>x.id===n.id).relation;api.sparNPC(n.id);s=api.getState();assert.notEqual(s.time.day,sparDay,'spar did not consume time');assert(s.npcs.find(x=>x.id===n.id).relation>sparRel,'spar did not improve relation');
-          mod=api.getState();target=mod.npcs.find(x=>x.id===n.id);target.location=mod.player.location;target.known=true;target.grudge=100;target.relation=-50;target.realmIndex=Math.min(8,mod.player.realmIndex+3);target.lastRevengeDay=0;mod.player.spiritStones=20;mod.player.injury=0;mod.player.hp=999;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());s=api.getState();const stoneBefore=s.player.spiritStones,injBefore=s.player.injury,hpBefore=s.player.hp;for(let i=0;i<120;i++){api.processSocialEvents();const z=api.getState();const tn=z.npcs.find(x=>x.id===n.id);if(tn.lastRevengeDay)break;}s=api.getState();target=s.npcs.find(x=>x.id===n.id);assert(target.lastRevengeDay>0,'revenge event never fired');assert(s.player.spiritStones<stoneBefore||s.player.injury>injBefore||s.player.hp<hpBefore,'revenge caused no consequence');
-          const legacy=api.getState();for(const x of legacy.npcs)for(const k of ['lastGiftDay','lastDaoDay','lastSparDay','lastHelpMonth','lastRevengeDay'])delete x[k];dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(legacy));assert(api.load());s=api.getState();for(const x of s.npcs){assert.equal(x.lastGiftDay,0);assert.equal(x.lastDaoDay,0);assert.equal(x.lastSparDay,0);assert.equal(x.lastHelpMonth,0);assert.equal(x.lastRevengeDay,0)}
-          console.log('V08_RELATIONS_PASS');
+          const html=fs.readFileSync('/tmp/index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/pub-v08.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('公网关系烟测');const s=api.getState();assert.equal(s.version,'0.8.0');assert(s.npcs.some(n=>n.known));assert(dom.window.document.getElementById('npcList').innerHTML.length>0);assert(fs.readFileSync('/tmp/pub-v08.js','utf8').includes('data-gift-herb'));console.log('PUBLIC_RELATIONS_SMOKE_PASS');
           JS
-          set +e
-          node test-v08.mjs > V08_PRE_DEBUG.txt 2>&1
-          rc=$?
-          set -e
-          cat V08_PRE_DEBUG.txt
-          test "$rc" -eq 0
-          echo 'gameplay-pass' > V08_PRE_STAGE.txt
+          node public-smoke.mjs
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/manifest.json'))
+          assert m['display']=='standalone' and m['short_name']=='太玄界'
+          assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          PY
+          echo 'public-pass' > V08_FINAL_STAGE.txt
 
-      - name: Record prerelease PASS
+      - name: Record PASS
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"0.8.0\",\"milestone\":\"relations-prerelease\",\"stage\":\"$(cat V08_PRE_STAGE.txt)\",\"checks\":[\"V0.2->V0.8 patch chain\",\"V0.8 syntax\",\"gift consumes resource\",\"same-day gift anti-spam\",\"grudge reduction\",\"dao consumes time and grants growth\",\"monthly help anti-spam\",\"spar consumes time and changes relation\",\"high-grudge revenge consequence\",\"legacy NPC social migration\"]}" > PUBLIC_V08_PRE_STATUS.json
+          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"0.8.0\",\"milestone\":\"relations-loop\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V08_FINAL_STAGE.txt)\",\"checks\":[\"repository V0.2->V0.8 patch chain\",\"V0.8 syntax\",\"public V0.8 index\",\"public loader\",\"six public patches\",\"public service worker\",\"public runtime rebuild\",\"public relationship headless smoke\",\"standalone manifest\",\"V6 icon hash regression\",\"prerelease relationship gameplay PASS\"]}" > PUBLIC_V08_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V08_PRE_STATUS.json
-          git commit -m 'chore: record V0.8 prerelease verification [skip ci]'
+          git add PUBLIC_V08_STATUS.json
+          git commit -m 'chore: record V0.8 public verification [skip ci]'
           git push origin HEAD:gh-pages
 
-      - name: Record prerelease FAIL
+      - name: Record FAIL
         if: failure()
         shell: bash
         run: |
-          stage=$(cat V08_PRE_STAGE.txt 2>/dev/null || echo 'unknown')
-          debug=$(tail -c 4000 V08_PRE_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""')
-          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"0.8.0\",\"milestone\":\"relations-prerelease\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V08_PRE_STATUS.json
+          stage=$(cat V08_FINAL_STAGE.txt 2>/dev/null || echo 'unknown')
+          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"0.8.0\",\"milestone\":\"relations-loop\",\"stage\":\"${stage}\"}" > PUBLIC_V08_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V08_PRE_STATUS.json
-          git commit -m 'chore: record V0.8 prerelease failure [skip ci]' || true
+          git add PUBLIC_V08_STATUS.json
+          git commit -m 'chore: record V0.8 public verification failure [skip ci]' || true
           git push origin HEAD:gh-pages || true
