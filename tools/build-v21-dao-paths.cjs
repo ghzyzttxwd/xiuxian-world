@@ -40,11 +40,11 @@ const DAO_PATHS={
  spirit:{id:'spirit',name:'太虚神道',manual:'太虚观神录',spell:'摄魂印',locations:['古河遗迹','玄阴禁地'],realm:14,stones:45,rare:2,insight:3,relic:5,desc:'神识流灵力雄厚、控制最强，但肉身与近战都偏弱。'}
 };
 function daoPathDef(p=state&&state.player){return p&&DAO_PATHS[p.daoPath]||null}
-function daoMeleeMultiplier(){const id=state?.player?.daoPath;return id==='sword'?1.28:id==='body'?1.16:id==='flame'?.90:id==='spirit'?.88:1}
-function daoSpellMultiplier(){const id=state?.player?.daoPath;return id==='flame'?1.30:id==='spirit'?1.15:id==='sword'?.96:id==='body'?.82:1}
-function daoIncomingMultiplier(){const id=state?.player?.daoPath;return id==='body'?.80:id==='spirit'?.94:id==='flame'?1.08:id==='sword'?.97:1}
-function daoHpMultiplier(){const id=state?.player?.daoPath;return id==='body'?1.32:id==='spirit'?.92:id==='flame'?.94:1}
-function daoQiMultiplier(){const id=state?.player?.daoPath;return id==='spirit'?1.28:id==='flame'?1.12:id==='body'?.86:1}
+function daoMeleeMultiplier(){const id=state?.player?.daoPath;return id==='sword'?1.28:id==='body'?1.16:id==='flame'?0.90:id==='spirit'?0.88:1}
+function daoSpellMultiplier(){const id=state?.player?.daoPath;return id==='flame'?1.30:id==='spirit'?1.15:id==='sword'?0.96:id==='body'?0.82:1}
+function daoIncomingMultiplier(){const id=state?.player?.daoPath;return id==='body'?0.80:id==='spirit'?0.94:id==='flame'?1.08:id==='sword'?0.97:1}
+function daoHpMultiplier(){const id=state?.player?.daoPath;return id==='body'?1.32:id==='spirit'?0.92:id==='flame'?0.94:1}
+function daoQiMultiplier(){const id=state?.player?.daoPath;return id==='spirit'?1.28:id==='flame'?1.12:id==='body'?0.86:1}
 function daoSignatureMultiplier(){return 1+Math.min(.25,(state?.player?.daoMastery||0)/600)}
 function daoSecretRealmResonance(location){const d=daoPathDef();return !!(d&&d.locations.includes(location))}
 `;
@@ -91,7 +91,6 @@ must('renderUrgent();renderBreakthrough();renderLegacy();renderHomeLog();renderC
 must('combat={enemy:e,enemyHp:e.hp,playerHp:state.player.hp,playerQi:state.player.qi,defending:false,evade:0,guard:0,domain:0,weaken:0,round:1,logs:',
      'combat={enemy:e,enemyHp:e.hp,playerHp:state.player.hp,playerQi:state.player.qi,defending:false,evade:0,guard:0,domain:0,weaken:0,burn:0,bodyGuard:0,soulSeal:0,round:1,logs:','dao combat state');
 
-must('function renderCombat(){', 'function renderCombat(){','render combat anchor');
 must('<button data-combat="domain" ${!(\'元神法域\'in state.player.spells)||combat.playerQi<SPELLS[\'元神法域\'].qi?\'disabled\':\'\'}>元神法域</button><button data-combat="defend">防御</button>',
      '<button data-combat="domain" ${!(\'元神法域\'in state.player.spells)||combat.playerQi<SPELLS[\'元神法域\'].qi?\'disabled\':\'\'}>元神法域</button>${daoCombatButtonHtml()}<button data-combat="defend">防御</button>','dao combat button');
 
