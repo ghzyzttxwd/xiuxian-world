@@ -1,0 +1,73 @@
+name: V3.3 alchemy material loop
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V33_ALCHEMY_MATERIALS.trigger"
+      - "content/v33-alchemy-materials.cjs"
+      - "tools/v33-alchemy-runtime.txt"
+      - "tools/build-v33-alchemy-materials.cjs"
+      - "tests/regression-v33.mjs"
+      - ".github/workflows/v33-alchemy-materials.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taixuan-v33-alchemy-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v33:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify V3.2 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const b=require('./BUILD_V32_ARTIFACT_FORGING.json');if(b.status!=='PASS'||b.gameplay_version!=='3.2.0'||b.build!=='3201'||b.source_sha256!=='750d77bbf239f98f9e0a22cea041f323824962919796ea88786e3739dc0b6037'||b.save_schema_version!==29)throw new Error('V3.2 baseline mismatch')"
+          test "$(sha256sum src/game-v32.js | awk '{print $1}')" = "750d77bbf239f98f9e0a22cea041f323824962919796ea88786e3739dc0b6037"
+          test "$(node -e "const s=require('./PUBLIC_V32_STATUS.json');process.stdout.write(s.status+' '+s.game_version+' '+s.build)")" = "PASS 3.2.0 3201"
+
+      - name: Build deterministic V3.3 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v33-alchemy-materials.cjs
+          node --check src/game-v33.js
+          first=$(sha256sum src/game-v33.js | awk '{print $1}')
+          node tools/build-v33-alchemy-materials.cjs >/tmp/v33-build-second.log
+          second=$(sha256sum src/game-v33.js | awk '{print $1}')
+          test "$first" = "$second"
+          node -e "const b=require('./BUILD_V33_ALCHEMY_MATERIALS.json');if(b.status!=='PASS'||b.gameplay_version!=='3.3.0'||b.build!=='3301'||b.milestone!=='alchemy-material-loop'||b.save_schema_version!==30||b.content_registry_version!==4||b.counts.materials!==48||b.counts.named_materials!==40||b.counts.recipes!==24||b.counts.pills!==24)throw new Error('V3.3 report mismatch')"
+          test "$(node -e "const b=require('./BUILD_V33_ALCHEMY_MATERIALS.json');process.stdout.write(b.source_sha256)")" = "$first"
+          grep -q "const VERSION='3.3.0'" src/game-v33.js
+          grep -q 'const SAVE_SCHEMA_VERSION=30' src/game-v33.js
+          grep -q 'V33_MATERIAL_CATALOG' src/game-v33.js
+          grep -q 'pillToxicity' src/game-v33.js
+          grep -q 'gatherV33Material' src/game-v33.js
+
+      - name: Run V2.9 through V3.3 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+
+      - name: Frozen V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
