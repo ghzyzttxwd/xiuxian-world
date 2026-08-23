@@ -1,15 +1,16 @@
-name: Build V6 icon from main
+name: Finalize V6 exact-spacing icon
 
 on:
   push:
     branches: ["main"]
     paths: ["BUILD_V6_MAIN.trigger"]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-and-verify:
+  finalize-and-verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout published branch
@@ -18,87 +19,133 @@ jobs:
           ref: gh-pages
           fetch-depth: 0
 
-      - name: Build 192 and 512 from approved-spacing master
+      - name: Rebuild exact V6 512 PNG from safe chunks
         shell: bash
         run: |
           set -euo pipefail
-          echo '313f77862133dcbf1b8456b32678079b199ca79f46cf20ca28ac19a3e3deb6d5  icon-v6-base.png' | sha256sum -c -
-          python3 -m pip install --quiet pillow
+          test "$(wc -c < v6src-final/512.part00.b64)" -eq 6000
+          test "$(wc -c < v6src-final/512.part01.b64)" -eq 6000
+          test "$(wc -c < v6src-final/512.part02.b64)" -eq 4260
+          cat v6src-final/512.part00.b64 v6src-final/512.part01.b64 v6src-final/512.part02.b64 | base64 -d > icon-v6-512.png
+          echo '757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b  icon-v6-512.png' | sha256sum -c -
+          echo 'a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf  icon-v6-192.png' | sha256sum -c -
           python3 - <<'PY'
-          from PIL import Image
-          src=Image.open('icon-v6-base.png').convert('RGB')
-          for n in (192,512):
-              src.resize((n,n),Image.Resampling.LANCZOS).save(f'icon-v6-{n}.png',optimize=True)
-          PY
-          python3 - <<'PY'
-          import json,re
-          manifest={
-            'id':'./','name':'太玄界 · 修仙大世界','short_name':'太玄界',
-            'description':'低美术、高事件、高数值、持续世界演化的修仙沙盒 RPG。',
-            'lang':'zh-CN','start_url':'./index.html?v=6','scope':'./','display':'standalone',
-            'orientation':'portrait-primary','background_color':'#0d110c','theme_color':'#10150f',
-            'icons':[
-              {'src':'./icon-v6-192.png?v=6','sizes':'192x192','type':'image/png','purpose':'any'},
-              {'src':'./icon-v6-512.png?v=6','sizes':'512x512','type':'image/png','purpose':'any'}
-            ]
-          }
-          txt=json.dumps(manifest,ensure_ascii=False,indent=2)+'\n'
-          open('manifest-v6.webmanifest','w',encoding='utf-8').write(txt)
-          open('manifest.webmanifest','w',encoding='utf-8').write(txt)
-          p=open('index.html',encoding='utf-8').read()
-          p=re.sub(r'href="\./manifest(?:-v\d+)?\.webmanifest(?:\?v=\d+)?"','href="./manifest-v6.webmanifest?v=6"',p)
-          p=re.sub(r'href="\./icon-v\d+-192\.(?:png|jpg)(?:\?v=\d+)?"','href="./icon-v6-192.png?v=6"',p)
-          open('index.html','w',encoding='utf-8').write(p)
-          chunks=[f'./bundle2/c{i:02}.b64' for i in range(1,25)]
-          core=['./','./index.html?v=6','./style.css','./app.js','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6']+chunks
-          sw="const CACHE='taixuan-v0.2.6-original-spacing-v6';\nconst CORE="+json.dumps(core,ensure_ascii=False)+";\n"+'''self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
-self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=6'))));});
-'''
-          open('sw.js','w',encoding='utf-8').write(sw)
-          PY
-          python3 - <<'PY'
-          from PIL import Image
-          assert Image.open('icon-v6-192.png').size==(192,192)
-          assert Image.open('icon-v6-512.png').size==(512,512)
+          import struct
+          def png_size(path):
+              b=open(path,'rb').read(24)
+              assert b[:8] == b'\x89PNG\r\n\x1a\n', path
+              return struct.unpack('>II', b[16:24])
+          assert png_size('icon-v6-512.png') == (512,512)
+          assert png_size('icon-v6-192.png') == (192,192)
+          print('LOCAL_V6_ICONS_OK')
           PY
 
-      - name: Push V6 to gh-pages
+      - name: Validate PWA references before publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'manifest-v6.webmanifest?v=6' index.html
+          grep -q 'icon-v6-192.png?v=6' index.html
+          grep -q 'icon-v6-512.png?v=6' manifest-v6.webmanifest
+          grep -q 'icon-v6-192.png?v=6' manifest-v6.webmanifest
+          grep -q '"display": "standalone"' manifest-v6.webmanifest
+          grep -q 'taixuan-v0.2.6-original-spacing-v6' sw.js
+          grep -q 'icon-v6-512.png?v=6' sw.js
+          grep -q 'icon-v6-192.png?v=6' sw.js
+          ! grep -q 'icon-v5-512.png' sw.js
+          ! grep -q 'icon-v5-192.png' sw.js
+
+      - name: Commit exact V6 512 PNG
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add icon-v6-192.png icon-v6-512.png manifest-v6.webmanifest manifest.webmanifest index.html sw.js
-          git commit -m 'fix: publish V6 original-spacing app icon [skip ci]'
-          git push origin HEAD:gh-pages
+          git add icon-v6-512.png
+          if git diff --cached --quiet; then
+            echo 'V6 512 already exact'
+          else
+            git commit -m 'fix: publish exact V6 original-spacing 512 icon [skip ci]'
+            git push origin HEAD:gh-pages
+          fi
 
       - name: Public terminal verification
         shell: bash
         run: |
           set -euo pipefail
           BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
-          H512=$(sha256sum icon-v6-512.png|awk '{print $1}')
-          H192=$(sha256sum icon-v6-192.png|awk '{print $1}')
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          success=0
           for i in $(seq 1 60); do
+            bust="v6-final-${GITHUB_RUN_ID}-${i}"
             ok=1
-            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${GITHUB_SHA}" -o /tmp/m.json || ok=0
-            curl -fsSL "${BASE}icon-v6-512.png?v=6&x=${GITHUB_SHA}" -o /tmp/512.png || ok=0
-            curl -fsSL "${BASE}icon-v6-192.png?v=6&x=${GITHUB_SHA}" -o /tmp/192.png || ok=0
-            curl -fsSL "${BASE}sw.js?v=6&x=${GITHUB_SHA}" -o /tmp/sw.js || ok=0
-            if [ "$ok" -eq 1 ] && grep -q 'icon-v6-512.png' /tmp/m.json && grep -q 'original-spacing-v6' /tmp/sw.js && [ "$(sha256sum /tmp/512.png|awk '{print $1}')" = "$H512" ] && [ "$(sha256sum /tmp/192.png|awk '{print $1}')" = "$H192" ]; then break; fi
-            test "$i" -lt 60 || exit 1
+            curl -fsSL "${BASE}?${bust}" -o /tmp/index.html || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?${bust}" -o /tmp/manifest.json || ok=0
+            curl -fsSL "${BASE}sw.js?${bust}" -o /tmp/sw.js || ok=0
+            curl -fsSL "${BASE}app.js?${bust}" -o /tmp/app.js || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?${bust}" -o /tmp/192.png || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?${bust}" -o /tmp/512.png || ok=0
+            curl -fsSL "${BASE}bundle2/c01.b64?${bust}" -o /tmp/c01.b64 || ok=0
+            curl -fsSL "${BASE}bundle2/c24.b64?${bust}" -o /tmp/c24.b64 || ok=0
+            if [ "$ok" -eq 1 ]; then
+              h512=$(sha256sum /tmp/512.png | awk '{print $1}')
+              h192=$(sha256sum /tmp/192.png | awk '{print $1}')
+              if [ "$h512" = "$EXPECT512" ] && [ "$h192" = "$EXPECT192" ] \
+                 && grep -q 'manifest-v6.webmanifest?v=6' /tmp/index.html \
+                 && grep -q '太玄界' /tmp/index.html \
+                 && grep -q 'original-spacing-v6' /tmp/sw.js \
+                 && grep -q 'bundle2' /tmp/app.js \
+                 && [ "$(wc -c < /tmp/c01.b64)" -gt 1000 ] \
+                 && [ "$(wc -c < /tmp/c24.b64)" -gt 1000 ]; then
+                success=1
+                break
+              fi
+            fi
             sleep 5
           done
+          test "$success" -eq 1
           python3 - <<'PY'
-          import json
-          m=json.load(open('/tmp/m.json'))
+          import json,struct
+          m=json.load(open('/tmp/manifest.json',encoding='utf-8'))
           assert m['short_name']=='太玄界'
           assert m['display']=='standalone'
           assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
-          assert all(x['purpose']=='any' for x in m['icons'])
+          assert all(x.get('purpose')=='any' for x in m['icons'])
+          assert all('icon-v6-' in x['src'] for x in m['icons'])
+          def size(path):
+              b=open(path,'rb').read(24)
+              assert b[:8]==b'\x89PNG\r\n\x1a\n'
+              return struct.unpack('>II',b[16:24])
+          assert size('/tmp/192.png')==(192,192)
+          assert size('/tmp/512.png')==(512,512)
+          print('PUBLIC_V6_ICONS_OK')
           PY
-          printf '%s\n' "{\"status\":\"PASS\",\"icon_version\":\"v6-original-spacing\",\"verified_url\":\"${BASE}?v=6\",\"icon_512_sha256\":\"${H512}\",\"icon_192_sha256\":\"${H192}\"}" > PUBLIC_V6_STATUS.json
+
+      - name: Record public PASS on gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          git rebase origin/gh-pages
+          python3 - <<'PY'
+          import json,datetime
+          data={
+            'status':'PASS',
+            'checked_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'verified_url':'https://ghzyzttxwd.github.io/xiuxian-world/?v=6-final',
+            'icon_version':'v6-final-original-spacing',
+            'icon_512_sha256':'757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b',
+            'icon_192_sha256':'a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf',
+            'checks':['public HTTP 200 resources','V6 app shell','standalone manifest','V6 service worker cache','512 exact approved-spacing bytes','192 exact approved-spacing bytes','PNG dimensions','app loader','runtime c01','runtime c24']
+          }
+          open('PUBLIC_V6_STATUS.json','w',encoding='utf-8').write(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          PY
           git add PUBLIC_V6_STATUS.json
-          git commit -m 'chore: record V6 public verification [skip ci]'
-          git push origin HEAD:gh-pages
+          git commit -m 'chore: record V6 final public verification [skip ci]'
+          for n in 1 2 3; do
+            if git push origin HEAD:gh-pages; then exit 0; fi
+            git fetch origin gh-pages
+            git rebase origin/gh-pages
+          done
+          exit 1
