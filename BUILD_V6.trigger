@@ -1,4 +1,4 @@
-mode=v05-market-prerelease
+mode=v05-public-verify
 patch=0501
-candidate=edc4ab76494994b59acef752b20a75413373207a
-trigger=20260823-1213
+release=312bc8e2472d5c48e07fea498726be958bd293ee
+trigger=20260823-1215
