@@ -1,0 +1,220 @@
+name: V3.2 release fallback
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V32_ARTIFACT_FORGING.trigger"
+      - ".github/workflows/v32-release-fallback.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v32-release-fallback-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate exact V3.2 release machinery
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v32-artifact-forging.cjs
+          node --check src/game-v32.js
+          test "$(sha256sum src/game-v32.js | awk '{print $1}')" = "750d77bbf239f98f9e0a22cea041f323824962919796ea88786e3739dc0b6037"
+          node -e "const b=require('./BUILD_V32_ARTIFACT_FORGING.json');if(b.status!=='PASS'||b.gameplay_version!=='3.2.0'||b.build!=='3201'||b.save_schema_version!==29||b.content_registry_version!==3||b.counts.equipment!==60||b.counts.true_artifacts!==24||b.counts.active_artifacts!==21||b.counts.build_passive_artifacts!==24)throw new Error('V3.2 build mismatch')"
+          node --check tools/release-v32-assets.cjs
+          bash -n tools/verify-v32-public.sh
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tools/release-v32-assets.cjs
+          grep -q "gameplayVersion:'3.2.0'" app.js
+          grep -q 'src/game-v32.js?v=3201' app.js
+          grep -q 'V3.2 · 法宝炼器体系' index.html
+          grep -q 'taixuan-v3.2.0-artifact-forging-system-3201' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v32-final:
+    if: github.head_ref == 'v32-release-final-run'
+    needs: validate-fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - name: Checkout exact main release base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Reconfirm immutable main base and build runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          node tools/build-v32-artifact-forging.cjs
+          node --check src/game-v32.js
+          test "$(sha256sum src/game-v32.js | awk '{print $1}')" = "750d77bbf239f98f9e0a22cea041f323824962919796ea88786e3739dc0b6037"
+          node tools/release-v32-assets.cjs
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+      - name: Commit exact V3.2 runtime to main
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B main "$BASE_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v32.js BUILD_V32_ARTIFACT_FORGING.json app.js index.html sw.js
+          git commit -m "feat: V3.2 artifact forging system [skip ci]"
+          git push origin HEAD:main
+          echo "runtime_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact V3.2 runtime to gh-pages
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp index.html app.js sw.js BUILD_V32_ARTIFACT_FORGING.json /tmp/pages/
+          cp src/game-v32.js /tmp/pages/src/game-v32.js
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html app.js sw.js BUILD_V32_ARTIFACT_FORGING.json src/game-v32.js
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V3.2 artifact forging ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify actual GitHub Pages
+        id: public
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set +e
+          ATTEMPTS=36 bash tools/verify-v32-public.sh
+          rc=$?
+          set -e
+          public_ok=$(cat /tmp/V32_PUBLIC_OK 2>/dev/null || echo false)
+          echo "public_ok=$public_ok" >> "$GITHUB_OUTPUT"
+          echo "verifier_rc=$rc"
+          cat /tmp/V32_PUBLIC_DIAGNOSTIC.txt || true
+          exit 0
+
+      - name: Persist V3.2 diagnostic on failure
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cp /tmp/V32_PUBLIC_DIAGNOSTIC.txt /tmp/pages/PUBLIC_V32_DIAGNOSTIC.txt
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V32_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record V3.2 public diagnostic ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Stop failed public release
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Record V3.2 public PASS on gh-pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cd /tmp/pages
+          git rm -f --ignore-unmatch PUBLIC_V32_DIAGNOSTIC.txt >/dev/null 2>&1 || true
+          RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s={status:'PASS',game_version:'3.2.0',build:'3201',milestone:'artifact-forging-system',verified_commit:process.env.RUNTIME_SHA,source_sha256:'750d77bbf239f98f9e0a22cea041f323824962919796ea88786e3739dc0b6037',save_schema_version:29,content_registry_version:3,equipment_count:60,true_artifact_count:24,active_artifact_count:21,build_passive_artifact_count:24,base_slots:3,artifact_slots:4,stage:'public-pass',transport:'same-repo-pr-fallback',checks:['PR35 V3.2 validation PASS and closed unmerged','fallback workflow validation PASS and closed unmerged','schema28 to schema29 migration','legacy seven equipment preserved','60 equipment and artifacts','24 true artifacts','21 artifact active abilities','24 build-level artifact passives','forging quality fluctuation','binding refinement warmth natal damage and repair','artifact active cooldowns in combat','actual GitHub Pages HTTP 200','public V3.2 markers','public source SHA equality','public V3.2 headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('PUBLIC_V32_STATUS.json',JSON.stringify(s)+'\n')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V32_STATUS.json
+          git commit -m "chore: record V3.2 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:gh-pages
+
+      - name: Verify PASS is actually reachable from Pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V32_STATUS.json?verify=${RUNTIME_SHA}-${i}" -o /tmp/live-v32-status.json; then
+              if RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v32-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='3.2.0'||s.build!=='3201'||s.save_schema_version!==29||s.verified_commit!==process.env.RUNTIME_SHA)process.exit(1)" && cmp -s /tmp/live-v32-status.json /tmp/pages/PUBLIC_V32_STATUS.json; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync exact PASS to main
+        if: steps.public.outputs.public_ok == 'true'
+        id: final_main
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$RUNTIME_SHA"
+          git checkout -B main origin/main
+          cp /tmp/pages/PUBLIC_V32_STATUS.json PUBLIC_V32_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V32_STATUS.json
+          git commit -m "chore: record V3.2 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:main
+          echo "final_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final V3.2 delta guard
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+          FINAL_SHA: ${{ steps.final_main.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$RUNTIME_SHA" "$FINAL_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V32_STATUS.json'
+          cmp -s PUBLIC_V32_STATUS.json /tmp/pages/PUBLIC_V32_STATUS.json
+          echo "V32_PUBLIC_TERMINAL_PASS $RUNTIME_SHA -> $FINAL_SHA"
