@@ -1,1 +1,1 @@
-{"status":"PENDING","game_version":"0.5.0","milestone":"market-loop","note":"Awaiting final public V0.5 verification"}
+{"status":"PASS","game_version":"0.5.0","milestone":"market-loop","verified_commit":"d4631b8a5dbd9effc927aec4f13d9a2e0830e54e","stage":"public-pass","checks":["repository V0.2->V0.3->V0.4->V0.5 chain","V0.5 syntax","market UI nodes","public V0.5 index","public loader","public patches","public service worker","public runtime rebuild","standalone manifest","V6 icon hash regression","prerelease market gameplay PASS"]}
