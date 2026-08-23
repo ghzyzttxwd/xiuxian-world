@@ -1,0 +1,1 @@
+{"status":"PASS","game_version":"1.3.0","build":"1301","milestone":"faction-war","verified_commit":"baa875d3bd0ac2dd9d22f198ee678028c1530b42","stage":"public-pass","checks":["public V1.3 assets","eleven-patch runtime rebuild","faction war smoke","manifest","V6 icon hash regression","prerelease PASS"]}
