@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "gameplay_version": "3.5.0",
+  "build": "3501",
+  "milestone": "economy-world-integration",
+  "source": "src/game-v35.js",
+  "source_sha256": "b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed",
+  "source_bytes": 467059,
+  "save_schema_version": 32,
+  "content_registry_version": 6,
+  "counts": {
+    "shops": 4,
+    "fixed_listings": 32,
+    "auction_pool": 12,
+    "total_trade_definitions": 44,
+    "materials": 48,
+    "recipes": 24,
+    "enemies": 48,
+    "builds": 8,
+    "regions": 12
+  },
+  "checks": [
+    "four distinct shopId venues",
+    "named materials and pills enter real trade",
+    "sect contribution economy",
+    "black market standing modifier",
+    "limited auction cycle",
+    "atomic buy and sell",
+    "war changes trade prices",
+    "NPC requests named materials",
+    "secret realm grants regional material and unknown recipe",
+    "shop registry included in content registry",
+    "schema31 to schema32 migration",
+    "V3.4 combat builds preserved",
+    "future schema33 protection"
+  ]
+}
