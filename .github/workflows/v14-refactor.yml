@@ -1,4 +1,4 @@
-name: V1.4 source consolidation and public verification
+name: V1.4 engineering release and public verification
 
 on:
   push:
@@ -9,11 +9,11 @@ permissions:
   contents: write
 
 concurrency:
-  group: taixuan-v14-refactor
+  group: taixuan-v14-release
   cancel-in-progress: false
 
 jobs:
-  refactor-v14:
+  release-v14:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -23,32 +23,42 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Verify V1.3 release baseline
+      - name: Verify last public V1.4 baseline
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor ebf3000b8c62a70313ecfa20580647a71f1fc783 HEAD
           node - <<'JS'
           const fs=require('fs');
-          const s=JSON.parse(fs.readFileSync('PUBLIC_V13_STATUS.json','utf8'));
-          if(s.status!=='PASS'||s.game_version!=='1.3.0'||s.build!=='1301'||s.stage!=='public-pass') throw new Error('V1.3 public baseline is not PASS');
+          const s=JSON.parse(fs.readFileSync('PUBLIC_V14_STATUS.json','utf8'));
+          if(s.status!=='PASS'||s.stage!=='public-pass'||s.gameplay_version!=='1.3.0'||s.build!=='1401') {
+            throw new Error('previous V1.4 public baseline is not verified build 1401');
+          }
           JS
-          grep -q "v03-patch.js" app.js
-          grep -q "v13-patch.js" app.js
-          grep -q "bundle2/c" app.js
+          grep -q "src/game-v13.js?v=1401" app.js
+          ! grep -q "v13-patch.js" app.js
+          ! grep -q "bundle2" app.js
+          ! grep -q "eval" app.js
           test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
           test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
 
-      - name: Consolidate V0.2 plus V03-V13 into readable V1.3 source
+      - name: Rebuild direct source with explicit save schema pipeline
         shell: bash
         run: |
           set -euo pipefail
           node tools/build-v13-source.cjs
           node --check src/game-v13.js
           grep -q "const VERSION='1.3.0'" src/game-v13.js
+          grep -q "const SAVE_SCHEMA_VERSION=13" src/game-v13.js
+          grep -q "const SAVE_MIGRATIONS=" src/game-v13.js
+          grep -q "migrateSaveState" src/game-v13.js
           grep -q "updateFactionConflict" src/game-v13.js
           grep -q "renderSecretRealm" src/game-v13.js
           grep -q "reincarnate" src/game-v13.js
+          node - <<'JS'
+          const b=require('./BUILD_V14_SOURCE.json');
+          if(b.status!=='PASS'||b.engineering_release!=='1.4.1'||b.gameplay_version!=='1.3.0'||b.build!=='1402'||b.save_schema_version!==13) throw new Error('build report mismatch');
+          if(JSON.stringify(b.migration_steps)!==JSON.stringify([3,4,5,6,7,8,9,10,11,12,13])) throw new Error('migration step report mismatch');
+          JS
 
       - name: Install headless test dependency
         shell: bash
@@ -57,68 +67,53 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
 
-      - name: Run unified V1.4 regression before loader switch
+      - name: Run gameplay and save-migration regression
         shell: bash
         run: |
           set -euo pipefail
           node tests/regression-v14.mjs
 
-      - name: Switch runtime to direct readable source
+      - name: Update V1.4 runtime shell to build 1402
         shell: bash
         run: |
           set -euo pipefail
-          cat > app.js <<'JS'
-          // 太玄界 V1.4 工程重构加载器 · build 1401
-          (()=>{
-            const fail=(e)=>{
-              console.error(e);
-              document.body.innerHTML='<div style="max-width:680px;margin:40px auto;padding:20px;color:#fff;background:#171a16;border:1px solid #485042;border-radius:14px;font-family:system-ui;line-height:1.7"><h2>太玄界加载失败</h2><div>'+String(e)+'</div><p>请刷新页面；若仍失败，请把这段错误发给我。</p></div>';
-            };
-            try{
-              window.__TAIXUAN_BUILD__={engineeringVersion:'1.4.0',gameplayVersion:'1.3.0',build:'1401',milestone:'source-consolidation',source:'src/game-v13.js',legacyPatchChain:false};
-              document.title='太玄界 · 修仙大世界 V1.4';
-              const script=document.createElement('script');
-              script.src='./src/game-v13.js?v=1401';
-              script.async=false;
-              script.onload=()=>{
-                if(!window.__TAIXUAN_TEST__)fail(new Error('V1.4 直接源码运行时未完成初始化'));
-              };
-              script.onerror=()=>fail(new Error('V1.4 游戏核心加载失败：src/game-v13.js'));
-              document.head.appendChild(script);
-            }catch(e){fail(e)}
-          })();
-          JS
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('index.html')
+
+          p=Path('app.js')
           s=p.read_text(encoding='utf-8')
           pairs=[
-            ('太玄界 · 修仙大世界 V1.3','太玄界 · 修仙大世界 V1.4'),
-            ('修仙大世界 · V1.3','修仙大世界 · V1.4'),
-            ('V1.3 · 宗门大战与势力演化','V1.4 · 工程重构 · V1.3玩法完整保留'),
-            ('./app.js?v=1301','./app.js?v=1401'),
+            ('V1.4 工程重构加载器 · build 1401','V1.4 工程重构加载器 · build 1402'),
+            ("engineeringVersion:'1.4.0'","engineeringVersion:'1.4.1'"),
+            ("build:'1401'","build:'1402'"),
+            ("milestone:'source-consolidation'","milestone:'save-schema-pipeline'"),
+            ('./src/game-v13.js?v=1401','./src/game-v13.js?v=1402'),
           ]
           for old,new in pairs:
-            if old not in s: raise SystemExit(f'index replacement anchor missing: {old}')
+            if old not in s: raise SystemExit(f'app.js anchor missing: {old}')
             s=s.replace(old,new)
           p.write_text(s,encoding='utf-8')
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          if './app.js?v=1401' not in s: raise SystemExit('index build anchor missing')
+          s=s.replace('./app.js?v=1401','./app.js?v=1402')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('sw.js')
+          s=p.read_text(encoding='utf-8')
+          if '1401' not in s: raise SystemExit('service worker build anchor missing')
+          s=s.replace("taixuan-v1.4.0-source-consolidation-1401","taixuan-v1.4.1-save-schema-1402")
+          s=s.replace('1401','1402')
+          p.write_text(s,encoding='utf-8')
           PY
-          cat > sw.js <<'JS'
-          const CACHE='taixuan-v1.4.0-source-consolidation-1401';
-          const CORE=['./','./index.html?v=1401','./style.css','./app.js?v=1401','./src/game-v13.js?v=1401','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6'];
-          self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
-          self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
-          self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=1401'))));});
-          JS
           cat > README.md <<'MD'
           # 太玄界 · 修仙大世界
 
-          当前工程版本：**V1.4.0 · 源码合并重构（build 1401）**  
+          当前工程版本：**V1.4.1 · 工程重构（build 1402）**  
           当前玩法版本：**V1.3.0 · 宗门大战与势力演化**
 
-          ## 当前运行结构
-
-          V1.4 已把历史运行时的 `V0.2 bundle2 + V03~V13 十一层补丁` 机器合并为一份可读源码：
+          ## 正式运行结构
 
           ```text
           index.html
@@ -126,25 +121,44 @@ jobs:
             -> src/game-v13.js
           ```
 
-          浏览器不再下载、拼接或 `eval` 十一层补丁。旧 `bundle2/` 与 `v03-patch.js` ~ `v13-patch.js` 暂时保留，仅用于构建历史、回归和回退，不再进入正式运行链。
+          浏览器正式运行链不再下载 `bundle2/`，不再串行加载 V03~V13 补丁，也不使用 `eval` 拼装游戏源码。历史 bundle 与补丁暂时只保留为可重复构建来源和回退依据。
+
+          ## 存档迁移
+
+          浏览器存档 key 继续使用 `xiuxian_world_v02`，避免旧玩家进度消失。当前显式存档结构版本为 `saveSchemaVersion = 13`。
+
+          没有 `saveSchemaVersion` 的历史存档按 schema 2 处理，然后严格执行：
+
+          ```text
+          2 -> 3 战斗
+            -> 4 宗门
+            -> 5 坊市
+            -> 6 炼丹
+            -> 7 法器
+            -> 8 NPC 社交
+            -> 9 主动破境
+            -> 10 洞府
+            -> 11 轮回传承
+            -> 12 动态秘境
+            -> 13 宗门大战
+          ```
+
+          每一步迁移都是幂等字段补全。当前客户端遇到 `saveSchemaVersion > 13` 的未来存档会拒绝加载，并且不会覆盖原存档。
 
           ## 已完成玩法
 
           战斗、宗门、坊市经济、炼丹、法器锻造、NPC 人情恩怨、主动破境、洞府闭关与药圃、身死传承与转世、动态秘境、宗门大战与势力演化。
 
-          ## 存档兼容
-
-          为避免旧玩家存档消失，当前仍保留历史 key：`xiuxian_world_v02`。V1.4 回归测试会用裁剪后的 V0.2 形态存档重新加载，检查 V0.3~V1.3 新字段迁移。后续会再把迁移逻辑整理成显式 `saveSchemaVersion` pipeline；在此之前不要直接改存档 key。
-
           ## 工程约定
 
           - `main`：唯一开发源。
-          - `gh-pages`：公开部署产物，不与 `main` 直接 merge。
-          - `tools/build-v13-source.cjs`：从历史 bundle + patches 可重复生成 `src/game-v13.js`。
-          - `tests/regression-v14.mjs`：统一回归入口。
-          - V6 App 图标已定稿，V1.4 继续做 SHA-256 回归，不修改图标。
+          - `gh-pages`：公开部署产物，不与 `main` merge。
+          - `tools/build-v13-source.cjs`：从历史 V0.2 bundle + V03~V13 补丁重建当前直读源码，并注入 V1.4 工程迁移层。
+          - `tests/regression-v14.mjs`：统一玩法、旧存档迁移、幂等性、未来存档保护回归。
+          - `.github/workflows/v14-refactor.yml`：当前 V1.4 唯一正式发布链，负责构建、回归、部署、公网回归和 PASS 状态回写。
+          - V6 App 图标已定稿，发布时强制做 SHA-256 回归。
 
-          ## 本地/CI 验证
+          ## 本地验证
 
           ```bash
           node tools/build-v13-source.cjs
@@ -155,22 +169,21 @@ jobs:
           MD
           node --check app.js
           node --check sw.js
-          ! grep -q "v03-patch.js" app.js
+          grep -q "src/game-v13.js?v=1402" app.js
+          grep -q "src/game-v13.js?v=1402" sw.js
           ! grep -q "v13-patch.js" app.js
           ! grep -q "bundle2" app.js
           ! grep -q "eval" app.js
-          grep -q "src/game-v13.js?v=1401" app.js
-          grep -q "src/game-v13.js?v=1401" sw.js
           ! grep -q "v13-patch.js" sw.js
           ! grep -q "bundle2/c" sw.js
 
-      - name: Run unified regression after loader switch
+      - name: Run regression after runtime shell update
         shell: bash
         run: |
           set -euo pipefail
           node tests/regression-v14.mjs
 
-      - name: Commit V1.4 refactor to main
+      - name: Commit verified build 1402 to main
         id: release
         shell: bash
         run: |
@@ -179,12 +192,12 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/game-v13.js BUILD_V14_SOURCE.json app.js index.html sw.js README.md
           if ! git diff --cached --quiet; then
-            git commit -m 'refactor: V1.4 consolidate runtime source [skip ci]'
+            git commit -m 'refactor: V1.4.1 add explicit save schema pipeline [skip ci]'
             git push origin HEAD:main
           fi
           echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Publish V1.4 assets to gh-pages without merging histories
+      - name: Publish exact verified assets to gh-pages
         shell: bash
         env:
           RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
@@ -201,7 +214,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/game-v13.js BUILD_V14_SOURCE.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png
           if ! git diff --cached --quiet; then
-            git commit -m "refactor: publish V1.4 direct-source runtime ${RELEASE_SHA} [skip ci]"
+            git commit -m "refactor: publish V1.4.1 build 1402 ${RELEASE_SHA} [skip ci]"
             git push origin HEAD:gh-pages
           fi
 
@@ -216,29 +229,30 @@ jobs:
           EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
           for i in $(seq 1 60); do
             ok=1
-            curl -fsSL "${BASE}?v=1401&x=${RELEASE_SHA}" -o /tmp/public-index.html || ok=0
-            curl -fsSL "${BASE}app.js?v=1401&x=${RELEASE_SHA}" -o /tmp/public-app.js || ok=0
-            curl -fsSL "${BASE}src/game-v13.js?v=1401&x=${RELEASE_SHA}" -o /tmp/public-game.js || ok=0
-            curl -fsSL "${BASE}sw.js?v=1401&x=${RELEASE_SHA}" -o /tmp/public-sw.js || ok=0
-            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${RELEASE_SHA}" -o /tmp/public-manifest.json || ok=0
-            curl -fsSL "${BASE}icon-v6-512.png?x=${RELEASE_SHA}" -o /tmp/public-icon512.png || ok=0
-            curl -fsSL "${BASE}icon-v6-192.png?x=${RELEASE_SHA}" -o /tmp/public-icon192.png || ok=0
+            curl -fsSL "${BASE}?v=1402&x=${RELEASE_SHA}-${i}" -o /tmp/public-index.html || ok=0
+            curl -fsSL "${BASE}app.js?v=1402&x=${RELEASE_SHA}-${i}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}src/game-v13.js?v=1402&x=${RELEASE_SHA}-${i}" -o /tmp/public-game.js || ok=0
+            curl -fsSL "${BASE}sw.js?v=1402&x=${RELEASE_SHA}-${i}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${RELEASE_SHA}-${i}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon192.png || ok=0
             if [ "$ok" -eq 1 ] \
               && grep -q 'V1.4' /tmp/public-index.html \
-              && grep -q 'src/game-v13.js?v=1401' /tmp/public-app.js \
+              && grep -q 'src/game-v13.js?v=1402' /tmp/public-app.js \
               && ! grep -q 'v13-patch.js' /tmp/public-app.js \
               && ! grep -q 'bundle2' /tmp/public-app.js \
               && ! grep -q 'eval' /tmp/public-app.js \
               && grep -q "const VERSION='1.3.0'" /tmp/public-game.js \
-              && grep -q 'updateFactionConflict' /tmp/public-game.js \
-              && grep -q 'src/game-v13.js?v=1401' /tmp/public-sw.js \
+              && grep -q 'const SAVE_SCHEMA_VERSION=13' /tmp/public-game.js \
+              && grep -q 'SAVE_MIGRATIONS' /tmp/public-game.js \
+              && grep -q 'src/game-v13.js?v=1402' /tmp/public-sw.js \
               && ! grep -q 'v13-patch.js' /tmp/public-sw.js \
               && ! grep -q 'bundle2/c' /tmp/public-sw.js \
               && [ "$(sha256sum /tmp/public-icon512.png | awk '{print $1}')" = "$EXPECT512" ] \
               && [ "$(sha256sum /tmp/public-icon192.png | awk '{print $1}')" = "$EXPECT192" ]; then
               break
             fi
-            test "$i" -lt 60 || { echo 'public V1.4 assets did not converge'; exit 1; }
+            test "$i" -lt 60 || { echo 'public build 1402 assets did not converge'; exit 1; }
             sleep 5
           done
           node --check /tmp/public-app.js
@@ -266,13 +280,13 @@ jobs:
           SOURCE_SHA=$(node -p "require('./BUILD_V14_SOURCE.json').source_sha256")
           cd /tmp/pages
           cat > PUBLIC_V14_STATUS.json <<JSON
-          {"status":"PASS","engineering_version":"1.4.0","gameplay_version":"1.3.0","build":"1401","milestone":"source-consolidation","verified_commit":"${RELEASE_SHA}","source_sha256":"${SOURCE_SHA}","stage":"public-pass","checks":["V1.3 baseline PASS","24 bundle chunks + 11 patches consolidated","node syntax","unified gameplay regression","V0.2 save migration","direct source loader without eval","public asset HTTP 200","public source hash equality","public headless regression","standalone manifest","V6 icon hash regression"]}
+          {"status":"PASS","engineering_version":"1.4.1","gameplay_version":"1.3.0","build":"1402","milestone":"save-schema-pipeline","verified_commit":"${RELEASE_SHA}","source_sha256":"${SOURCE_SHA}","save_schema_version":13,"stage":"public-pass","checks":["previous V1.4 public baseline PASS","24 bundle chunks + 11 gameplay patches rebuilt","explicit schema 2->13 migrations","migration idempotence","future-save overwrite guard","node syntax","unified gameplay regression","direct source loader without eval","public asset HTTP 200","public source hash equality","public headless regression","standalone manifest","V6 icon hash regression"]}
           JSON
           git add PUBLIC_V14_STATUS.json
-          git commit -m 'chore: record V1.4 public PASS [skip ci]'
+          git commit -m 'chore: record V1.4.1 build 1402 public PASS [skip ci]'
           git push origin HEAD:gh-pages
 
-      - name: Verify public PASS status is actually served
+      - name: Verify PASS status is actually served
         shell: bash
         env:
           RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
@@ -281,14 +295,14 @@ jobs:
           BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
           for i in $(seq 1 60); do
             if curl -fsSL "${BASE}PUBLIC_V14_STATUS.json?x=${RELEASE_SHA}-${i}" -o /tmp/public-v14-status.json \
-              && node -e "const s=require('/tmp/public-v14-status.json'); if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='1401'||s.verified_commit!==process.env.RELEASE_SHA) process.exit(1)"; then
+              && node -e "const s=require('/tmp/public-v14-status.json'); if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='1402'||s.save_schema_version!==13||s.verified_commit!==process.env.RELEASE_SHA) process.exit(1)"; then
               exit 0
             fi
-            test "$i" -lt 60 || { echo 'PUBLIC_V14_STATUS.json was not served as PASS'; exit 1; }
+            test "$i" -lt 60 || { echo 'PUBLIC_V14_STATUS.json was not served as verified build 1402'; exit 1; }
             sleep 5
           done
 
-      - name: Sync verified V1.4 status back to main
+      - name: Sync verified public status back to main
         shell: bash
         run: |
           set -euo pipefail
@@ -299,5 +313,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add PUBLIC_V14_STATUS.json
-          git commit -m 'chore: sync verified V1.4 public PASS to main [skip ci]'
+          git commit -m 'chore: sync verified V1.4.1 public PASS to main [skip ci]'
           git push origin HEAD:main
