@@ -1,0 +1,104 @@
+name: Build V6 original-spacing icon
+
+on:
+  push:
+    branches: ["gh-pages"]
+    paths: ["BUILD_V6.trigger"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Build exact-layout PNG icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '313f77862133dcbf1b8456b32678079b199ca79f46cf20ca28ac19a3e3deb6d5  icon-v6-base.png' | sha256sum -c -
+          python3 -m pip install --quiet pillow
+          python3 - <<'PY'
+          from PIL import Image
+          src=Image.open('icon-v6-base.png').convert('RGB')
+          for n in (192,512):
+              im=src.resize((n,n),Image.Resampling.LANCZOS)
+              im.save(f'icon-v6-{n}.png',optimize=True)
+          PY
+          python3 - <<'PY'
+          import json,re
+          manifest={
+            'id':'./','name':'太玄界 · 修仙大世界','short_name':'太玄界',
+            'description':'低美术、高事件、高数值、持续世界演化的修仙沙盒 RPG。',
+            'lang':'zh-CN','start_url':'./index.html?v=6','scope':'./','display':'standalone',
+            'orientation':'portrait-primary','background_color':'#0d110c','theme_color':'#10150f',
+            'icons':[
+              {'src':'./icon-v6-192.png?v=6','sizes':'192x192','type':'image/png','purpose':'any'},
+              {'src':'./icon-v6-512.png?v=6','sizes':'512x512','type':'image/png','purpose':'any'}
+            ]
+          }
+          text=json.dumps(manifest,ensure_ascii=False,indent=2)+'\n'
+          open('manifest-v6.webmanifest','w',encoding='utf-8').write(text)
+          open('manifest.webmanifest','w',encoding='utf-8').write(text)
+          p=open('index.html',encoding='utf-8').read()
+          p=re.sub(r'href="\./manifest(?:-v\d+)?\.webmanifest(?:\?v=\d+)?"','href="./manifest-v6.webmanifest?v=6"',p)
+          p=re.sub(r'href="\./icon-v\d+-192\.(?:png|jpg)(?:\?v=\d+)?"','href="./icon-v6-192.png?v=6"',p)
+          open('index.html','w',encoding='utf-8').write(p)
+          chunks=[f'./bundle2/c{i:02}.b64' for i in range(1,25)]
+          core=['./','./index.html?v=6','./style.css','./app.js','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6']+chunks
+          sw="const CACHE='taixuan-v0.2.6-original-spacing-v6';\nconst CORE="+repr(core).replace("'",'"')+";\n"+'''self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=6'))));});
+'''
+          open('sw.js','w',encoding='utf-8').write(sw)
+          PY
+          python3 - <<'PY'
+          from PIL import Image
+          assert Image.open('icon-v6-192.png').size==(192,192)
+          assert Image.open('icon-v6-512.png').size==(512,512)
+          PY
+
+      - name: Publish V6 files to gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add icon-v6-192.png icon-v6-512.png manifest-v6.webmanifest manifest.webmanifest index.html sw.js
+          git commit -m 'fix: publish V6 icon with original sample spacing [skip ci]'
+          git push origin HEAD:gh-pages
+
+      - name: Verify public V6 resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          LOCAL512=$(sha256sum icon-v6-512.png | awk '{print $1}')
+          LOCAL192=$(sha256sum icon-v6-192.png | awk '{print $1}')
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&n=${GITHUB_SHA}" -o /tmp/m.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?v=6&n=${GITHUB_SHA}" -o /tmp/i512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?v=6&n=${GITHUB_SHA}" -o /tmp/i192.png || ok=0
+            curl -fsSL "${BASE}sw.js?v=6&n=${GITHUB_SHA}" -o /tmp/sw.js || ok=0
+            if [ "$ok" -eq 1 ] && grep -q 'icon-v6-512.png' /tmp/m.json && grep -q 'original-spacing-v6' /tmp/sw.js && [ "$(sha256sum /tmp/i512.png|awk '{print $1}')" = "$LOCAL512" ] && [ "$(sha256sum /tmp/i192.png|awk '{print $1}')" = "$LOCAL192" ]; then break; fi
+            test "$i" -lt 60 || exit 1
+            sleep 5
+          done
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/m.json'))
+          assert m['short_name']=='太玄界' and m['display']=='standalone'
+          assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          assert all(x['purpose']=='any' for x in m['icons'])
+          PY
+          printf '%s\n' "{\"status\":\"PASS\",\"icon_version\":\"v6-original-spacing\",\"verified_url\":\"${BASE}?v=6\",\"icon_512_sha256\":\"${LOCAL512}\",\"icon_192_sha256\":\"${LOCAL192}\"}" > PUBLIC_V6_STATUS.json
+          git add PUBLIC_V6_STATUS.json
+          git commit -m 'chore: record V6 public verification [skip ci]'
+          git push origin HEAD:gh-pages
