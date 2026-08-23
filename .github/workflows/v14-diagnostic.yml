@@ -1,0 +1,42 @@
+name: V1.4 source build diagnostic
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["V14_DIAG.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Build consolidated source and record result
+        shell: bash
+        run: |
+          set -uo pipefail
+          rm -f V14_DIAG_PASS.json V14_DIAG_FAIL.txt
+          set +e
+          node tools/build-v13-source.cjs > /tmp/v14-diag.log 2>&1
+          rc=$?
+          if [ "$rc" -eq 0 ]; then node --check src/game-v13.js >> /tmp/v14-diag.log 2>&1; rc=$?; fi
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ "$rc" -eq 0 ]; then
+            printf '%s\n' '{"status":"PASS","stage":"source-build","gameplay_version":"1.3.0","build":"1401"}' > V14_DIAG_PASS.json
+            git add src/game-v13.js BUILD_V14_SOURCE.json V14_DIAG_PASS.json
+            git commit -m 'build: V1.4 consolidated source diagnostic PASS [skip ci]'
+            git push origin HEAD:main
+          else
+            { echo 'V1.4 SOURCE BUILD DIAGNOSTIC FAIL'; echo; cat /tmp/v14-diag.log; } > V14_DIAG_FAIL.txt
+            git add V14_DIAG_FAIL.txt
+            git commit -m 'chore: record V1.4 source build diagnostic failure [skip ci]'
+            git push origin HEAD:main
+            exit "$rc"
+          fi
