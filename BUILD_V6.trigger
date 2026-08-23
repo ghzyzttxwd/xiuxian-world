@@ -1,4 +1,4 @@
-mode=v10-dwelling-prerelease
+mode=v10-public-verify
 patch=1001
-candidate=fad7c0e1ea017a58c13a6b90c6db7c0d95ca1c8c
-trigger=20260823-1304
+release=3725ef531cfd502330762452913633786ba66a44
+trigger=20260823-1308
