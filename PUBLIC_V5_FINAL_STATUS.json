@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "checked_at_utc": "2026-08-23T00:38:07.922071+00:00",
+  "verified_url": "https://ghzyzttxwd.github.io/xiuxian-world/?v=5",
+  "icon_version": "v5-final-exact-approved-png",
+  "icon_512_sha256": "73f85c80f62899d37b5d5848a6679c74de3e88b6d1cd433b7621f4910e171600",
+  "icon_192_sha256": "c77903b984948f9eaa774237a4a7948265eb84596df7216bb6b331e5b97deb15",
+  "checks": [
+    "public HTTP resources",
+    "unique V5 manifest path",
+    "manifest short_name 太玄界",
+    "purpose any only",
+    "no V4 icons in service worker",
+    "512 public bytes exactly approved source",
+    "192 PNG dimensions",
+    "app loader",
+    "runtime c01",
+    "runtime c24"
+  ]
+}
