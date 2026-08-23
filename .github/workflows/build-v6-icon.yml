@@ -1,4 +1,4 @@
-name: Verify V1.2 prerelease secret realm
+name: Verify V1.2 public secret realm
 
 on:
   push:
@@ -10,81 +10,100 @@ permissions:
   contents: write
 
 jobs:
-  verify-v12-pre:
+  verify-v12:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: gh-pages
           fetch-depth: 0
-
-      - name: Build V1.2 candidate
+      - name: Repository checks
         shell: bash
         run: |
           set -euo pipefail
-          echo 'build' > V12_PRE_STAGE.txt
-          : > V12_PRE_DEBUG.txt
-          node --check v12-patch.js
-          cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
-          cat > /tmp/build-v12.cjs <<'JS'
-          const fs=require('fs'),vm=require('vm'),assert=require('assert');
-          const ctx={window:{}};vm.createContext(ctx);
-          for(const v of ['03','04','05','06','07','08','09','10','11','12'])vm.runInContext(fs.readFileSync(`v${v}-patch.js`,'utf8'),ctx);
-          let src=fs.readFileSync('/tmp/v02.js','utf8');
-          for(const v of ['03','04','05','06','07','08','09','10','11','12'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
-          for(const s of ["const VERSION='1.2.0'",'spawnSecretRealm','updateSecretRealm','enterSecretRealm','claimSecretRealmCore','decipherRelic','renderSecretRealm','onSecretRealmCombatWin'])assert(src.includes(s),`missing ${s}`);
-          const needle='combatAction};\nboot();';assert(src.includes(needle));
-          src=src.replace(needle,"combatAction,load,spawnSecretRealm,updateSecretRealm,currentSecretRealm,secretRealmGuardian,secretRealmPrepare,enterSecretRealm,onSecretRealmCombatWin,claimSecretRealmCore,decipherRelic,renderSecretRealm,tickOneDay,advanceDays};\nboot();");
-          fs.writeFileSync('/tmp/v12.js',src);
+          echo repo > V12_FINAL_STAGE.txt
+          : > V12_FINAL_DEBUG.txt
+          node --check app.js
+          for v in 03 04 05 06 07 08 09 10 11 12; do node --check "v${v}-patch.js"; done
+          grep -q 'app.js?v=1201' index.html
+          grep -q 'v12-patch.js?v=1201' app.js
+          grep -q 'taixuan-v1.2.0-secret-realm-patch1201' sw.js
+          grep -q '"status":"PASS"' PUBLIC_V12_PRE_STATUS.json
+          echo repo-pass > V12_FINAL_STAGE.txt
+      - name: Wait for public V1.2 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo public-assets > V12_FINAL_STAGE.txt
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          ready=0
+          for i in $(seq 1 60); do
+            curl -fsSL "${BASE}index.html?verify=${GITHUB_SHA}" -o /tmp/index.html || true
+            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/app.js || true
+            curl -fsSL "${BASE}v12-patch.js?verify=${GITHUB_SHA}" -o /tmp/v12.js || true
+            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/sw.js || true
+            if grep -q 'V1.2' /tmp/index.html 2>/dev/null && grep -q 'app.js?v=1201' /tmp/index.html 2>/dev/null && grep -q 'v12-patch.js?v=1201' /tmp/app.js 2>/dev/null && grep -q 'spawnSecretRealm' /tmp/v12.js 2>/dev/null && grep -q 'taixuan-v1.2.0-secret-realm-patch1201' /tmp/sw.js 2>/dev/null; then ready=1;break;fi
+            sleep 5
+          done
+          test "$ready" -eq 1
+          echo public-assets-pass > V12_FINAL_STAGE.txt
+      - name: Rebuild public V1.2 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo runtime > V12_FINAL_STAGE.txt
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          for v in 03 04 05 06 07 08 09 10 11 12; do curl -fsSL "${BASE}v${v}-patch.js?verify=${GITHUB_SHA}" -o "/tmp/v${v}.js"; done
+          rm -f /tmp/pub.b64
+          for i in $(seq -w 1 24); do curl -fsSL "${BASE}bundle2/c${i}.b64?verify=${GITHUB_SHA}" >> /tmp/pub.b64; done
+          tr -d '\n\r' < /tmp/pub.b64 | base64 -d > /tmp/pub-v02.js
+          cat > /tmp/build.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
+          for(const v of ['03','04','05','06','07','08','09','10','11','12'])vm.runInContext(fs.readFileSync(`/tmp/v${v}.js`,'utf8'),ctx);
+          let src=fs.readFileSync('/tmp/pub-v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10','11','12'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
+          for(const s of ["const VERSION='1.2.0'",'spawnSecretRealm','enterSecretRealm','claimSecretRealmCore','decipherRelic','renderSecretRealm'])assert(src.includes(s),s);
+          const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,spawnSecretRealm,currentSecretRealm,secretRealmPrepare,secretRealmGuardian,onSecretRealmCombatWin,claimSecretRealmCore,decipherRelic,renderSecretRealm};\nboot();");fs.writeFileSync('/tmp/pub-v12.js',src);
           JS
-          node /tmp/build-v12.cjs >> V12_PRE_DEBUG.txt 2>&1
-          node --check /tmp/v12.js >> V12_PRE_DEBUG.txt 2>&1
-          echo 'build-pass' > V12_PRE_STAGE.txt
-
-      - name: Gameplay regression
+          node /tmp/build.cjs >> V12_FINAL_DEBUG.txt 2>&1
+          node --check /tmp/pub-v12.js >> V12_FINAL_DEBUG.txt 2>&1
+          echo runtime-pass > V12_FINAL_STAGE.txt
+      - name: Public secret realm smoke
         shell: bash
         run: |
           set -euo pipefail
-          echo 'gameplay' > V12_PRE_STAGE.txt
+          echo smoke > V12_FINAL_STAGE.txt
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          cat > v12-pre.mjs <<'JS'
+          cat > smoke.mjs <<'JS'
           import fs from 'fs';import assert from 'assert';import {JSDOM} from 'jsdom';
-          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');
-          const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;
-          dom.window.eval(fs.readFileSync('/tmp/v12.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('V12秘境验收');
-          let s=api.getState();assert.equal(s.version,'1.2.0');assert.equal(s.player.secretRealmClears,0);assert.equal(s.player.relicFragments,0);assert.equal(s.world.secretRealm,null);assert.equal(s.world.secretRealmCount,0);
-          let r=api.spawnSecretRealm();s=api.getState();assert(r&&s.world.secretRealm);assert.equal(s.world.secretRealmCount,1);assert(s.world.secretRealm.closeDay>s.world.secretRealm.openDay);
-          // 迁移/地点/阶段
-          s.player.location=s.world.secretRealm.location;s.player.realmIndex=Math.max(4,s.world.secretRealm.threat);dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());
-          // 外围采药消耗一天且不可重复
-          const d0=api.getState().time.day;api.secretRealmPrepare('forage');s=api.getState();assert.equal(s.world.secretRealm.foraged,true);const herbsAfter=s.player.herbs;api.secretRealmPrepare('forage');assert.equal(api.getState().player.herbs,herbsAfter);
-          // 破阵 -> 守关阶段
-          api.secretRealmPrepare('careful');s=api.getState();assert.equal(s.world.secretRealm.stage,1);
-          const guard=api.secretRealmGuardian(s.world.secretRealm);assert.equal(guard.secretRealmGuardian,true);api.onSecretRealmCombatWin(guard);s=api.getState();assert.equal(s.world.secretRealm.stage,2);
-          // 核心机缘
-          const beforeFrag=s.player.relicFragments,beforeInsight=s.player.insight,beforeClears=s.player.secretRealmClears;api.claimSecretRealmCore();s=api.getState();assert.equal(s.world.secretRealm.cleared,true);assert(s.player.relicFragments>beforeFrag);assert.equal(s.player.insight,beforeInsight+1);assert.equal(s.player.secretRealmClears,beforeClears+1);
-          // 残片参悟
-          s.player.relicFragments=3;const mp=s.player.manualProf,ins=s.player.insight;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());api.decipherRelic();s=api.getState();assert.equal(s.player.relicFragments,0);assert.equal(s.player.insight,ins+1);assert.equal(s.player.manualProf,mp+30);
-          // 秘境过期关闭并安排下一次
-          r=api.spawnSecretRealm();s=api.getState();if(!s.world.secretRealm){s.world.nextSecretRealmDay=1;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());r=api.spawnSecretRealm();s=api.getState();}
-          s.world.secretRealm.closeDay=1;s.time.year=2;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());api.updateSecretRealm();s=api.getState();assert.equal(s.world.secretRealm,null);assert(s.world.nextSecretRealmDay>0);
-          // 旧档迁移
-          const old=JSON.parse(JSON.stringify(s));delete old.player.secretRealmClears;delete old.player.relicFragments;delete old.world.secretRealm;delete old.world.nextSecretRealmDay;delete old.world.secretRealmCount;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(old));assert(api.load());s=api.getState();assert.equal(s.player.secretRealmClears,0);assert.equal(s.player.relicFragments,0);assert('secretRealm' in s.world);assert(s.world.nextSecretRealmDay!=null);assert.equal(s.world.secretRealmCount,0);
-          console.log('V12_PRERELEASE_PASS');
+          const html=fs.readFileSync('/tmp/index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/pub-v12.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('公网秘境烟测');let r=api.spawnSecretRealm(),s=api.getState();assert.equal(s.version,'1.2.0');assert(r&&s.world.secretRealm);s.player.location=s.world.secretRealm.location;s.player.realmIndex=Math.max(4,s.world.secretRealm.threat);dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());api.secretRealmPrepare('careful');s=api.getState();assert.equal(s.world.secretRealm.stage,1);const g=api.secretRealmGuardian(s.world.secretRealm);api.onSecretRealmCombatWin(g);assert.equal(api.getState().world.secretRealm.stage,2);api.claimSecretRealmCore();s=api.getState();assert.equal(s.world.secretRealm.cleared,true);assert(s.player.relicFragments>0);api.renderSecretRealm();assert(dom.window.document.getElementById('secretRealmPanel'));console.log('PUBLIC_V12_PASS');
           JS
-          node v12-pre.mjs >> V12_PRE_DEBUG.txt 2>&1
-          echo 'gameplay-pass' > V12_PRE_STAGE.txt
-
+          node smoke.mjs >> V12_FINAL_DEBUG.txt 2>&1
+          echo smoke-pass > V12_FINAL_STAGE.txt
+      - name: Manifest and icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo manifest > V12_FINAL_STAGE.txt
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/manifest.json
+          curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png
+          curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png
+          python3 - <<'PY'
+          import json,hashlib
+          m=json.load(open('/tmp/manifest.json'));assert m['display']=='standalone' and m['short_name']=='太玄界';assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          assert hashlib.sha256(open('/tmp/icon512.png','rb').read()).hexdigest()=='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          assert hashlib.sha256(open('/tmp/icon192.png','rb').read()).hexdigest()=='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          PY
+          echo public-pass > V12_FINAL_STAGE.txt
       - name: Record PASS
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.2.0\",\"milestone\":\"secret-realm\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V12_PRE_STAGE.txt)\",\"checks\":[\"V0.2->V1.2 patch chain\",\"V1.2 syntax\",\"secret realm spawn/expiry\",\"forage anti-repeat\",\"guardian integration\",\"core reward\",\"relic decipher\",\"old save migration\"]}" > PUBLIC_V12_PRE_STATUS.json
-          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_V12_PRE_STATUS.json;git commit -m 'chore: record V1.2 prerelease PASS [skip ci]' || true;git push origin HEAD:gh-pages
-
+          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.2.0\",\"build\":\"1201\",\"milestone\":\"secret-realm\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V12_FINAL_STAGE.txt)\",\"checks\":[\"public V1.2 assets\",\"ten-patch runtime rebuild\",\"secret realm smoke\",\"core reward\",\"manifest\",\"V6 icon hash regression\",\"prerelease PASS\"]}" > PUBLIC_V12_STATUS.json
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_V12_STATUS.json;git commit -m 'chore: record V1.2 public PASS [skip ci]' || true;git push origin HEAD:gh-pages
       - name: Record FAIL
         if: failure()
         shell: bash
         run: |
-          stage=$(cat V12_PRE_STAGE.txt 2>/dev/null || echo unknown);debug=$(tail -c 6000 V12_PRE_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""');printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.2.0\",\"milestone\":\"secret-realm\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V12_PRE_STATUS.json;git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_V12_PRE_STATUS.json;git commit -m 'chore: record V1.2 prerelease FAIL [skip ci]' || true;git push origin HEAD:gh-pages || true
+          stage=$(cat V12_FINAL_STAGE.txt 2>/dev/null || echo unknown);debug=$(tail -c 6000 V12_FINAL_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""');printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.2.0\",\"build\":\"1201\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V12_STATUS.json;git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_V12_STATUS.json;git commit -m 'chore: record V1.2 public FAIL [skip ci]' || true;git push origin HEAD:gh-pages || true
