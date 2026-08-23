@@ -1,4 +1,4 @@
-mode=v07-public-verify
-patch=0701
-release=7552ec74323c99226049f382f001d773178455fa
-trigger=20260823-1240
+mode=v08-relations-prerelease
+patch=0801
+candidate=66bedf564d1cfb820a8658caaad83e867a15d1c4
+trigger=20260823-1244
