@@ -1,0 +1,6 @@
+V3.0 growth data foundation release
+validation_pr=28
+validated_head=b1cf28c985af2f6a9bf25bcacca1ed9c75f091e6
+source_sha256=5d2cf4cd48e9a485457546fbed222ed21b70a7258895dfde8965bffb08f9979d
+build=3001
+schema=27
