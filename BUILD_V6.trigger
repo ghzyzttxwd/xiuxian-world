@@ -1,4 +1,4 @@
 mode=v06-alchemy-prerelease
-patch=0601
-candidate=03277113af0511e4a3bcc111ff81276a49c1f347
-trigger=20260823-1225
+patch=0602
+candidate=575e19611594c6f86148514fe315974ef6b9f8a1
+trigger=20260823-1227
