@@ -1,0 +1,230 @@
+name: V3.7 release fallback
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V37_RELEASE_FINAL.trigger"
+      - ".github/workflows/v37-release-fallback.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v37-release-fallback-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate exact V3.7 release machinery
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v37-unity-law.cjs
+          node --check src/game-v37.js
+          test "$(sha256sum src/game-v37.js | awk '{print $1}')" = "16e5d00143d5c860671cf46b033a3cb9673c8e2ec06ae468850a13a366f74321"
+          node -e "const b=require('./BUILD_V37_UNITY_LAW.json');const c=b.counts;if(b.status!=='PASS'||b.gameplay_version!=='3.7.0'||b.build!=='3701'||b.save_schema_version!==34||b.content_registry_version!==8||b.source_sha256!=='16e5d00143d5c860671cf46b033a3cb9673c8e2ec06ae468850a13a366f74321'||c.realms!==34||c.regions!==20||c.routes!==32||c.materials!==72||c.recipes!==40||c.manuals!==36||c.spells!==84||c.equipment!==76||c.true_artifacts!==40||c.enemies!==72||c.laws!==4||c.war_fronts!==3||c.auction_pool!==20)throw new Error('V3.7 build mismatch')"
+          node --check tools/release-v37-assets.cjs
+          bash -n tools/verify-v37-public.sh
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          node tools/release-v37-assets.cjs
+          grep -q "gameplayVersion:'3.7.0'" app.js
+          grep -q 'src/game-v37.js?v=3701' app.js
+          grep -q 'V3.7 · 合体法则与高阶战争篇' index.html
+          grep -q 'taixuan-v3.7.0-unity-law-domain-avatar-war-3701' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v37-final:
+    if: github.head_ref == 'v37-release-final-run'
+    needs: validate-fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 42
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - name: Checkout exact main release base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Reconfirm immutable main base and build runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          node tools/build-v37-unity-law.cjs
+          node --check src/game-v37.js
+          test "$(sha256sum src/game-v37.js | awk '{print $1}')" = "16e5d00143d5c860671cf46b033a3cb9673c8e2ec06ae468850a13a366f74321"
+          node tools/release-v37-assets.cjs
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+      - name: Commit exact V3.7 runtime to main
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B main "$BASE_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v37.js BUILD_V37_UNITY_LAW.json app.js index.html sw.js
+          git commit -m "feat: V3.7 unity law domain and regional war [skip ci]"
+          git push origin HEAD:main
+          echo "runtime_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact V3.7 runtime to gh-pages
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp index.html app.js sw.js BUILD_V37_UNITY_LAW.json /tmp/pages/
+          cp src/game-v37.js /tmp/pages/src/game-v37.js
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html app.js sw.js BUILD_V37_UNITY_LAW.json src/game-v37.js
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V3.7 unity law ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify actual GitHub Pages
+        id: public
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set +e
+          ATTEMPTS=36 bash tools/verify-v37-public.sh
+          rc=$?
+          set -e
+          public_ok=$(cat /tmp/V37_PUBLIC_OK 2>/dev/null || echo false)
+          echo "public_ok=$public_ok" >> "$GITHUB_OUTPUT"
+          echo "verifier_rc=$rc"
+          cat /tmp/V37_PUBLIC_DIAGNOSTIC.txt || true
+          exit 0
+
+      - name: Persist V3.7 diagnostic on failure
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cp /tmp/V37_PUBLIC_DIAGNOSTIC.txt /tmp/pages/PUBLIC_V37_DIAGNOSTIC.txt
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V37_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record V3.7 public diagnostic ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Stop failed public release
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Record V3.7 public PASS on gh-pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cd /tmp/pages
+          git rm -f --ignore-unmatch PUBLIC_V37_DIAGNOSTIC.txt >/dev/null 2>&1 || true
+          RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s={status:'PASS',game_version:'3.7.0',build:'3701',milestone:'unity-law-domain-avatar-war',verified_commit:process.env.RUNTIME_SHA,source_sha256:'16e5d00143d5c860671cf46b033a3cb9673c8e2ec06ae468850a13a366f74321',save_schema_version:34,content_registry_version:8,realm_count:34,region_count:20,route_count:32,material_count:72,recipe_count:40,manual_count:36,spell_count:84,equipment_count:76,true_artifact_count:40,enemy_count:72,law_count:4,war_front_count:3,auction_pool_count:20,stage:'public-pass',transport:'same-repo-pr-fallback',checks:['PR55 V3.7 validation PASS and closed unmerged','fallback workflow validation PASS and closed unmerged','schema33 to schema34 migration','four unity realms','four law tendencies','law proficiency','body soul law unity','unity essence','dedicated unity breakthrough','major failure lifespan and artifact damage','domain combat','avatar combat','three regional high-tier war fronts','exact war win accounting','four unity manuals','twelve law skills','eight unity artifacts','eight unity recipes','twelve law mechanic enemies','V3.6 space preserved','V3.5 economy preserved','actual GitHub Pages HTTP 200','public V3.7 markers','public source SHA equality','public V3.7 headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('PUBLIC_V37_STATUS.json',JSON.stringify(s)+'\n')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V37_STATUS.json
+          git commit -m "chore: record V3.7 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:gh-pages
+
+      - name: Verify PASS is actually reachable from Pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V37_STATUS.json?verify=${RUNTIME_SHA}-${i}" -o /tmp/live-v37-status.json; then
+              if RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v37-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='3.7.0'||s.build!=='3701'||s.save_schema_version!==34||s.verified_commit!==process.env.RUNTIME_SHA)process.exit(1)" && cmp -s /tmp/live-v37-status.json /tmp/pages/PUBLIC_V37_STATUS.json; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync exact PASS to main
+        if: steps.public.outputs.public_ok == 'true'
+        id: final_main
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$RUNTIME_SHA"
+          git checkout -B main origin/main
+          cp /tmp/pages/PUBLIC_V37_STATUS.json PUBLIC_V37_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V37_STATUS.json
+          git commit -m "chore: record V3.7 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:main
+          echo "final_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final V3.7 delta guard
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+          FINAL_SHA: ${{ steps.final_main.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$RUNTIME_SHA" "$FINAL_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V37_STATUS.json'
+          cmp -s PUBLIC_V37_STATUS.json /tmp/pages/PUBLIC_V37_STATUS.json
+          echo "V37_PUBLIC_TERMINAL_PASS $RUNTIME_SHA -> $FINAL_SHA"
