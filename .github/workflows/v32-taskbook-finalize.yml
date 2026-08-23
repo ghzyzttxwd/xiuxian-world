@@ -1,0 +1,54 @@
+name: V3.2 taskbook finalize
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V32_TASKBOOK_FINALIZE.trigger"
+      - "tools/finalize-v32-taskbook.py"
+      - ".github/workflows/v32-taskbook-finalize.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-taskbook:
+    if: github.head_ref == 'v32-taskbook-finalize'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Produce exact V3.2 taskbook update
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/finalize-v32-taskbook.py
+          sed -i -E '/最近重大修订：|当前正式基线：/ s/[[:space:]]+$//' docs/PROJECT_TASKBOOK.md
+          grep -q '当前正式基线：V3.2.0 · 法宝炼器体系 · build 3201 · save schema 29' docs/PROJECT_TASKBOOK.md
+          grep -q 'V3.2 法宝 / 炼器 | DONE' docs/PROJECT_TASKBOOK.md
+          grep -q 'V3.3 炼丹 / 材料 | TODO / CURRENT' docs/PROJECT_TASKBOOK.md
+          grep -q '\[x\] 装备 / 法宝 ≥ 60' docs/PROJECT_TASKBOOK.md
+          grep -q '\[x\] 真正法宝 ≥ 24' docs/PROJECT_TASKBOOK.md
+          grep -q '21 件拥有独立主动能力' docs/PROJECT_TASKBOOK.md
+          cp docs/PROJECT_TASKBOOK.md /tmp/PROJECT_TASKBOOK.md
+      - name: Commit only taskbook to immutable main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          git checkout -B main origin/main
+          cp /tmp/PROJECT_TASKBOOK.md docs/PROJECT_TASKBOOK.md
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_TASKBOOK.md
+          mapfile -t changed < <(git diff --cached --name-only)
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'docs/PROJECT_TASKBOOK.md'
+          git commit -m 'docs: mark V3.2 artifact forging complete [skip ci]'
+          git push origin HEAD:main
