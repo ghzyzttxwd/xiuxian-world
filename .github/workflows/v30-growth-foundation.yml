@@ -1,0 +1,261 @@
+name: V3.0 growth foundation
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V30_GROWTH_FOUNDATION.trigger"
+      - "tools/build-v30-growth-foundation.cjs"
+      - "tools/v30-growth-foundation-block.txt"
+      - "tools/release-v30-assets.cjs"
+      - "tools/verify-v30-public.sh"
+      - "tests/regression-v30.mjs"
+      - ".github/workflows/v30-growth-foundation.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "V30_GROWTH_FOUNDATION.trigger"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v30-growth-foundation-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v30:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify V2.9 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const b=require('./BUILD_V29_PAST_LIFE_BONDS.json');if(b.status!=='PASS'||b.gameplay_version!=='2.9.0'||b.build!=='2901'||b.source_sha256!=='b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99'||b.save_schema_version!==26)throw new Error('V2.9 baseline mismatch')"
+          test "$(sha256sum src/game-v29.js | awk '{print $1}')" = "b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99"
+          test "$(node -e "const s=require('./PUBLIC_V29_STATUS.json');process.stdout.write(s.status+' '+s.game_version+' '+s.build)")" = "PASS 2.9.0 2901"
+
+      - name: Build deterministic V3.0 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v30-growth-foundation.cjs
+          node --check src/game-v30.js
+          first=$(sha256sum src/game-v30.js | awk '{print $1}')
+          node tools/build-v30-growth-foundation.cjs >/tmp/v30-build-second.log
+          second=$(sha256sum src/game-v30.js | awk '{print $1}')
+          test "$first" = "$second"
+          test "$first" = "5d2cf4cd48e9a485457546fbed222ed21b70a7258895dfde8965bffb08f9979d"
+          node -e "const b=require('./BUILD_V30_GROWTH_FOUNDATION.json');if(b.status!=='PASS'||b.gameplay_version!=='3.0.0'||b.build!=='3001'||b.milestone!=='growth-data-foundation'||b.save_schema_version!==27||b.content_registry_version!==1)throw new Error('V3.0 build report mismatch')"
+          test "$(node -e "const b=require('./BUILD_V30_GROWTH_FOUNDATION.json');process.stdout.write(b.source_sha256)")" = "$first"
+          grep -q "const VERSION='3.0.0'" src/game-v30.js
+          grep -q 'const SAVE_SCHEMA_VERSION=27' src/game-v30.js
+          grep -q 'CONTENT_STATE_VERSION=1' src/game-v30.js
+          grep -q 'dropTableRegistry' src/game-v30.js
+          grep -q 'artifactPassiveEffects' src/game-v30.js
+
+      - name: Run V2.9 and V3.0 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+
+      - name: Validate V3.0 release shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/release-v30-assets.cjs
+          bash -n tools/verify-v30-public.sh
+          node tools/release-v30-assets.cjs
+          grep -q "gameplayVersion:'3.0.0'" app.js
+          grep -q 'src/game-v30.js?v=3001' app.js
+          grep -q 'V3.0 · 成长数据底座' index.html
+          grep -q 'app.js?v=3001' index.html
+          grep -q 'taixuan-v3.0.0-growth-data-foundation-3001' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+
+      - name: V6 frozen icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v30:
+    if: github.event_name == 'push'
+    needs: validate-v30
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - name: Checkout exact main trigger
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Build and re-run exact release regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v30-growth-foundation.cjs
+          node tools/release-v30-assets.cjs
+          test "$(sha256sum src/game-v30.js | awk '{print $1}')" = "5d2cf4cd48e9a485457546fbed222ed21b70a7258895dfde8965bffb08f9979d"
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node --check src/game-v30.js
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+      - name: Commit exact V3.0 runtime to main
+        id: runtime
+        shell: bash
+        env:
+          TRIGGER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$TRIGGER_SHA"
+          git checkout -B main origin/main
+          node tools/build-v30-growth-foundation.cjs
+          node tools/release-v30-assets.cjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v30.js BUILD_V30_GROWTH_FOUNDATION.json app.js index.html sw.js
+          git commit -m "feat: V3.0 growth data foundation [skip ci]"
+          git push origin HEAD:main
+          echo "runtime_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact runtime to gh-pages
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp index.html app.js sw.js BUILD_V30_GROWTH_FOUNDATION.json /tmp/pages/
+          cp src/game-v30.js /tmp/pages/src/game-v30.js
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html app.js sw.js BUILD_V30_GROWTH_FOUNDATION.json src/game-v30.js
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V3.0 growth foundation ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify actual GitHub Pages
+        id: public
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set +e
+          ATTEMPTS=36 bash tools/verify-v30-public.sh
+          rc=$?
+          set -e
+          public_ok=$(cat /tmp/V30_PUBLIC_OK 2>/dev/null || echo false)
+          echo "public_ok=$public_ok" >> "$GITHUB_OUTPUT"
+          echo "verifier_rc=$rc"
+          cat /tmp/V30_PUBLIC_DIAGNOSTIC.txt || true
+          exit 0
+
+      - name: Persist V3.0 diagnostic on failure
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cp /tmp/V30_PUBLIC_DIAGNOSTIC.txt /tmp/pages/PUBLIC_V30_DIAGNOSTIC.txt
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V30_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record V3.0 public diagnostic ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Stop failed public release
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Record V3.0 public PASS on gh-pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cd /tmp/pages
+          git rm -f --ignore-unmatch PUBLIC_V30_DIAGNOSTIC.txt >/dev/null 2>&1 || true
+          RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s={status:'PASS',game_version:'3.0.0',build:'3001',milestone:'growth-data-foundation',verified_commit:process.env.RUNTIME_SHA,source_sha256:'5d2cf4cd48e9a485457546fbed222ed21b70a7258895dfde8965bffb08f9979d',save_schema_version:27,content_registry_version:1,stage:'public-pass',checks:['PR validation closed unmerged','schema26 to schema27 migration','stable IDs and unified registries','cooldown and status foundation','artifact active/passive interface','actual GitHub Pages HTTP 200','public V3.0 markers','public source SHA equality','public V3.0 headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('PUBLIC_V30_STATUS.json',JSON.stringify(s)+'\n')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V30_STATUS.json
+          git commit -m "chore: record V3.0 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:gh-pages
+
+      - name: Verify PASS is actually public
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V30_STATUS.json?verify=${RUNTIME_SHA}-${i}" -o /tmp/live-v30-status.json; then
+              if RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v30-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='3.0.0'||s.build!=='3001'||s.save_schema_version!==27||s.verified_commit!==process.env.RUNTIME_SHA)process.exit(1)" && cmp -s /tmp/live-v30-status.json /tmp/pages/PUBLIC_V30_STATUS.json; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync exact PASS to main
+        if: steps.public.outputs.public_ok == 'true'
+        id: final_main
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$RUNTIME_SHA"
+          git checkout -B main origin/main
+          cp /tmp/pages/PUBLIC_V30_STATUS.json PUBLIC_V30_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V30_STATUS.json
+          git commit -m "chore: record V3.0 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:main
+          echo "final_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final V3.0 delta guard
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+          FINAL_SHA: ${{ steps.final_main.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$RUNTIME_SHA" "$FINAL_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V30_STATUS.json'
+          cmp -s PUBLIC_V30_STATUS.json /tmp/pages/PUBLIC_V30_STATUS.json
+          echo "V30_PUBLIC_TERMINAL_PASS $RUNTIME_SHA -> $FINAL_SHA"
