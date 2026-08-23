@@ -1,1 +1,2 @@
 Trigger Pages deployment after repository visibility change.
+V6 master prepared.
