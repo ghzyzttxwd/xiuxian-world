@@ -1,0 +1,62 @@
+name: V3.8 taskbook finalize
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V38_TASKBOOK_FINALIZE.trigger"
+      - "tools/finalize-v38-taskbook.cjs"
+      - ".github/workflows/v38-taskbook-finalize.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-v38-taskbook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact V3.8 terminal baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "6d1a15f19ac10aef8ee7e29711a83f47d6b8906e"
+          test "$(git show ${BASE_SHA}:src/game-v38.js | sha256sum | awk '{print $1}')" = "76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda"
+          git show ${BASE_SHA}:PUBLIC_V38_STATUS.json >/tmp/v38-status.json
+          node -e "const s=require('/tmp/v38-status.json');if(s.status!=='PASS'||s.game_version!=='3.8.0'||s.build!=='3801'||s.save_schema_version!==35||s.content_registry_version!==9||s.verified_commit!=='57c75940c609840841af71f6415392cbe4615b41'||s.source_sha256!=='76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda')throw new Error('V3.8 terminal baseline mismatch')"
+      - name: Generate and validate taskbook
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/finalize-v38-taskbook.cjs
+          grep -q '当前正式基线：V3.8.0 · 大乘本源与人界大势篇 · build 3801 · save schema 35' docs/PROJECT_TASKBOOK.md
+          grep -q '| V3.8 大乘篇 | DONE |' docs/PROJECT_TASKBOOK.md
+          grep -q '| V3.9 渡劫 / 飞升真仙 | TODO / CURRENT |' docs/PROJECT_TASKBOOK.md
+          grep -q '\- \[x\] 大乘完整' docs/PROJECT_TASKBOOK.md
+          grep -q '正式 runtime commit：`57c75940c609840841af71f6415392cbe4615b41`' docs/PROJECT_TASKBOOK.md
+          grep -q 'PUBLIC_V38_STATUS.json = PASS' docs/PROJECT_TASKBOOK.md
+          grep -q '下一阶段：V3.9 渡劫、飞升与真仙终局' docs/PROJECT_TASKBOOK.md
+          cp docs/PROJECT_TASKBOOK.md /tmp/PROJECT_TASKBOOK_V38.md
+      - name: Commit only finalized taskbook to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          git reset --hard
+          git checkout -B main "$BASE_SHA"
+          cp /tmp/PROJECT_TASKBOOK_V38.md docs/PROJECT_TASKBOOK.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_TASKBOOK.md
+          mapfile -t changed < <(git diff --cached --name-only)
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'docs/PROJECT_TASKBOOK.md'
+          git diff --cached --check
+          git commit -m "docs: mark V3.8 mahayana complete [skip ci]"
+          git push origin HEAD:main
