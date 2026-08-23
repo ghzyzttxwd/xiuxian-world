@@ -1,4 +1,4 @@
-name: Verify V1.3 faction war prerelease
+name: Verify V1.3 public faction war
 
 on:
   push:
@@ -10,57 +10,93 @@ permissions:
   contents: write
 
 jobs:
-  verify-v13-pre:
+  verify-v13:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: gh-pages
           fetch-depth: 0
-      - name: Build V1.3 candidate
+      - name: Repository checks
         shell: bash
         run: |
           set -euo pipefail
-          echo build > V13_PRE_STAGE.txt
-          : > V13_PRE_DEBUG.txt
-          node --check v13-patch.js
-          cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
-          cat > /tmp/build-v13.cjs <<'JS'
+          echo repo > V13_FINAL_STAGE.txt
+          : > V13_FINAL_DEBUG.txt
+          node --check app.js
+          for v in 03 04 05 06 07 08 09 10 11 12 13; do node --check "v${v}-patch.js"; done
+          grep -q 'app.js?v=1301' index.html
+          grep -q 'v13-patch.js?v=1301' app.js
+          grep -q 'taixuan-v1.3.0-faction-war-patch1301' sw.js
+          grep -q '"status":"PASS"' PUBLIC_V13_PRE_STATUS.json
+          echo repo-pass > V13_FINAL_STAGE.txt
+      - name: Wait for public assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo public-assets > V13_FINAL_STAGE.txt
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          ready=0
+          for i in $(seq 1 60); do
+            curl -fsSL "${BASE}index.html?verify=${GITHUB_SHA}" -o /tmp/index.html || true
+            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/app.js || true
+            curl -fsSL "${BASE}v13-patch.js?verify=${GITHUB_SHA}" -o /tmp/v13.js || true
+            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/sw.js || true
+            if grep -q 'V1.3' /tmp/index.html 2>/dev/null && grep -q 'app.js?v=1301' /tmp/index.html 2>/dev/null && grep -q 'v13-patch.js?v=1301' /tmp/app.js 2>/dev/null && grep -q 'updateFactionConflict' /tmp/v13.js 2>/dev/null && grep -q 'taixuan-v1.3.0-faction-war-patch1301' /tmp/sw.js 2>/dev/null; then ready=1;break;fi
+            sleep 5
+          done
+          test "$ready" -eq 1
+          echo public-assets-pass > V13_FINAL_STAGE.txt
+      - name: Rebuild runtime and smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo runtime > V13_FINAL_STAGE.txt
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          for v in 03 04 05 06 07 08 09 10 11 12 13; do curl -fsSL "${BASE}v${v}-patch.js?verify=${GITHUB_SHA}" -o "/tmp/v${v}.js"; done
+          rm -f /tmp/pub.b64
+          for i in $(seq -w 1 24); do curl -fsSL "${BASE}bundle2/c${i}.b64?verify=${GITHUB_SHA}" >> /tmp/pub.b64; done
+          tr -d '\n\r' < /tmp/pub.b64 | base64 -d > /tmp/pub-v02.js
+          cat > /tmp/build.cjs <<'JS'
           const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
-          for(const v of ['03','04','05','06','07','08','09','10','11','12','13'])vm.runInContext(fs.readFileSync(`v${v}-patch.js`,'utf8'),ctx);
-          let src=fs.readFileSync('/tmp/v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10','11','12','13'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
-          for(const s of ["const VERSION='1.3.0'",'updateFactionConflict','joinFactionWar','onFactionWarCombatWin','resolveFactionWar','renderFactionConflict'])assert(src.includes(s),s);
-          const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,updateFactionConflict,factionWar,joinFactionWar,onFactionWarCombatWin,resolveFactionWar,renderFactionConflict};\nboot();");fs.writeFileSync('/tmp/v13.js',src);
+          for(const v of ['03','04','05','06','07','08','09','10','11','12','13'])vm.runInContext(fs.readFileSync(`/tmp/v${v}.js`,'utf8'),ctx);
+          let src=fs.readFileSync('/tmp/pub-v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10','11','12','13'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
+          for(const s of ["const VERSION='1.3.0'",'updateFactionConflict','joinFactionWar','resolveFactionWar','renderFactionConflict'])assert(src.includes(s),s);
+          const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,updateFactionConflict,factionWar,joinFactionWar,onFactionWarCombatWin,resolveFactionWar,renderFactionConflict};\nboot();");fs.writeFileSync('/tmp/pub-v13.js',src);
           JS
-          node /tmp/build-v13.cjs >> V13_PRE_DEBUG.txt 2>&1
-          node --check /tmp/v13.js >> V13_PRE_DEBUG.txt 2>&1
-          echo build-pass > V13_PRE_STAGE.txt
-      - name: Gameplay regression
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo gameplay > V13_PRE_STAGE.txt
+          node /tmp/build.cjs
+          node --check /tmp/pub-v13.js
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          cat > v13-pre.mjs <<'JS'
+          cat > smoke.mjs <<'JS'
           import fs from 'fs';import assert from 'assert';import {JSDOM} from 'jsdom';
-          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/v13.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('V13大战验收');let s=api.getState();assert.equal(s.version,'1.3.0');assert.equal(s.world.factionTension,24);assert.equal(s.world.factionClashes,0);
-          s.world.factionTension=80;s.time.day=7;s.world.lastFactionDay=0;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());api.updateFactionConflict();s=api.getState();assert(s.major.factionWar);assert.equal(s.major.factionWar.status,'announced');const start=s.major.factionWar.start;
-          s.time.day=start;s.player.location='临江城';s.player.sect='青云宗';s.player.sectRank='外门弟子';dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());api.updateFactionConflict();s=api.getState();assert.equal(s.major.factionWar.status,'active');api.joinFactionWar('blood');s=api.getState();assert(!s.flags.factionWarSide,'qingyun member defected to blood blade');
-          s.flags.factionWarSide='qingyun';dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());api.onFactionWarCombatWin({warEnemy:true});s=api.getState();assert.equal(s.major.factionWar.contribution,1);assert.equal(s.major.factionWar.qingyunAid,1);assert.equal(s.major.factionWar.participated,true);
-          s.world.qingyunPower=120;s.world.bloodBladePower=12;s.major.factionWar.qingyunAid=10;s.major.factionWar.bloodAid=0;const stones=s.player.spiritStones,contrib=s.player.sectContribution,cas=s.world.casualties;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());api.resolveFactionWar();s=api.getState();assert.equal(s.major.factionWar.status,'ended');assert.equal(s.major.factionWar.winner,'青云宗');assert.equal(s.world.factionClashes,1);assert.equal(s.world.warWinsQingyun,1);assert(s.world.casualties>cas);assert(s.player.spiritStones>stones);assert(s.player.sectContribution>contrib);assert(s.world.factionTension>=20&&s.world.factionTension<=34);
-          const old=JSON.parse(JSON.stringify(s));delete old.world.factionTension;delete old.world.factionClashes;delete old.world.lastFactionDay;delete old.world.warWinsQingyun;delete old.world.warWinsBlood;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(old));assert(api.load());s=api.getState();assert.equal(s.world.factionTension,24);assert.equal(s.world.factionClashes,0);assert.equal(s.world.warWinsQingyun,0);assert.equal(s.world.warWinsBlood,0);console.log('V13_PRERELEASE_PASS');
+          const html=fs.readFileSync('/tmp/index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/pub-v13.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('公网大战烟测');let s=api.getState();s.world.factionTension=80;s.time.day=7;s.world.lastFactionDay=0;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());api.updateFactionConflict();s=api.getState();assert(s.major.factionWar);s.time.day=s.major.factionWar.start;s.player.location='临江城';dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(s));assert(api.load());api.updateFactionConflict();s=api.getState();assert.equal(s.major.factionWar.status,'active');api.renderFactionConflict();assert(dom.window.document.getElementById('factionWarPanel'));console.log('PUBLIC_V13_PASS');
           JS
-          node v13-pre.mjs >> V13_PRE_DEBUG.txt 2>&1
-          echo gameplay-pass > V13_PRE_STAGE.txt
+          node smoke.mjs >> V13_FINAL_DEBUG.txt 2>&1
+          echo smoke-pass > V13_FINAL_STAGE.txt
+      - name: Manifest and icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/manifest.json
+          curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png
+          curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png
+          python3 - <<'PY'
+          import json,hashlib
+          m=json.load(open('/tmp/manifest.json'));assert m['display']=='standalone' and m['short_name']=='太玄界'
+          assert hashlib.sha256(open('/tmp/icon512.png','rb').read()).hexdigest()=='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          assert hashlib.sha256(open('/tmp/icon192.png','rb').read()).hexdigest()=='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          PY
+          echo public-pass > V13_FINAL_STAGE.txt
       - name: Record PASS
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.3.0\",\"milestone\":\"faction-war\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V13_PRE_STAGE.txt)\",\"checks\":[\"V0.2->V1.3 patch chain\",\"V1.3 syntax\",\"tension triggers war\",\"qingyun defection blocked\",\"battle contribution\",\"war resolution changes powers/casualties/market\",\"winner reward\",\"old save migration\"]}" > PUBLIC_V13_PRE_STATUS.json
-          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_V13_PRE_STATUS.json;git commit -m 'chore: record V1.3 prerelease PASS [skip ci]' || true;git push origin HEAD:gh-pages
+          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.3.0\",\"build\":\"1301\",\"milestone\":\"faction-war\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V13_FINAL_STAGE.txt)\",\"checks\":[\"public V1.3 assets\",\"eleven-patch runtime rebuild\",\"faction war smoke\",\"manifest\",\"V6 icon hash regression\",\"prerelease PASS\"]}" > PUBLIC_V13_STATUS.json
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_V13_STATUS.json;git commit -m 'chore: record V1.3 public PASS [skip ci]' || true;git push origin HEAD:gh-pages
       - name: Record FAIL
         if: failure()
         shell: bash
         run: |
-          stage=$(cat V13_PRE_STAGE.txt 2>/dev/null || echo unknown);debug=$(tail -c 6000 V13_PRE_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""');printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.3.0\",\"milestone\":\"faction-war\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V13_PRE_STATUS.json;git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_V13_PRE_STATUS.json;git commit -m 'chore: record V1.3 prerelease FAIL [skip ci]' || true;git push origin HEAD:gh-pages || true
+          stage=$(cat V13_FINAL_STAGE.txt 2>/dev/null || echo unknown);debug=$(tail -c 6000 V13_FINAL_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""');printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.3.0\",\"build\":\"1301\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V13_STATUS.json;git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_V13_STATUS.json;git commit -m 'chore: record V1.3 public FAIL [skip ci]' || true;git push origin HEAD:gh-pages || true
