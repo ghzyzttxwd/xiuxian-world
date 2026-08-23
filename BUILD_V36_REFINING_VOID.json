@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "gameplay_version": "3.6.0",
+  "build": "3601",
+  "milestone": "refining-void-space",
+  "source": "src/game-v36.js",
+  "source_sha256": "9935e93df2418bd1ccfa1f87f3d9123312ce702ba3660e19b50d1938da24b39d",
+  "source_bytes": 510770,
+  "save_schema_version": 33,
+  "content_registry_version": 7,
+  "counts": {
+    "realms": 30,
+    "regions": 16,
+    "routes": 26,
+    "materials": 60,
+    "recipes": 32,
+    "manuals": 32,
+    "spells": 72,
+    "equipment": 68,
+    "true_artifacts": 32,
+    "enemies": 60,
+    "auction_pool": 16
+  },
+  "checks": [
+    "four refining realms",
+    "space insight",
+    "high-region travel gates",
+    "twelve space materials",
+    "refining void essence",
+    "major refining breakthrough",
+    "void backlash failure",
+    "four refining manuals",
+    "twelve space skills",
+    "eight refining artifacts with named material costs",
+    "eight refining recipes",
+    "twelve high-tier enemies",
+    "space shift lock phase and rend combat",
+    "schema32 to schema33 migration",
+    "V3.5 economy preserved",
+    "future schema34 protection"
+  ]
+}

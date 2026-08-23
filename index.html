@@ -11,16 +11,16 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css" />
-  <title>太玄界 · 修仙大世界 V3.5</title>
+  <title>太玄界 · 修仙大世界 V3.6</title>
 </head>
 <body>
 <div id="startScreen" class="start">
   <section class="panel start-box">
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V3.5</p>
+    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V3.6</p>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions"><button id="newGameBtn" class="primary">穿越此界</button><button id="continueBtn" class="hidden">继续上次存档</button><button id="installStartBtn" class="ghost">安装应用</button></div>
-    <div id="installStatus" class="install-note"></div><div class="version">V3.5 · 正常经济与世界整合</div>
+    <div id="installStatus" class="install-note"></div><div class="version">V3.6 · 炼虚与空间篇</div>
   </section>
 </div>
 <div id="gameApp" class="app hidden">
@@ -28,7 +28,7 @@
   <section id="page-home" class="page active">
     <div class="hero-card"><div class="hero-row"><div><div class="hero-name" id="heroName">陆尘</div><div class="hero-sub" id="heroSub"></div></div><div class="realm-box"><b id="realmName">凡人</b><span id="cultivationText"></span></div></div><div class="bar"><i id="cultivationBar"></i></div><div class="quick-stats"><div class="quick-stat"><b id="spiritStoneQuick">0</b><span>灵石</span></div><div class="quick-stat"><b id="herbQuick">0</b><span>灵草</span></div><div class="quick-stat"><b id="hpQuick">0</b><span>气血</span></div><div class="quick-stat"><b id="repQuick">0</b><span>声望</span></div><div class="quick-stat"><b id="diligenceQuick">0</b><span>历练</span></div><div class="quick-stat"><b id="insightQuick">0</b><span>悟道点</span></div></div></div>
     <div id="urgentBox"></div><div id="breakthroughBox"></div><div id="legacyBox"></div>
-    <section class="panel"><h2>今日可做</h2><p class="section-tip">V3.5 把原本彼此孤立的资源系统接成无充值经济闭环：临江坊市、青云秘库、黑风暗市与苍梧拍卖场使用稳定 shopId 和独立货源/币种/库存；命名材料与丹药进入真实交易，宗门战争会制造商路短缺或缓和，NPC 会求具体材料，秘境核心会带出区域特产并补全未知丹方，高阶资源保持野外与交易多来源但仍受库存和价格约束。</p><div class="actions-grid"><button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button><button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button><button class="action-btn" data-action="work"><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></button><button class="action-btn" data-action="explore"><b>附近逛一逛</b><small>1日 · 随机事件、战斗或发现</small></button><button class="action-btn" data-action="rumor"><b>打听消息</b><small>1日 · 更容易获知天下大事</small></button><button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button></div></section>
+    <section class="panel"><h2>今日可做</h2><p class="section-tip">V3.6 正式打开化神之后的人界高阶篇章：新增炼虚初期、中期、后期与圆满，不再靠单纯堆经验推进；玩家必须进入天渊城、空冥裂谷、虚空裂隙与上古断界台，积累空间感悟并凝炼炼虚真髓。四大道途获得空间挪移、禁锁、虚化与裂界攻伐，炼虚突破失败会遭受更重虚空反噬、寿元损失与根基重创，同时新增炼虚功法、神通、古宝、丹药、空间材料与高阶机制敌人。</p><div class="actions-grid"><button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button><button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button><button class="action-btn" data-action="work"><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></button><button class="action-btn" data-action="explore"><b>附近逛一逛</b><small>1日 · 随机事件、战斗或发现</small></button><button class="action-btn" data-action="rumor"><b>打听消息</b><small>1日 · 更容易获知天下大事</small></button><button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button></div></section>
     <section class="panel"><h2>最近经历</h2><div id="homeLog" class="log-list"></div></section>
   </section>
   <section id="page-character" class="page">
@@ -47,6 +47,6 @@
   <nav class="bottom-nav"><button class="nav-btn active" data-page="home"><b>☯</b>修炼</button><button class="nav-btn" data-page="character"><b>人</b>角色</button><button class="nav-btn" data-page="map"><b>图</b>地图</button><button class="nav-btn" data-page="events"><b>令</b>大事 <span id="navBadge" class="badge hidden">0</span></button><button class="nav-btn" data-page="relations"><b>缘</b>关系</button></nav>
 </div>
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
-<script src="./app.js?v=3501"></script>
+<script src="./app.js?v=3601"></script>
 </body>
 </html>
