@@ -1,0 +1,132 @@
+name: Verify V0.3 public combat
+
+on:
+  push:
+    branches: ["gh-pages"]
+    paths:
+      - ".github/workflows/verify-v03.yml"
+      - "app.js"
+      - "v03-patch.js"
+      - "sw.js"
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Rebuild patched runtime and syntax-check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check v03-patch.js
+          cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
+          cat > /tmp/apply-patch.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),assert=require('assert');
+          const ctx={window:{}};vm.createContext(ctx);
+          vm.runInContext(fs.readFileSync('v03-patch.js','utf8'),ctx);
+          assert.equal(typeof ctx.window.__TAIXUAN_PATCH_V03__,'function');
+          const base=fs.readFileSync('/tmp/v02.js','utf8');
+          const out=ctx.window.__TAIXUAN_PATCH_V03__(base);
+          fs.writeFileSync('/tmp/v03.js',out);
+          for(const s of ["const VERSION='0.3.0'","battleWins","battleLosses","injuryLabel","deathRisk","黑风岭狼王","data-combat=\"wind\""]) assert(out.includes(s),`missing ${s}`);
+          console.log('PATCH_PASS',base.length,out.length);
+          JS
+          node /tmp/apply-patch.cjs
+          node --check /tmp/v03.js
+
+      - name: Headless gameplay regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          cat > /tmp/test-v03.mjs <<'JS'
+          import fs from 'fs';
+          import assert from 'assert';
+          import {JSDOM} from 'jsdom';
+          const html=fs.readFileSync('index.html','utf8').replace(/<script src="\.\/app\.js"><\/script>/,'');
+          const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});
+          dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
+          Object.defineProperty(dom.window.navigator,'serviceWorker',{value:undefined,configurable:true});
+          dom.window.console=console;
+          dom.window.eval(fs.readFileSync('/tmp/v03.js','utf8'));
+          const api=dom.window.__TAIXUAN_TEST__;
+          assert(api,'test API missing');
+          api.newGame('回归测试者');
+          let s=api.getState();
+          assert.equal(s.version,'0.3.0');
+          assert.equal(s.player.injury,0);
+          assert.equal(s.player.battleWins,0);
+          api.startCombat('灰背野狼');
+          for(let i=0;i<30&&api.getCombat();i++)api.combatAction('attack');
+          s=api.getState();
+          assert(s.player.battleWins>=1,'weak enemy did not produce a win');
+          assert(s.player.kills>=1,'kill stat missing');
+          api.startCombat('黑风岭狼王');
+          for(let i=0;i<30&&api.getCombat();i++)api.combatAction('attack');
+          s=api.getState();
+          assert(s.flags.dead||s.player.battleLosses>=1,'wolf king produced neither defeat nor death');
+          if(!s.flags.dead){
+            assert(s.player.injury>=1,'defeat did not create injury');
+            const before=s.player.injury;api.action('rest');s=api.getState();assert(s.player.injury===before-1,'rest did not heal one injury level');
+          }
+          console.log('GAMEPLAY_PASS',JSON.stringify({wins:s.player.battleWins,losses:s.player.battleLosses,injury:s.player.injury,dead:!!s.flags.dead}));
+          JS
+          node /tmp/test-v03.mjs
+
+      - name: Verify public Pages deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}v03-patch.js?verify=${GITHUB_SHA}" -o /tmp/public-patch.js || ok=0
+            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png || ok=0
+            if [ "$ok" -eq 1 ] && grep -q '__TAIXUAN_PATCH_V03__' /tmp/public-app.js && grep -q '黑风岭狼王' /tmp/public-patch.js && grep -q 'taixuan-v0.3.0-combat-patch0301' /tmp/public-sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then
+              break
+            fi
+            test "$i" -lt 60 || exit 1
+            sleep 5
+          done
+          node --check /tmp/public-app.js
+          node --check /tmp/public-patch.js
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/public-manifest.json'))
+          assert m['display']=='standalone'
+          assert m['short_name']=='太玄界'
+          assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          PY
+
+      - name: Record PASS
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > PUBLIC_V03_STATUS.json <<EOF
+          {
+            "status":"PASS",
+            "game_version":"0.3.0",
+            "milestone":"combat-loop",
+            "verified_commit":"${GITHUB_SHA}",
+            "checks":["patch applied to real V0.2 runtime","patched runtime syntax","headless weak-enemy win","wolf-king defeat/death","injury healing","public app loader","public V0.3 patch","public service worker","manifest standalone","V6 icon hash regression"]
+          }
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V03_STATUS.json
+          git commit -m 'chore: record V0.3 public verification [skip ci]'
+          git push origin HEAD:gh-pages
