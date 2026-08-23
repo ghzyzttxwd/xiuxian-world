@@ -1,4 +1,4 @@
-mode=v09-breakthrough-prerelease
+mode=v09-public-verify
 patch=0901
-candidate=81f45b0bd562180655f47783d19df32c3a3eb204
-trigger=20260823-1256
+release=fc99eaceb555a4651c4abe062651fab06b28207c
+trigger=20260823-1258
