@@ -1,0 +1,3 @@
+v33=taskbook-finalize
+base=aa0b7360fca032959ee9fac3c8e43d9b34007114
+next=v34-combat-builds
