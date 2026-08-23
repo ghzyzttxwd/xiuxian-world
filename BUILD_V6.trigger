@@ -1,4 +1,4 @@
-mode=v12-public-verify
-build=1201
-release=5aab3e199f887837f91dbb968b5c67e56319d5c4
-trigger=20260823-1344-v12-final-r2
+mode=v13-faction-war-prerelease
+candidate=858421c9f97d07d3f76522185e99ec7105a723a5
+verifier=460bcb54bdfec4f204638094e31ffb151c40157e
+trigger=20260823-1345-v13-pre-r1
