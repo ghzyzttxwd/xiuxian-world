@@ -12,7 +12,7 @@ const ALCHEMY_RECIPES={
 function alchemyChance(recipe){const prof=state.player.alchemyProf||0,inner=state.player.sectRank==='内门弟子'?.05:0;return clamp(recipe.base+Math.min(.28,prof/420)+inner,.35,.95)}
 function alchemyGradeChance(){return clamp(.04+(state.player.alchemyProf||0)/700,.04,.28)}
 function brewAlchemy(id){
- if(!canAct())return;const r=ALCHEMY_RECIPES[id];if(!r)return;
+ if(state&&state.flags&&state.flags.dead)return showResult('此世已终','你已经身死道消。','bad');const r=ALCHEMY_RECIPES[id];if(!r)return;
  if(state.player.realmIndex<r.unlock)return showResult('丹方未解锁','【'+r.name+'】至少需要达到'+REALMS[r.unlock].name+'才能尝试炼制。','bad');
  if(state.player.herbs<r.herbs||state.player.spiritStones<r.stones)return showResult('材料不足','炼制【'+r.name+'】需要灵草 '+r.herbs+'、灵石 '+r.stones+'。\\n当前：灵草 '+state.player.herbs+'、灵石 '+state.player.spiritStones+'。','bad');
  const before=alchemyChance(r);state.player.herbs-=r.herbs;state.player.spiritStones-=r.stones;state.player.alchemyBatches++;advanceDays(1);addDiligence(2);
