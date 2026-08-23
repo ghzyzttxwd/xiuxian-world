@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.1.0",
+  "build": "2101",
+  "milestone": "dao-path-specialization",
+  "source": "src/game-v21.js",
+  "source_sha256": "51ace32d80c0930670873cb8b3109a3854b99494a86ec87c41731f19b550314e",
+  "source_bytes": 158102,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 18,
+  "checks": [
+    "four dao paths",
+    "path-exclusive signature skills",
+    "real combat path modifiers",
+    "path switching cost/mastery loss",
+    "secret realm path resonance",
+    "schema 17 to 18 migration",
+    "V2.0 systems preserved"
+  ]
+}
