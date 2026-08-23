@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.0.0",
+  "build": "2001",
+  "milestone": "high-tier-ecosystem",
+  "source": "src/game-v20.js",
+  "source_sha256": "97e83003b9f96378b60969b2fe1996263e11a06f8a94169b14c3da5f7cfc536f",
+  "source_bytes": 146978,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 17,
+  "checks": [
+    "高阶灵材 combat/secret-realm loop",
+    "金元丹 and 养魂丹 real alchemy/use effects",
+    "four high-tier artifacts",
+    "artifact spell amplification in combat",
+    "schema 16 to 17 migration",
+    "V1.9 systems preserved"
+  ]
+}
