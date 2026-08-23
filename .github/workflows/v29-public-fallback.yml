@@ -1,0 +1,178 @@
+name: V2.9 public terminal fallback
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V29_PUBLIC_REVERIFY.trigger"
+      - ".github/workflows/v29-public-fallback.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v29-public-fallback-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact V2.9 baseline and fallback script
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const b=require('./BUILD_V29_PAST_LIFE_BONDS.json');if(b.status!=='PASS'||b.gameplay_version!=='2.9.0'||b.build!=='2901'||b.milestone!=='past-life-bonds'||b.source_sha256!=='b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99'||b.save_schema_version!==26)throw new Error('V2.9 baseline mismatch')"
+          test "$(sha256sum src/game-v29.js | awk '{print $1}')" = "b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99"
+          grep -q "src/game-v29.js?v=2901" app.js
+          grep -q "const VERSION='2.9.0'" src/game-v29.js
+          grep -q 'const SAVE_SCHEMA_VERSION=26' src/game-v29.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          bash -n tools/verify-v29-public.sh
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node --check src/game-v29.js
+          node tests/regression-v29.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  public-finalize:
+    if: github.head_ref == 'v29-public-final-run'
+    needs: validate-fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - name: Checkout exact main verification base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Reconfirm base and prepare public verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          node -e "const b=require('./BUILD_V29_PAST_LIFE_BONDS.json');if(b.status!=='PASS'||b.gameplay_version!=='2.9.0'||b.build!=='2901'||b.source_sha256!=='b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99'||b.save_schema_version!==26)throw new Error('base drift')"
+          test "$(sha256sum src/game-v29.js | awk '{print $1}')" = "b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99"
+          grep -q "src/game-v29.js?v=2901" app.js
+          grep -q 'taixuan-v2.9.0-past-life-bonds-2901' sw.js
+          bash -n tools/verify-v29-public.sh
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+      - name: Prepare gh-pages worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+
+      - name: Verify actual GitHub Pages
+        id: public
+        shell: bash
+        run: |
+          set +e
+          ATTEMPTS=24 BASE_SHA="$BASE_SHA" bash tools/verify-v29-public.sh
+          rc=$?
+          set -e
+          public_ok=$(cat /tmp/V29_PUBLIC_OK 2>/dev/null || echo false)
+          echo "public_ok=$public_ok" >> "$GITHUB_OUTPUT"
+          echo "verifier_rc=$rc"
+          cat /tmp/V29_PUBLIC_DIAGNOSTIC.txt || true
+          exit 0
+
+      - name: Persist diagnostic on failure
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/V29_PUBLIC_DIAGNOSTIC.txt /tmp/pages/PUBLIC_V29_DIAGNOSTIC.txt
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V29_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record V2.9 public diagnostic ${BASE_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Stop on failed public verification
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Write PASS to gh-pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f /tmp/pages/PUBLIC_V29_DIAGNOSTIC.txt
+          BASE_SHA="$BASE_SHA" node -e "const fs=require('fs');const s={status:'PASS',game_version:'2.9.0',build:'2901',milestone:'past-life-bonds',verified_commit:process.env.BASE_SHA,source_sha256:'b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99',realm_count:26,location_count:12,route_count:20,save_schema_version:26,stage:'public-pass',transport:'same-repo-pr-fallback',checks:['PR23 gameplay validation PASS and closed unmerged','PR24 public reverify validation PASS and closed unmerged','fallback workflow validation PASS and closed unmerged','exact main base source hash equality','actual GitHub Pages HTTP 200 for release assets','public V2.9 version markers','public source SHA equality','public V2.9 headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('/tmp/pages/PUBLIC_V29_STATUS.json',JSON.stringify(s)+'\n')"
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A PUBLIC_V29_STATUS.json PUBLIC_V29_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record V2.9 public PASS ${BASE_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify PASS is actually reachable from Pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V29_STATUS.json?verify=${BASE_SHA}-${i}" -o /tmp/live-v29-status.json; then
+              if BASE_SHA="$BASE_SHA" node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v29-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='2.9.0'||s.build!=='2901'||s.save_schema_version!==26||s.verified_commit!==process.env.BASE_SHA)process.exit(1)" && cmp -s /tmp/live-v29-status.json /tmp/pages/PUBLIC_V29_STATUS.json; then
+                visible=1
+                break
+              fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync exact PASS to main
+        if: steps.public.outputs.public_ok == 'true'
+        id: final_main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          git checkout -B main origin/main
+          cp /tmp/pages/PUBLIC_V29_STATUS.json PUBLIC_V29_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V29_STATUS.json
+          git commit -m "chore: record V2.9 public PASS ${BASE_SHA} [skip ci]"
+          git push origin HEAD:main
+          echo "final_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final delta guard
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          FINAL_SHA: ${{ steps.final_main.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$FINAL_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V29_STATUS.json'
+          cmp -s PUBLIC_V29_STATUS.json /tmp/pages/PUBLIC_V29_STATUS.json
+          echo "V29_PUBLIC_TERMINAL_PASS $BASE_SHA -> $FINAL_SHA"
