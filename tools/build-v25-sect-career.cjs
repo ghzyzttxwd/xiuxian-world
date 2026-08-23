@@ -23,6 +23,7 @@ must("['player.factionStanding',p.factionStanding]","['player.sectMentorBond',p.
 
 must(/const SECT_TASKS=\{[\s\S]*?\nfunction marketPrices\(\)/,sectBlock+'\n\nfunction marketPrices()','replace sect career system');
 
+must('rare=highTierMaterialDrop(e);','rare=e.nonLethal?0:highTierMaterialDrop(e);','nonlethal assessment material guard');
 must('state.player.battleWins++;state.player.kills++;onSectCombatWin(e);','state.player.battleWins++;if(!e.nonLethal)state.player.kills++;onSectCombatWin(e);onSectAssessmentResult(true,e);','nonlethal assessment win');
 must('}else{state.player.battleLosses++;const risk=deathRisk(e);if(risk>0&&rand()<risk){','}else{state.player.battleLosses++;onSectAssessmentResult(false,e);const risk=deathRisk(e);if(!e.nonLethal&&risk>0&&rand()<risk){','nonlethal assessment death guard');
 must('const lost=Math.min(state.player.spiritStones,rint(0,Math.max(2,diff+1)));','const lost=e.nonLethal?0:Math.min(state.player.spiritStones,rint(0,Math.max(2,diff+1)));','nonlethal assessment stone guard');
