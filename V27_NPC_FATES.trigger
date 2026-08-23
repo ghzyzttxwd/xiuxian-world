@@ -1,1 +1,1 @@
-validate V2.7 npc fate network
+release V2.7 after PR21 PASS
