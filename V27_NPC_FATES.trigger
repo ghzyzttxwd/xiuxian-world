@@ -1,1 +1,1 @@
-validate V2.7 npc fate network
+validate V2.7 npc fate network PR
