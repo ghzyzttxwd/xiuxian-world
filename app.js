@@ -1,4 +1,4 @@
-// 太玄界 V1.1 正式加载器 · 轮回传承 1103
+// 太玄界 V1.1 正式加载器 · 轮回传承 1104
 (async()=>{
   try{
     const loadPatch=async(path,globalName,label)=>{
@@ -15,7 +15,7 @@
     await loadPatch('./v08-patch.js?v=0801','__TAIXUAN_PATCH_V08__','V0.8补丁');
     await loadPatch('./v09-patch.js?v=0901','__TAIXUAN_PATCH_V09__','V0.9补丁');
     await loadPatch('./v10-patch.js?v=1001','__TAIXUAN_PATCH_V10__','V1.0补丁');
-    await loadPatch('./v11-patch.js?v=1103','__TAIXUAN_PATCH_V11__','V1.1补丁');
+    await loadPatch('./v11-patch.js?v=1104','__TAIXUAN_PATCH_V11__','V1.1补丁');
     const files=Array.from({length:24},(_,i)=>`./bundle2/c${String(i+1).padStart(2,'0')}.b64`);
     let b64='';
     for(const f of files){const r=await fetch(f,{cache:'no-cache'});if(!r.ok)throw new Error(`游戏核心加载失败：${f} (${r.status})`);b64+=(await r.text()).trim()}
@@ -23,11 +23,11 @@
     let src=new TextDecoder('utf-8').decode(bytes);
     src=window.__TAIXUAN_PATCH_V03__(src);src=window.__TAIXUAN_PATCH_V04__(src);src=window.__TAIXUAN_PATCH_V05__(src);src=window.__TAIXUAN_PATCH_V06__(src);src=window.__TAIXUAN_PATCH_V07__(src);src=window.__TAIXUAN_PATCH_V08__(src);src=window.__TAIXUAN_PATCH_V09__(src);src=window.__TAIXUAN_PATCH_V10__(src);src=window.__TAIXUAN_PATCH_V11__(src);
     if(!src.includes("const VERSION='1.1.0'"))throw new Error('V1.1最终源码版本断言失败');
-    if(!src.includes('reincarnate')||!src.includes('ensureLegacyDeathRecorded')||!src.includes('renderLegacy')||!src.includes('legacyGainThisLife'))throw new Error('V1.1轮回传承模块断言失败');
+    if(!src.includes('reincarnate')||!src.includes('ensureLegacyDeathRecorded')||!src.includes('renderLegacy')||!src.includes('legacyGainThisLife')||!src.includes('n.lastRevengeDay=0'))throw new Error('V1.1轮回传承模块断言失败');
     document.title='太玄界 · 修仙大世界 V1.1';
     const sub=document.querySelector('.start-box > p');if(sub)sub.textContent='修仙大世界 · V1.1';
     const ver=document.querySelector('.start-box .version');if(ver)ver.textContent='V1.1 · 身死、传承与转世';
-    window.__TAIXUAN_BUILD__={version:'1.1.0',milestone:'legacy-loop',patches:['0301','0401','0501','0601','0701','0801','0901','1001','1103']};
+    window.__TAIXUAN_BUILD__={version:'1.1.0',milestone:'legacy-loop',patches:['0301','0401','0501','0601','0701','0801','0901','1001','1104']};
     (0,eval)(src);
   }catch(e){console.error(e);document.body.innerHTML='<div style="max-width:680px;margin:40px auto;padding:20px;color:#fff;background:#171a16;border:1px solid #485042;border-radius:14px;font-family:system-ui;line-height:1.7"><h2>太玄界加载失败</h2><div>'+String(e)+'</div><p>请刷新页面；若仍失败，请把这段错误发给我。</p></div>'}
 })();

@@ -1,1 +1,1 @@
-{"status":"PASS","game_version":"1.1.0","milestone":"legacy-loop","verified_commit":"5bf0b5488559d3080d5fec221be374eee6807799","stage":"public-pass","checks":["public V1.1 assets","nine public patches","public runtime rebuild","death and reincarnation smoke","world continuity","per-life social reset","manifest","V6 icon hash regression"]}
+{"status":"PENDING","game_version":"1.1.0","build":"1104","milestone":"legacy-loop","note":"Awaiting V1.1 build 1104 public verification"}
