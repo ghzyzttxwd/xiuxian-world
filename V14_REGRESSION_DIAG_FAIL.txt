@@ -1,0 +1,17 @@
+V1.4 UNIFIED REGRESSION DIAGNOSTIC FAIL
+
+<anonymous_script>:458
+if('serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('./sw.js').catch(console.error);
+                                                                                                                        ^
+
+TypeError: Cannot read properties of undefined (reading 'register')
+    at eval (eval at makeDom (file:///home/runner/work/xiuxian-world/xiuxian-world/tests/regression-v14.mjs:43:14), <anonymous>:458:121)
+    at eval (eval at makeDom (file:///home/runner/work/xiuxian-world/xiuxian-world/tests/regression-v14.mjs:43:14), <anonymous>:466:3)
+    at eval (<anonymous>)
+    at makeDom (file:///home/runner/work/xiuxian-world/xiuxian-world/tests/regression-v14.mjs:43:14)
+    at file:///home/runner/work/xiuxian-world/xiuxian-world/tests/regression-v14.mjs:47:13
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.23.2
