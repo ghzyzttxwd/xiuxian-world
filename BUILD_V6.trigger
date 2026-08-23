@@ -1,4 +1,4 @@
 mode=v11-legacy-prerelease
-patch=1101
-candidate=833d7edd4f2d0c2bccc98bcc80d766d0c334223d
-trigger=20260823-1313
+patch=1102
+candidate=1421411a1fd1261582912a6197fbd6a13a120a93
+trigger=20260823-1316
