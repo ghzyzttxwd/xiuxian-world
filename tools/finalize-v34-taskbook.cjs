@@ -19,7 +19,28 @@ must('- V3.3 schema30 是当前正式存档基线，后续版本必须继续提�
 
 must('## V3.4 — 战斗与四大道途完整 Build\n\n**状态：TODO / 当前最高优先级**','## V3.4 — 战斗与四大道途完整 Build\n\n**状态：DONE**','v34 status');
 const v34End='每条至少形成 2 套中高阶可行构筑。\n\n敌人 ≥ 45，其中独立机制敌人 ≥ 12。';
-const v34Record=`每条至少形成 2 套中高阶可行构筑。\n\n敌人 ≥ 45，其中独立机制敌人 ≥ 12。\n\n### V3.4 正式完成记录\n\n- 正式版本：V3.4.0 / build 3401 / save schema31 / content registry v5。\n- 敌人总量：48；V3.4 新增 19 个敌人，并为 19 个新敌人分别建立独立机制。\n- 四大道途共 8 套中高阶 Build：青云剑道 2 套、赤霞火道 2 套、万兽炼体 2 套、太虚神道 2 套。\n- Build 不靠手工选择标签，而由主修道途、当前功法、六格主动术法、被动秘术与同道法宝共同自动识别；完整成型后进入真实伤害、防御、反击、灼烧、资源恢复等战斗结算。\n- 敌方机制已覆盖开场冲撞、持续毒伤 / 灼伤、再生、抽灵、重甲、反伤、虚化、狂化、火道抗性、法宝压制、多段爆发、冷却压制、神魂吸取、低血再生、镜魂反照、控制抗性、法域压制与斩杀。\n- 修复历史遗留的悬空 \\`onGearCombatWin\\` 胜利钩子，避免真实击杀流程在旧钩子处崩溃。\n- schema30 → 31 迁移 PASS；future schema32 防覆盖 PASS；V3.3 炼丹材料、V3.2 法宝、V3.1 技能体系均完整保留。\n- PR #43 功能验证、PR #44 发布兜底验证、PR #45 最终发布均 PASS，全部关闭且未合并。\n- 正式 runtime commit：\\`aa2c0e690ee8cf282602edeb047c3acd37914c0f\\`。\n- 正式源码 SHA256：\\`d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec\\`。\n- \\`PUBLIC_V34_STATUS.json = PASS\\` 已由真实 GitHub Pages 重新下载验证并同步 main。\n- runtime → final release main \\`c231ba93d8647d1cadbe2d60ed9e1dac0813e59f\\` 仅新增 \\`PUBLIC_V34_STATUS.json\\`。\n\n**结论：V3.4 DONE。下一阶段：V3.5 正常游戏经济与世界整合。**`;
+const v34Record=[
+ '每条至少形成 2 套中高阶可行构筑。',
+ '',
+ '敌人 ≥ 45，其中独立机制敌人 ≥ 12。',
+ '',
+ '### V3.4 正式完成记录',
+ '',
+ '- 正式版本：V3.4.0 / build 3401 / save schema31 / content registry v5。',
+ '- 敌人总量：48；V3.4 新增 19 个敌人，并为 19 个新敌人分别建立独立机制。',
+ '- 四大道途共 8 套中高阶 Build：青云剑道 2 套、赤霞火道 2 套、万兽炼体 2 套、太虚神道 2 套。',
+ '- Build 不靠手工选择标签，而由主修道途、当前功法、六格主动术法、被动秘术与同道法宝共同自动识别；完整成型后进入真实伤害、防御、反击、灼烧、资源恢复等战斗结算。',
+ '- 敌方机制已覆盖开场冲撞、持续毒伤 / 灼伤、再生、抽灵、重甲、反伤、虚化、狂化、火道抗性、法宝压制、多段爆发、冷却压制、神魂吸取、低血再生、镜魂反照、控制抗性、法域压制与斩杀。',
+ '- 修复历史遗留的悬空 `onGearCombatWin` 胜利钩子，避免真实击杀流程在旧钩子处崩溃。',
+ '- schema30 → 31 迁移 PASS；future schema32 防覆盖 PASS；V3.3 炼丹材料、V3.2 法宝、V3.1 技能体系均完整保留。',
+ '- PR #43 功能验证、PR #44 发布兜底验证、PR #45 最终发布均 PASS，全部关闭且未合并。',
+ '- 正式 runtime commit：`aa2c0e690ee8cf282602edeb047c3acd37914c0f`。',
+ '- 正式源码 SHA256：`d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec`。',
+ '- `PUBLIC_V34_STATUS.json = PASS` 已由真实 GitHub Pages 重新下载验证并同步 main。',
+ '- runtime → final release main `c231ba93d8647d1cadbe2d60ed9e1dac0813e59f` 仅新增 `PUBLIC_V34_STATUS.json`。',
+ '',
+ '**结论：V3.4 DONE。下一阶段：V3.5 正常游戏经济与世界整合。**'
+].join('\n');
 must(v34End,v34Record,'v34 completion record');
 
 must('- [ ] 敌人 ≥ 45\n- [ ] 四大道途各至少 2 套中高阶构筑','- [x] 敌人 ≥ 45\n- [x] 独立战斗机制敌人 ≥ 12\n- [x] 四大道途各至少 2 套中高阶构筑','precharge combat gates');
