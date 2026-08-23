@@ -1,0 +1,38 @@
+name: Recover readable V0.2 source
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["RECOVER_SOURCE.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Decode current runtime into readable source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p src
+          cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > src/game-v02.js
+          node --check src/game-v02.js
+          test -s src/game-v02.js
+          grep -q "天道酬勤" src/game-v02.js
+          grep -q "__TAIXUAN_TEST__" src/game-v02.js
+      - name: Commit recovered source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v02.js
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: recover readable V0.2 game source [skip ci]'
+          git push origin HEAD:main
