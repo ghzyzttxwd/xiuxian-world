@@ -1,0 +1,108 @@
+name: Verify TaiXuan V5 final PWA end-to-end
+
+on:
+  push:
+    branches: ["gh-pages"]
+    paths:
+      - "VERIFY_V5_FINAL.trigger"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-v5-final:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout published branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Verify source state
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '73f85c80f62899d37b5d5848a6679c74de3e88b6d1cd433b7621f4910e171600  icon-v5-512.png' | sha256sum -c -
+          test "$(python3 - <<'PY'
+          import struct
+          b=open('icon-v5-512.png','rb').read(); print(struct.unpack('>II',b[16:24]))
+          PY
+          )" = "(512, 512)"
+          grep -q 'manifest-v5.webmanifest?v=5' index.html
+          grep -q 'icon-v5-192.png?v=5' index.html
+          grep -q 'icon-v5-512.png?v=5' manifest-v5.webmanifest
+          grep -q '"purpose":"any"' manifest-v5.webmanifest
+          grep -q 'taixuan-v0.2.5-exact-sample-v5-final' sw.js
+          ! grep -q 'icon-v4' sw.js
+
+      - name: Verify public terminal resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          ok=0
+          for i in $(seq 1 36); do
+            nonce="${GITHUB_SHA}-${i}"
+            good=1
+            curl -fsSL --max-time 20 "${BASE}?v=5&verify=${nonce}" -o /tmp/index.html || good=0
+            curl -fsSL --max-time 20 "${BASE}manifest-v5.webmanifest?v=5&verify=${nonce}" -o /tmp/manifest.json || good=0
+            curl -fsSL --max-time 20 "${BASE}sw.js?v=5&verify=${nonce}" -o /tmp/sw.js || good=0
+            curl -fsSL --max-time 20 "${BASE}icon-v5-512.png?v=5&verify=${nonce}" -o /tmp/icon512.png || good=0
+            curl -fsSL --max-time 20 "${BASE}icon-v5-192.png?v=5&verify=${nonce}" -o /tmp/icon192.png || good=0
+            curl -fsSL --max-time 20 "${BASE}app.js?v=5&verify=${nonce}" -o /tmp/app.js || good=0
+            curl -fsSL --max-time 20 "${BASE}bundle2/c01.b64?v=5&verify=${nonce}" -o /tmp/c01.b64 || good=0
+            curl -fsSL --max-time 20 "${BASE}bundle2/c24.b64?v=5&verify=${nonce}" -o /tmp/c24.b64 || good=0
+            if [ "$good" -eq 1 ] && \
+               grep -q 'manifest-v5.webmanifest?v=5' /tmp/index.html && \
+               grep -q 'icon-v5-512.png?v=5' /tmp/manifest.json && \
+               grep -q 'taixuan-v0.2.5-exact-sample-v5-final' /tmp/sw.js && \
+               ! grep -q 'icon-v4' /tmp/sw.js; then
+              ok=1
+              break
+            fi
+            echo "attempt ${i}: waiting for Pages propagation"
+            sleep 10
+          done
+          test "$ok" = 1
+          echo '73f85c80f62899d37b5d5848a6679c74de3e88b6d1cd433b7621f4910e171600  /tmp/icon512.png' | sha256sum -c -
+          python3 - <<'PY'
+          import json,struct,pathlib
+          def png_size(p):
+              b=pathlib.Path(p).read_bytes()
+              assert b[:8]==b'\x89PNG\r\n\x1a\n'
+              return struct.unpack('>II',b[16:24])
+          assert png_size('/tmp/icon512.png')==(512,512)
+          assert png_size('/tmp/icon192.png')==(192,192)
+          m=json.load(open('/tmp/manifest.json',encoding='utf-8'))
+          assert m['short_name']=='太玄界'
+          assert m['display']=='standalone'
+          assert [x['sizes'] for x in m['icons']]==['192x192','512x512']
+          assert all(x.get('purpose')=='any' for x in m['icons'])
+          assert pathlib.Path('/tmp/app.js').stat().st_size>100
+          assert pathlib.Path('/tmp/c01.b64').stat().st_size>1000
+          assert pathlib.Path('/tmp/c24.b64').stat().st_size>1000
+          PY
+
+      - name: Record terminal PASS
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,datetime,hashlib
+          data={
+            'status':'PASS',
+            'checked_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'verified_url':'https://ghzyzttxwd.github.io/xiuxian-world/?v=5',
+            'icon_version':'v5-final-exact-approved-png',
+            'icon_512_sha256':'73f85c80f62899d37b5d5848a6679c74de3e88b6d1cd433b7621f4910e171600',
+            'icon_192_sha256':hashlib.sha256(open('icon-v5-192.png','rb').read()).hexdigest(),
+            'checks':['public HTTP resources','unique V5 manifest path','manifest short_name 太玄界','purpose any only','no V4 icons in service worker','512 public bytes exactly approved source','192 PNG dimensions','app loader','runtime c01','runtime c24']
+          }
+          open('PUBLIC_V5_FINAL_STATUS.json','w',encoding='utf-8').write(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V5_FINAL_STATUS.json
+          git commit -m 'chore: record V5 final public verification [skip ci]' || exit 0
+          git push origin HEAD:gh-pages
