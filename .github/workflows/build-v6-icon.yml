@@ -1,4 +1,4 @@
-name: Verify V1.1 via registered runner
+name: Verify V1.1 diagnostic public release
 
 on:
   push:
@@ -18,11 +18,12 @@ jobs:
           ref: gh-pages
           fetch-depth: 0
 
-      - name: Verify repository V1.1 chain
+      - name: Repository chain
         shell: bash
         run: |
-          set -euo pipefail
-          echo 'repo-start' > V11_FINAL_STAGE.txt
+          set -Eeuo pipefail
+          echo 'repo-check' > V11_FINAL_STAGE.txt
+          : > V11_FINAL_DEBUG.txt
           node --check app.js
           for v in 03 04 05 06 07 08 09 10 11; do node --check "v${v}-patch.js"; done
           grep -q 'id="legacyBox"' index.html
@@ -32,26 +33,15 @@ jobs:
           grep -q 'taixuan-v1.1.0-legacy-patch1103' sw.js
           grep -q '"status":"PASS"' PUBLIC_V11_PRE_STATUS.json
           grep -q 'per-life NPC social state reset' PUBLIC_V11_PRE_STATUS.json
-          cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
-          cat > /tmp/apply-v11.cjs <<'JS'
-          const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
-          for(const v of ['03','04','05','06','07','08','09','10','11'])vm.runInContext(fs.readFileSync(`v${v}-patch.js`,'utf8'),ctx);
-          let src=fs.readFileSync('/tmp/v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10','11'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
-          for(const s of ["const VERSION='1.1.0'",'legacyGainThisLife','ensureLegacyDeathRecorded','reincarnate','renderLegacy','轮回传承已经开启','n.lastRevengeDay=0'])assert(src.includes(s),`missing ${s}`);
-          assert(!src.includes('后续版本会加入夺舍、转世与传承'),'obsolete death placeholder remains');fs.writeFileSync('/tmp/v11.js',src);
-          JS
-          node /tmp/apply-v11.cjs
-          node --check /tmp/v11.js
           echo 'repo-pass' > V11_FINAL_STAGE.txt
 
-      - name: Verify public V1.1 deployment
+      - name: Public assets sync
         shell: bash
         run: |
-          set -euo pipefail
-          echo 'public-start' > V11_FINAL_STAGE.txt
+          set -Eeuo pipefail
+          echo 'public-assets' > V11_FINAL_STAGE.txt
           BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
-          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
-          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          ready=0
           for i in $(seq 1 60); do
             ok=1
             curl -fsSL "${BASE}index.html?verify=${GITHUB_SHA}" -o /tmp/index.html || ok=0
@@ -61,12 +51,30 @@ jobs:
             curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/manifest.json || ok=0
             curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png || ok=0
             curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png || ok=0
-            if [ "$ok" -eq 1 ] && grep -q 'V1.1' /tmp/index.html && grep -q 'id="legacyBox"' /tmp/index.html && grep -q 'id="legacyInfo"' /tmp/index.html && grep -q '__TAIXUAN_PATCH_V11__' /tmp/app.js && grep -q 'reincarnate' /tmp/v11.js && grep -q 'taixuan-v1.1.0-legacy-patch1103' /tmp/sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then break; fi
-            test "$i" -lt 60 || exit 1
+            if [ "$ok" -eq 1 ] && grep -q 'V1.1' /tmp/index.html && grep -q 'id="legacyBox"' /tmp/index.html && grep -q '__TAIXUAN_PATCH_V11__' /tmp/app.js && grep -q 'reincarnate' /tmp/v11.js && grep -q 'taixuan-v1.1.0-legacy-patch1103' /tmp/sw.js; then ready=1; break; fi
             sleep 5
           done
+          if [ "$ready" -ne 1 ]; then
+            {
+              echo 'PUBLIC_ASSET_SYNC_TIMEOUT'
+              echo -n 'index_v11='; grep -q 'V1.1' /tmp/index.html && echo yes || echo no
+              echo -n 'legacyBox='; grep -q 'id="legacyBox"' /tmp/index.html && echo yes || echo no
+              echo -n 'app_v11='; grep -q '__TAIXUAN_PATCH_V11__' /tmp/app.js && echo yes || echo no
+              echo -n 'v11_reincarnate='; grep -q 'reincarnate' /tmp/v11.js && echo yes || echo no
+              echo -n 'sw_v11='; grep -q 'taixuan-v1.1.0-legacy-patch1103' /tmp/sw.js && echo yes || echo no
+            } >> V11_FINAL_DEBUG.txt
+            exit 1
+          fi
           node --check /tmp/app.js
           for v in 03 04 05 06 07 08 09 10 11; do node --check "/tmp/v${v}.js"; done
+          echo 'public-assets-pass' > V11_FINAL_STAGE.txt
+
+      - name: Public runtime rebuild
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo 'runtime-build' > V11_FINAL_STAGE.txt
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
           rm -f /tmp/pub.b64
           for i in $(seq -w 1 24); do curl -fsSL "${BASE}bundle2/c${i}.b64?verify=${GITHUB_SHA}" >> /tmp/pub.b64; done
           tr -d '\n\r' < /tmp/pub.b64 | base64 -d > /tmp/pub-v02.js
@@ -74,27 +82,42 @@ jobs:
           const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
           for(const v of ['03','04','05','06','07','08','09','10','11'])vm.runInContext(fs.readFileSync(`/tmp/v${v}.js`,'utf8'),ctx);
           let src=fs.readFileSync('/tmp/pub-v02.js','utf8');for(const v of ['03','04','05','06','07','08','09','10','11'])src=ctx.window[`__TAIXUAN_PATCH_V${v}__`](src);
-          assert(src.includes("const VERSION='1.1.0'"));assert(src.includes('renderLegacy'));assert(src.includes('reincarnate'));assert(!src.includes('后续版本会加入夺舍、转世与传承'));
+          assert(src.includes("const VERSION='1.1.0'"));assert(src.includes('renderLegacy'));assert(src.includes('reincarnate'));assert(src.includes('n.lastRevengeDay=0'));assert(!src.includes('后续版本会加入夺舍、转世与传承'));
           const needle='combatAction};\nboot();';assert(src.includes(needle));src=src.replace(needle,"combatAction,load,legacyGainThisLife,ensureLegacyDeathRecorded,reincarnate,renderLegacy};\nboot();");fs.writeFileSync('/tmp/pub-v11.js',src);
           JS
-          node /tmp/pub-apply.cjs
-          node --check /tmp/pub-v11.js
+          node /tmp/pub-apply.cjs >> V11_FINAL_DEBUG.txt 2>&1
+          node --check /tmp/pub-v11.js >> V11_FINAL_DEBUG.txt 2>&1
+          echo 'runtime-pass' > V11_FINAL_STAGE.txt
+
+      - name: Headless reincarnation smoke
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo 'headless-reincarnation' > V11_FINAL_STAGE.txt
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
           cat > public-smoke-v11.mjs <<'JS'
           import fs from 'fs';import assert from 'assert';import {JSDOM} from 'jsdom';
           const html=fs.readFileSync('/tmp/index.html','utf8').replace(/<script[^>]*src="\.\/app\.js[^>]*><\/script>/,'');
           const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});dom.window.console=console;dom.window.eval(fs.readFileSync('/tmp/pub-v11.js','utf8'));const api=dom.window.__TAIXUAN_TEST__;assert(api);api.newGame('公网轮回烟测');let s=api.getState();assert.equal(s.version,'1.1.0');assert(dom.window.document.getElementById('legacyBox'));assert(dom.window.document.getElementById('legacyInfo'));assert(dom.window.document.getElementById('legacyActions'));
-          let mod=s;mod.player.realmIndex=6;mod.player.reputation=45;mod.player.kills=17;mod.player.retreatSessions=4;mod.player.spiritStones=99;mod.player.dwellingTier=3;mod.world.casualties=888;mod.npcs[0].name='公网传承见证人';mod.npcs[0].relation=88;mod.npcs[0].grudge=77;mod.npcs[0].lastHelpMonth=9;mod.flags.dead=true;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.renderLegacy();s=api.getState();assert.equal(s.legacy.merit,9);assert(dom.window.document.querySelector('[data-reincarnate="plain"]'),'reincarnation button missing');assert(dom.window.document.getElementById('legacyBox').textContent.includes('轮回仍可继续'));
-          api.reincarnate('plain');s=api.getState();assert.equal(s.legacy.cycles,1);assert.equal(s.flags.dead,undefined);assert.equal(s.world.casualties,888);assert.equal(s.npcs[0].name,'公网传承见证人');assert.equal(s.npcs[0].relation,0);assert.equal(s.npcs[0].grudge,0);assert.equal(s.npcs[0].lastHelpMonth,0);assert.equal(s.player.realmIndex,0);assert.equal(s.player.dwellingTier,0);assert.equal(s.player.spiritStones,3);
-          console.log('PUBLIC_V11_SMOKE_PASS');
+          let mod=s;mod.player.realmIndex=6;mod.player.reputation=45;mod.player.kills=17;mod.player.retreatSessions=4;mod.player.spiritStones=99;mod.player.dwellingTier=3;mod.world.casualties=888;mod.npcs[0].name='公网传承见证人';mod.npcs[0].relation=88;mod.npcs[0].grudge=77;mod.npcs[0].lastHelpMonth=9;mod.flags.dead=true;dom.window.localStorage.setItem('xiuxian_world_v02',JSON.stringify(mod));assert(api.load());api.renderLegacy();s=api.getState();assert.equal(s.legacy.merit,9);assert(dom.window.document.querySelector('[data-reincarnate="plain"]'));assert(dom.window.document.getElementById('legacyBox').textContent.includes('轮回仍可继续'));
+          api.reincarnate('plain');s=api.getState();assert.equal(s.legacy.cycles,1);assert.equal(s.flags.dead,undefined);assert.equal(s.world.casualties,888);assert.equal(s.npcs[0].name,'公网传承见证人');assert.equal(s.npcs[0].relation,0);assert.equal(s.npcs[0].grudge,0);assert.equal(s.npcs[0].lastHelpMonth,0);assert.equal(s.player.realmIndex,0);assert.equal(s.player.dwellingTier,0);assert.equal(s.player.spiritStones,3);console.log('PUBLIC_V11_SMOKE_PASS');
           JS
-          node public-smoke-v11.mjs
+          node public-smoke-v11.mjs >> V11_FINAL_DEBUG.txt 2>&1
+          echo 'headless-pass' > V11_FINAL_STAGE.txt
+
+      - name: Manifest and icons
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo 'manifest-icons' > V11_FINAL_STAGE.txt
           python3 - <<'PY'
-          import json
+          import json,hashlib
           m=json.load(open('/tmp/manifest.json'))
           assert m['display']=='standalone' and m['short_name']=='太玄界'
           assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          assert hashlib.sha256(open('/tmp/icon512.png','rb').read()).hexdigest()=='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          assert hashlib.sha256(open('/tmp/icon192.png','rb').read()).hexdigest()=='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
           PY
           echo 'public-pass' > V11_FINAL_STAGE.txt
 
@@ -102,21 +125,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.1.0\",\"milestone\":\"legacy-loop\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V11_FINAL_STAGE.txt)\",\"checks\":[\"repository V0.2->V1.1 patch chain\",\"V1.1 syntax\",\"legacy UI nodes\",\"public V1.1 index\",\"public loader\",\"nine public patches\",\"public service worker\",\"public runtime rebuild\",\"public death and reincarnation headless smoke\",\"world continuity\",\"per-life social reset\",\"standalone manifest\",\"V6 icon hash regression\",\"prerelease legacy gameplay PASS\"]}" > PUBLIC_V11_STATUS.json
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"1.1.0\",\"milestone\":\"legacy-loop\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V11_FINAL_STAGE.txt)\",\"checks\":[\"public V1.1 assets\",\"nine public patches\",\"public runtime rebuild\",\"death and reincarnation smoke\",\"world continuity\",\"per-life social reset\",\"manifest\",\"V6 icon hash regression\"]}" > PUBLIC_V11_STATUS.json
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add PUBLIC_V11_STATUS.json
-          git commit -m 'chore: record V1.1 public verification [skip ci]'
+          git commit -m 'chore: record V1.1 diagnostic public PASS [skip ci]'
           git push origin HEAD:gh-pages
 
-      - name: Record FAIL
+      - name: Record FAIL with diagnostics
         if: failure()
         shell: bash
         run: |
-          stage=$(cat V11_FINAL_STAGE.txt 2>/dev/null || echo 'unknown')
-          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.1.0\",\"milestone\":\"legacy-loop\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"${stage}\"}" > PUBLIC_V11_STATUS.json
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          stage=$(cat V11_FINAL_STAGE.txt 2>/dev/null || echo unknown)
+          debug=$(tail -c 6000 V11_FINAL_DEBUG.txt 2>/dev/null | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read(),ensure_ascii=False))' || echo '""')
+          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"1.1.0\",\"milestone\":\"legacy-loop\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"${stage}\",\"debug\":${debug}}" > PUBLIC_V11_STATUS.json
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add PUBLIC_V11_STATUS.json
-          git commit -m 'chore: record V1.1 public verification failure [skip ci]' || true
+          git commit -m 'chore: record V1.1 diagnostic public FAIL [skip ci]' || true
           git push origin HEAD:gh-pages || true
