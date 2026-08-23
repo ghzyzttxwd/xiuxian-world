@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "gameplay_version": "1.8.0",
+  "build": "1801",
+  "milestone": "nascent-soul-ladder",
+  "source": "src/game-v18.js",
+  "source_sha256": "25628e25a350f5aea809f37c6ea3057a88863f6ab437360b930b11a879a27a51",
+  "source_bytes": 133134,
+  "realm_count": 22,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 15,
+  "checks": [
+    "金丹圆满→元婴后期 realm ladder",
+    "化婴灵胎 crafting and drops",
+    "碎丹化婴 material gate",
+    "major failure severe injury/lifespan cost",
+    "元婴 lifespan 1000",
+    "金丹高阶功法与攻防法术",
+    "high-realm enemies",
+    "V1.7 systems preserved"
+  ]
+}
