@@ -39,20 +39,22 @@ jobs:
           grep -q '| V3.7 合体篇 | TODO / CURRENT |' docs/PROJECT_TASKBOOK.md
           grep -q '\- \[x\] 炼虚完整' docs/PROJECT_TASKBOOK.md
           grep -q '正式 runtime commit：`b0ba936e4b6502515968bf1e51c5082a5c28f1a5`' docs/PROJECT_TASKBOOK.md
-          cp tools/finalize-v36-taskbook.cjs /tmp/finalize-v36-taskbook.cjs
+          cp docs/PROJECT_TASKBOOK.md /tmp/PROJECT_TASKBOOK_V36.md
       - name: Commit only finalized taskbook to main
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          git reset --hard
           git checkout -B main "$BASE_SHA"
-          node /tmp/finalize-v36-taskbook.cjs
+          cp /tmp/PROJECT_TASKBOOK_V36.md docs/PROJECT_TASKBOOK.md
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/PROJECT_TASKBOOK.md
           mapfile -t changed < <(git diff --cached --name-only)
           test "${#changed[@]}" -eq 1
           test "${changed[0]}" = 'docs/PROJECT_TASKBOOK.md'
+          git diff --cached --check
           git commit -m "docs: mark V3.6 refining void complete [skip ci]"
           git push origin HEAD:main
