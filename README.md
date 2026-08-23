@@ -1,11 +1,9 @@
 # 太玄界 · 修仙大世界
 
-当前工程版本：**V1.4.0 · 源码合并重构（build 1401）**  
+当前工程版本：**V1.4.1 · 工程重构（build 1402）**  
 当前玩法版本：**V1.3.0 · 宗门大战与势力演化**
 
-## 当前运行结构
-
-V1.4 已把历史运行时的 `V0.2 bundle2 + V03~V13 十一层补丁` 机器合并为一份可读源码：
+## 正式运行结构
 
 ```text
 index.html
@@ -13,25 +11,44 @@ index.html
   -> src/game-v13.js
 ```
 
-浏览器不再下载、拼接或 `eval` 十一层补丁。旧 `bundle2/` 与 `v03-patch.js` ~ `v13-patch.js` 暂时保留，仅用于构建历史、回归和回退，不再进入正式运行链。
+浏览器正式运行链不再下载 `bundle2/`，不再串行加载 V03~V13 补丁，也不使用 `eval` 拼装游戏源码。历史 bundle 与补丁暂时只保留为可重复构建来源和回退依据。
+
+## 存档迁移
+
+浏览器存档 key 继续使用 `xiuxian_world_v02`，避免旧玩家进度消失。当前显式存档结构版本为 `saveSchemaVersion = 13`。
+
+没有 `saveSchemaVersion` 的历史存档按 schema 2 处理，然后严格执行：
+
+```text
+2 -> 3 战斗
+  -> 4 宗门
+  -> 5 坊市
+  -> 6 炼丹
+  -> 7 法器
+  -> 8 NPC 社交
+  -> 9 主动破境
+  -> 10 洞府
+  -> 11 轮回传承
+  -> 12 动态秘境
+  -> 13 宗门大战
+```
+
+每一步迁移都是幂等字段补全。当前客户端遇到 `saveSchemaVersion > 13` 的未来存档会拒绝加载，并且不会覆盖原存档。
 
 ## 已完成玩法
 
 战斗、宗门、坊市经济、炼丹、法器锻造、NPC 人情恩怨、主动破境、洞府闭关与药圃、身死传承与转世、动态秘境、宗门大战与势力演化。
 
-## 存档兼容
-
-为避免旧玩家存档消失，当前仍保留历史 key：`xiuxian_world_v02`。V1.4 回归测试会用裁剪后的 V0.2 形态存档重新加载，检查 V0.3~V1.3 新字段迁移。后续会再把迁移逻辑整理成显式 `saveSchemaVersion` pipeline；在此之前不要直接改存档 key。
-
 ## 工程约定
 
 - `main`：唯一开发源。
-- `gh-pages`：公开部署产物，不与 `main` 直接 merge。
-- `tools/build-v13-source.cjs`：从历史 bundle + patches 可重复生成 `src/game-v13.js`。
-- `tests/regression-v14.mjs`：统一回归入口。
-- V6 App 图标已定稿，V1.4 继续做 SHA-256 回归，不修改图标。
+- `gh-pages`：公开部署产物，不与 `main` merge。
+- `tools/build-v13-source.cjs`：从历史 V0.2 bundle + V03~V13 补丁重建当前直读源码，并注入 V1.4 工程迁移层。
+- `tests/regression-v14.mjs`：统一玩法、旧存档迁移、幂等性、未来存档保护回归。
+- `.github/workflows/v14-refactor.yml`：当前 V1.4 唯一正式发布链，负责构建、回归、部署、公网回归和 PASS 状态回写。
+- V6 App 图标已定稿，发布时强制做 SHA-256 回归。
 
-## 本地/CI 验证
+## 本地验证
 
 ```bash
 node tools/build-v13-source.cjs

@@ -1,11 +1,12 @@
 {
   "status": "PASS",
-  "engineering_release": "1.4.0",
+  "engineering_release": "1.4.1",
   "gameplay_version": "1.3.0",
-  "build": "1401",
+  "build": "1402",
+  "milestone": "save-schema-pipeline",
   "source": "src/game-v13.js",
-  "source_sha256": "d6d1cf8064e67ed13c06b6685d24df48d4b2560ef2f35c8f2b0bb20cb4c418ea",
-  "source_bytes": 101143,
+  "source_sha256": "8640b6c3a52262673a4c38a4b9f62f960dfff6bf6732d8a49c97c8a3c7f59f24",
+  "source_bytes": 102566,
   "base_chunks": 24,
   "applied_patches": [
     {
@@ -64,5 +65,19 @@
       "build": "1301"
     }
   ],
-  "legacy_save_key_preserved": "xiuxian_world_v02"
+  "legacy_save_key_preserved": "xiuxian_world_v02",
+  "save_schema_version": 13,
+  "migration_steps": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+  ]
 }
