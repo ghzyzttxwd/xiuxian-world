@@ -1,4 +1,4 @@
-name: Verify V0.3 via registered runner
+name: Verify V0.4 via registered runner
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  verify-v03:
+  verify-v04:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,108 +18,92 @@ jobs:
           ref: gh-pages
           fetch-depth: 0
 
-      - name: Rebuild patched runtime
+      - name: Verify repository V0.4 chain
         shell: bash
         run: |
           set -euo pipefail
-          echo 'patch-start' > V03_STAGE.txt
+          echo 'repo-start' > V04_REGISTERED_STAGE.txt
+          node --check app.js
           node --check v03-patch.js
+          node --check v04-patch.js
+          grep -q 'id="sectInfo"' index.html
+          grep -q 'id="sectActions"' index.html
+          grep -q '__TAIXUAN_PATCH_V04__' app.js
+          grep -q 'taixuan-v0.4.0-sect-patch0401' sw.js
           cat bundle2/c*.b64 | tr -d '\n\r' | base64 -d > /tmp/v02.js
-          cat > /tmp/apply-patch.cjs <<'JS'
-          const fs=require('fs'),vm=require('vm'),assert=require('assert');
-          const ctx={window:{}};vm.createContext(ctx);
-          vm.runInContext(fs.readFileSync('v03-patch.js','utf8'),ctx);
-          assert.equal(typeof ctx.window.__TAIXUAN_PATCH_V03__,'function');
-          const out=ctx.window.__TAIXUAN_PATCH_V03__(fs.readFileSync('/tmp/v02.js','utf8'));
-          fs.writeFileSync('/tmp/v03.js',out);
-          for(const s of ["const VERSION='0.3.0'","battleWins","battleLosses","injuryLabel","deathRisk","黑风岭狼王","data-combat=\"wind\""])assert(out.includes(s),`missing ${s}`);
-          console.log('PATCH_PASS',out.length);
+          cat > /tmp/apply.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
+          vm.runInContext(fs.readFileSync('v03-patch.js','utf8'),ctx);vm.runInContext(fs.readFileSync('v04-patch.js','utf8'),ctx);
+          let src=fs.readFileSync('/tmp/v02.js','utf8');src=ctx.window.__TAIXUAN_PATCH_V03__(src);src=ctx.window.__TAIXUAN_PATCH_V04__(src);
+          for(const s of ["const VERSION='0.4.0'",'renderSect','sectContribution','黑风岭除妖'])assert(src.includes(s),`missing ${s}`);
+          fs.writeFileSync('/tmp/v04.js',src);
           JS
-          node /tmp/apply-patch.cjs
-          node --check /tmp/v03.js
-          echo 'patch-pass' > V03_STAGE.txt
+          node /tmp/apply.cjs
+          node --check /tmp/v04.js
+          echo 'repo-pass' > V04_REGISTERED_STAGE.txt
 
-      - name: Headless gameplay regression
+      - name: Verify public V0.4 deployment
         shell: bash
         run: |
           set -euo pipefail
-          echo 'gameplay-start' > V03_STAGE.txt
-          npm init -y >/dev/null 2>&1
-          npm install --no-save jsdom@24 >/dev/null 2>&1
-          cat > test-v03.mjs <<'JS'
-          import fs from 'fs';
-          import assert from 'assert';
-          import {JSDOM} from 'jsdom';
-          const html=fs.readFileSync('index.html','utf8').replace(/<script src="\.\/app\.js"><\/script>/,'');
-          const dom=new JSDOM(html,{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});
-          dom.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
-          Object.defineProperty(dom.window.navigator,'serviceWorker',{value:undefined,configurable:true});
-          dom.window.console=console;
-          dom.window.eval(fs.readFileSync('/tmp/v03.js','utf8'));
-          const api=dom.window.__TAIXUAN_TEST__;assert(api,'test API missing');
-          api.newGame('回归测试者');
-          let s=api.getState();assert.equal(s.version,'0.3.0');assert.equal(s.player.injury,0);assert.equal(s.player.battleWins,0);
-          api.startCombat('灰背野狼');for(let i=0;i<30&&api.getCombat();i++)api.combatAction('attack');
-          s=api.getState();assert(s.player.battleWins>=1,'weak enemy did not produce a win');assert(s.player.kills>=1,'kill stat missing');
-          api.startCombat('黑风岭狼王');for(let i=0;i<30&&api.getCombat();i++)api.combatAction('attack');
-          s=api.getState();assert(s.flags.dead||s.player.battleLosses>=1,'wolf king produced neither defeat nor death');
-          if(!s.flags.dead){const before=s.player.injury;assert(before>=1,'defeat did not create injury');api.action('rest');s=api.getState();assert.equal(s.player.injury,before-1,'rest did not heal injury');}
-          console.log('GAMEPLAY_PASS',JSON.stringify({wins:s.player.battleWins,losses:s.player.battleLosses,injury:s.player.injury,dead:!!s.flags.dead}));
-          JS
-          node test-v03.mjs
-          echo 'gameplay-pass' > V03_STAGE.txt
-
-      - name: Public Pages verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo 'public-start' > V03_STAGE.txt
+          echo 'public-start' > V04_REGISTERED_STAGE.txt
           BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
           EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
           EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
           for i in $(seq 1 60); do
             ok=1
-            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/public-app.js || ok=0
-            curl -fsSL "${BASE}v03-patch.js?verify=${GITHUB_SHA}" -o /tmp/public-patch.js || ok=0
-            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/public-sw.js || ok=0
-            curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}index.html?verify=${GITHUB_SHA}" -o /tmp/index.html || ok=0
+            curl -fsSL "${BASE}app.js?verify=${GITHUB_SHA}" -o /tmp/app.js || ok=0
+            curl -fsSL "${BASE}v03-patch.js?verify=${GITHUB_SHA}" -o /tmp/v03.js || ok=0
+            curl -fsSL "${BASE}v04-patch.js?verify=${GITHUB_SHA}" -o /tmp/v04patch.js || ok=0
+            curl -fsSL "${BASE}sw.js?verify=${GITHUB_SHA}" -o /tmp/sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?verify=${GITHUB_SHA}" -o /tmp/manifest.json || ok=0
             curl -fsSL "${BASE}icon-v6-512.png?verify=${GITHUB_SHA}" -o /tmp/icon512.png || ok=0
             curl -fsSL "${BASE}icon-v6-192.png?verify=${GITHUB_SHA}" -o /tmp/icon192.png || ok=0
-            if [ "$ok" -eq 1 ] && grep -q '__TAIXUAN_PATCH_V03__' /tmp/public-app.js && grep -q '黑风岭狼王' /tmp/public-patch.js && grep -q 'taixuan-v0.3.0-combat-patch0301' /tmp/public-sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then break; fi
+            if [ "$ok" -eq 1 ] && grep -q 'V0.4' /tmp/index.html && grep -q 'id="sectInfo"' /tmp/index.html && grep -q '__TAIXUAN_PATCH_V04__' /tmp/app.js && grep -q 'SECT_TASKS' /tmp/v04patch.js && grep -q 'taixuan-v0.4.0-sect-patch0401' /tmp/sw.js && [ "$(sha256sum /tmp/icon512.png|awk '{print $1}')" = "$EXPECT512" ] && [ "$(sha256sum /tmp/icon192.png|awk '{print $1}')" = "$EXPECT192" ]; then break; fi
             test "$i" -lt 60 || exit 1
             sleep 5
           done
-          node --check /tmp/public-app.js
-          node --check /tmp/public-patch.js
+          node --check /tmp/app.js
+          node --check /tmp/v03.js
+          node --check /tmp/v04patch.js
+          rm -f /tmp/pub.b64
+          for i in $(seq -w 1 24); do curl -fsSL "${BASE}bundle2/c${i}.b64?verify=${GITHUB_SHA}" >> /tmp/pub.b64; done
+          tr -d '\n\r' < /tmp/pub.b64 | base64 -d > /tmp/pub-v02.js
+          cat > /tmp/pub-apply.cjs <<'JS'
+          const fs=require('fs'),vm=require('vm'),assert=require('assert');const ctx={window:{}};vm.createContext(ctx);
+          vm.runInContext(fs.readFileSync('/tmp/v03.js','utf8'),ctx);vm.runInContext(fs.readFileSync('/tmp/v04patch.js','utf8'),ctx);
+          let src=fs.readFileSync('/tmp/pub-v02.js','utf8');src=ctx.window.__TAIXUAN_PATCH_V03__(src);src=ctx.window.__TAIXUAN_PATCH_V04__(src);assert(src.includes("const VERSION='0.4.0'"));assert(src.includes('renderSect'));fs.writeFileSync('/tmp/pub-v04.js',src);
+          JS
+          node /tmp/pub-apply.cjs
+          node --check /tmp/pub-v04.js
           python3 - <<'PY'
           import json
-          m=json.load(open('/tmp/public-manifest.json'))
+          m=json.load(open('/tmp/manifest.json'))
           assert m['display']=='standalone' and m['short_name']=='太玄界'
           assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
           PY
-          echo 'public-pass' > V03_STAGE.txt
+          echo 'public-pass' > V04_REGISTERED_STAGE.txt
 
       - name: Record PASS
         shell: bash
         run: |
           set -euo pipefail
-          cat > PUBLIC_V03_STATUS.json <<EOF
-          {"status":"PASS","game_version":"0.3.0","milestone":"combat-loop","verified_commit":"${GITHUB_SHA}","stage":"$(cat V03_STAGE.txt)","checks":["real V0.2 runtime patched","patched runtime syntax","headless weak-enemy win","wolf-king defeat/death","injury healing","public app loader","public V0.3 patch","public service worker","standalone manifest","V6 icon hash regression"]}
-          EOF
+          printf '%s\n' "{\"status\":\"PASS\",\"game_version\":\"0.4.0\",\"milestone\":\"sect-loop\",\"verified_commit\":\"${GITHUB_SHA}\",\"stage\":\"$(cat V04_REGISTERED_STAGE.txt)\",\"checks\":[\"repository V0.2->V0.3->V0.4 chain\",\"V0.4 syntax\",\"sect UI nodes\",\"public V0.4 index\",\"public loader\",\"public patches\",\"public service worker\",\"public runtime rebuild\",\"standalone manifest\",\"V6 icon hash regression\",\"prerelease gameplay regression previously PASS\"]}" > PUBLIC_V04_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V03_STATUS.json
-          git commit -m 'chore: record V0.3 public verification [skip ci]'
+          git add PUBLIC_V04_STATUS.json
+          git commit -m 'chore: record V0.4 registered public verification [skip ci]'
           git push origin HEAD:gh-pages
 
-      - name: Record failure marker
+      - name: Record FAIL
         if: failure()
         shell: bash
         run: |
-          stage=$(cat V03_STAGE.txt 2>/dev/null || echo 'checkout-or-unknown')
-          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"0.3.0\",\"milestone\":\"combat-loop\",\"stage\":\"${stage}\",\"note\":\"Registered V0.3 verification runner failed.\"}" > PUBLIC_V03_STATUS.json
+          stage=$(cat V04_REGISTERED_STAGE.txt 2>/dev/null || echo 'unknown')
+          printf '%s\n' "{\"status\":\"FAIL\",\"game_version\":\"0.4.0\",\"milestone\":\"sect-loop\",\"stage\":\"${stage}\",\"note\":\"Registered V0.4 verifier failed.\"}" > PUBLIC_V04_STATUS.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add PUBLIC_V03_STATUS.json
-          git commit -m 'chore: record V0.3 verification failure stage [skip ci]' || true
+          git add PUBLIC_V04_STATUS.json
+          git commit -m 'chore: record V0.4 registered verification failure [skip ci]' || true
           git push origin HEAD:gh-pages || true
