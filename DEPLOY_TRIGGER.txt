@@ -1,1 +1,2 @@
 Trigger Pages deployment after repository visibility change.
+V4 sample-derived icon deployment trigger: 2026-08-23T00:08Z
