@@ -1,0 +1,3 @@
+V3.8 final release trigger
+base: 4b9fdbaddd474bdb273ea31ed0932db32cc0ed94
+source: 76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda
