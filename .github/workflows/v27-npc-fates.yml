@@ -1,0 +1,262 @@
+name: V2.7 NPC fate network validation and release
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V27_NPC_FATES.trigger"
+      - "tools/build-v27-npc-fates.cjs"
+      - "tools/v27-npc-fate-block.txt"
+      - "tests/regression-v27.mjs"
+      - ".github/workflows/v27-npc-fates.yml"
+  push:
+    branches: ["main"]
+    paths: ["V27_NPC_FATES.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v27-npc-fates-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v27:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify V2.6 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const s=require('./PUBLIC_V26_STATUS.json');
+          if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='2601'||s.game_version!=='2.6.0'||s.realm_count!==26||s.location_count!==12||s.route_count!==20||s.save_schema_version!==23) throw new Error('V2.6 baseline is not verified');
+          JS
+      - name: Build V2.7 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/build-v27-npc-fates.cjs
+          node tools/build-v27-npc-fates.cjs
+          node --check src/game-v27.js
+          node - <<'JS'
+          const b=require('./BUILD_V27_NPC_FATES.json');
+          if(b.status!=='PASS'||b.gameplay_version!=='2.7.0'||b.build!=='2701'||b.realm_count!==26||b.location_count!==12||b.route_count!==20||b.save_schema_version!==24) throw new Error('V2.7 build report mismatch');
+          JS
+          grep -q "const VERSION='2.7.0'" src/game-v27.js
+          grep -q 'ensureNpcLifeShape' src/game-v27.js
+          grep -q 'npcMemorials' src/game-v27.js
+          grep -q 'simulateNpcSecretRealm' src/game-v27.js
+          grep -q 'simulateNpcFactionBattle' src/game-v27.js
+          grep -q 'npcBattleAllyTurn' src/game-v27.js
+          grep -q 'renderNpcFatePanel' src/game-v27.js
+          ! grep -q '天道酬勤' src/game-v27.js
+      - name: Run V2.6 and V2.7 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v26.mjs
+          node tests/regression-v27.mjs
+      - name: V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v27:
+    if: github.event_name == 'push'
+    needs: validate-v27
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Rebuild and regress exact release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/build-v27-npc-fates.cjs
+          node tools/build-v27-npc-fates.cjs
+          node --check src/game-v27.js
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v26.mjs
+          node tests/regression-v27.mjs
+      - name: Switch runtime shell to V2.7 build 2701
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > app.js <<'JS'
+          // 太玄界 V2.7 NPC命运网络加载器 · build 2701
+          (()=>{
+            const fail=(e)=>{console.error(e);document.body.innerHTML='<div style="max-width:680px;margin:40px auto;padding:20px;color:#fff;background:#171a16;border:1px solid #485042;border-radius:14px;font-family:system-ui;line-height:1.7"><h2>太玄界加载失败</h2><div>'+String(e)+'</div><p>请刷新页面；若仍失败，请把这段错误发给我。</p></div>'};
+            try{window.__TAIXUAN_BUILD__={engineeringVersion:'2.7.0',gameplayVersion:'2.7.0',build:'2701',milestone:'npc-fate-network',source:'src/game-v27.js',legacyPatchChain:false};document.title='太玄界 · 修仙大世界 V2.7';const script=document.createElement('script');script.src='./src/game-v27.js?v=2701';script.async=false;script.onload=()=>{if(!window.__TAIXUAN_TEST__)fail(new Error('V2.7 直接源码运行时未完成初始化'))};script.onerror=()=>fail(new Error('V2.7 游戏核心加载失败：src/game-v27.js'));document.head.appendChild(script)}catch(e){fail(e)}})();
+          JS
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html'); s=p.read_text(encoding='utf-8')
+          pairs=[
+            ('太玄界 · 修仙大世界 V2.6','太玄界 · 修仙大世界 V2.7'),
+            ('修仙大世界 · V2.6','修仙大世界 · V2.7'),
+            ('V2.6 · 宗门人物与内部生态','V2.7 · NPC命运网络'),
+            ('./app.js?v=2601','./app.js?v=2701'),
+            ('V2.4 的凡修生存重平衡和 V2.5 的五级宗门生涯继续保留。V2.6 让宗门人物真正随时间变化：师父会闭关、突破、寿尽，同门会修炼晋升，并形成长期竞争与周期性的宗门内部事件。','V2.4～V2.6 的凡修生存、宗门生涯和宗门人物生态继续保留。V2.7 把命运模拟扩展到普通修士：他们会变老、受伤、历练、闯秘境、参加势力冲突，也会结交、结怨和真正死亡。'),
+            ('见面后可赠礼、论道、切磋或求助。NPC仍有稳定道途倾向；V2.3 起所属势力也会读取你的长期立场，若已被该势力视作死敌，对方会拒绝正常社交。','见面后仍可赠礼、论道、切磋或求助。V2.7 起 NPC 还拥有自己的年龄、伤势、历练、秘境与势力战经历，并会彼此结交或结怨；故人死亡会永久进入人物命运记录。')
+          ]
+          for old,new in pairs:
+            if old not in s: raise SystemExit(f'index anchor missing: {old}')
+            s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+          cat > sw.js <<'JS'
+          const CACHE='taixuan-v2.7.0-npc-fates-2701';
+          const CORE=['./','./index.html?v=2701','./style.css','./app.js?v=2701','./src/game-v27.js?v=2701','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6'];
+          self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+          self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+          self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=2701'))));});
+          JS
+          cat > README.md <<'MD'
+          # 太玄界 · 修仙大世界
+
+          当前正式版本：**V2.7.0 · NPC命运网络（build 2701）**
+
+          正式运行结构：`index.html -> app.js -> src/game-v27.js`。浏览器直接加载可读源码，不使用历史补丁链或 `eval`。
+
+          ## V2.7
+          - 完整保留 V2.6 的宗门人物生态、V2.5 五级宗门生涯和 V2.4 凡修生存/寿元体系；
+          - 普通 NPC 获得动态年龄、伤势、历练次数、秘境次数、势力战次数、死亡原因与死亡日期；
+          - NPC 使用真实境界寿元上限，寿元耗尽会坐化，危险历练、秘境和青云—血刀冲突也可能造成受伤或死亡；
+          - 新增持久化 NPC↔NPC 关系网络，同地相遇会逐步形成交情或仇怨；
+          - 已知故人死亡进入永久故人录；与玩家交情深厚者死亡会留下个人经历与好友陨落统计；
+          - 与玩家关系足够好、同地且状态允许的 NPC，玩家遭遇真实战斗时可能加入助阵并直接扣减敌方气血；
+          - 人物关系页新增“人物命运”面板，可查看已知人物轨迹、NPC之间的关系和故人记录。
+
+          ## 存档
+          V2.7 使用 `saveSchemaVersion = 24`，新增普通 NPC 生命周期、人际网络、历练/秘境/势力战经历和故人录。V2.6 schema23 自动迁移；未来 schema25+ 拒绝覆盖。
+
+          V6 App 图标保持固定 SHA-256，不修改。
+          MD
+          node --check app.js
+          node --check sw.js
+          grep -q 'src/game-v27.js?v=2701' app.js
+          grep -q 'src/game-v27.js?v=2701' sw.js
+          ! grep -q 'bundle2' app.js
+          ! grep -q 'eval' app.js
+      - name: Regress after shell switch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v27.mjs
+      - name: Commit V2.7 runtime to main
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v27.js BUILD_V27_NPC_FATES.json app.js index.html sw.js README.md
+          if ! git diff --cached --quiet; then git commit -m 'feat: V2.7 NPC fate network [skip ci]'; git push origin HEAD:main; fi
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Publish exact V2.7 assets to gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp src/game-v27.js /tmp/pages/src/game-v27.js
+          cp BUILD_V27_NPC_FATES.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png /tmp/pages/
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v27.js BUILD_V27_NPC_FATES.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png
+          if ! git diff --cached --quiet; then git commit -m "feat: publish V2.7 NPC fates ${RELEASE_SHA} [skip ci]"; git push origin HEAD:gh-pages; fi
+      - name: Public terminal verification
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          EXPECT_GAME="$(node -p "require('./BUILD_V27_NPC_FATES.json').source_sha256")"
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}?v=2701&x=${RELEASE_SHA}-${i}" -o /tmp/public-index.html || ok=0
+            curl -fsSL "${BASE}app.js?v=2701&x=${RELEASE_SHA}-${i}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}src/game-v27.js?v=2701&x=${RELEASE_SHA}-${i}" -o /tmp/public-game.js || ok=0
+            curl -fsSL "${BASE}sw.js?v=2701&x=${RELEASE_SHA}-${i}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${RELEASE_SHA}-${i}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon192.png || ok=0
+            if [ "$ok" = 1 ] && grep -q 'V2.7' /tmp/public-index.html && grep -q 'src/game-v27.js?v=2701' /tmp/public-app.js && grep -q "const VERSION='2.7.0'" /tmp/public-game.js && [ "$(sha256sum /tmp/public-game.js | awk '{print $1}')" = "$EXPECT_GAME" ]; then break; fi
+            if [ "$i" = 60 ]; then echo 'V2.7 public assets did not converge' >&2; exit 1; fi
+            sleep 2
+          done
+          node --check /tmp/public-app.js
+          node --check /tmp/public-game.js
+          node --check /tmp/public-sw.js
+          INDEX_PATH=/tmp/public-index.html GAME_PATH=/tmp/public-game.js node tests/regression-v27.mjs
+          node - <<'JS'
+          const fs=require('fs');const m=JSON.parse(fs.readFileSync('/tmp/public-manifest.json','utf8'));if(!['standalone','fullscreen'].includes(m.display))throw new Error('manifest display is not standalone/fullscreen');
+          JS
+          test "$(sha256sum /tmp/public-icon512.png | awk '{print $1}')" = "$EXPECT512"
+          test "$(sha256sum /tmp/public-icon192.png | awk '{print $1}')" = "$EXPECT192"
+      - name: Record V2.7 public PASS on gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          SHA="$(node -p "require('./BUILD_V27_NPC_FATES.json').source_sha256")"
+          node - "$RELEASE_SHA" "$SHA" <<'JS' >/tmp/v27-status.json
+          const [release,sha]=process.argv.slice(2);const s={status:'PASS',game_version:'2.7.0',build:'2701',milestone:'npc-fate-network',verified_commit:release,source_sha256:sha,realm_count:26,location_count:12,route_count:20,save_schema_version:24,stage:'public-pass',checks:['V2.6 public baseline PASS','V2.7 source build','dynamic NPC age injury and lifespan death','persistent NPC to NPC relations','dangerous-region independent adventures','NPC secret realm participation','NPC faction war participation','friend battle assistance','persistent memorial records','V2.6 system regression','schema 23 to 24 migration','future-save overwrite guard','public asset HTTP 200','public source hash equality','public headless regression','standalone manifest','V6 icon hash regression']};process.stdout.write(JSON.stringify(s)+'\n');
+          JS
+          cd /tmp/pages
+          cp /tmp/v27-status.json PUBLIC_V27_STATUS.json
+          git add PUBLIC_V27_STATUS.json
+          git commit -m 'chore: record V2.7 public PASS [skip ci]'
+          git push origin HEAD:gh-pages
+      - name: Verify public PASS visibility
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          URL="https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V27_STATUS.json"
+          for i in $(seq 1 60); do
+            if curl -fsSL "${URL}?x=${RELEASE_SHA}-${i}" -o /tmp/public-v27-status.json && node - "$RELEASE_SHA" <<'JS'
+          const fs=require('fs'),release=process.argv[2],s=JSON.parse(fs.readFileSync('/tmp/public-v27-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.verified_commit!==release||s.build!=='2701'||s.save_schema_version!==24)process.exit(1);
+          JS
+            then exit 0; fi
+            sleep 2
+          done
+          echo 'PUBLIC_V27_STATUS did not become visible' >&2
+          exit 1
+      - name: Sync verified V2.7 PASS to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          cp /tmp/v27-status.json PUBLIC_V27_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V27_STATUS.json
+          git commit -m 'chore: sync verified V2.7 public PASS to main [skip ci]'
+          git push origin main
