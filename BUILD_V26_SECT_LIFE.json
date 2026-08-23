@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "gameplay_version": "2.6.0",
+  "build": "2601",
+  "milestone": "sect-life-rivalry",
+  "source": "src/game-v26.js",
+  "source_sha256": "406f86dc16191226906d89b79de860e2fc33b1332afece2732f04d74312c0212",
+  "source_bytes": 210041,
+  "realm_count": 26,
+  "location_count": 12,
+  "route_count": 20,
+  "save_schema_version": 23,
+  "checks": [
+    "living mentor states",
+    "mentor retreat breakthrough and lifespan death",
+    "six persistent sect peers",
+    "peer cultivation and rank progression",
+    "long-term sect rival",
+    "real nonlethal rival duel",
+    "rotating internal sect events",
+    "dead-mentor transfer with bond loss",
+    "schema 22 to 23 migration",
+    "V2.5 systems preserved"
+  ]
+}
