@@ -1,7 +1,10 @@
 V2.9 public terminal reverify
 validated_pr=24
 validated_head=58e7140c91602c621196590955cd970dee18566c
+fallback_validation_pr=25
+fallback_workflow_blob=9f43c85c6ecdec25edccc8562c053fe95358ed56
 source_sha256=b5dd8a4b4842beea0bbce2117312a1c02e1030642141a0c337104c1e93693c99
 build=2901
 schema=26
-retrigger=2
+retrigger=3
+transport=same-repo-pr
