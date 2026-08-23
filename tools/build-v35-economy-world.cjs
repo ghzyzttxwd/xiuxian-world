@@ -4,6 +4,8 @@ const INPUT='src/game-v34.js',OUTPUT='src/game-v35.js',CATALOG='content/v35-econ
 for(const f of [INPUT,CATALOG,RUNTIME])if(!fs.existsSync(f))throw new Error('V3.5 build missing '+f);
 const data=require('../'+CATALOG);let src=fs.readFileSync(INPUT,'utf8');let runtime=fs.readFileSync(RUNTIME,'utf8').trimEnd();
 runtime=runtime.replace('__V35_SHOPS__',JSON.stringify(data.shops)).replace('__V35_LISTINGS__',JSON.stringify(data.listings)).replace('__V35_AUCTION_POOL__',JSON.stringify(data.auctionPool));
+if(!runtime.includes('stock:v35Stock(row)}}'))throw new Error('V3.5 runtime stock return anchor missing');
+runtime=runtime.replace('stock:v35Stock(row)}}','stock:v35Stock(v35ListingRow(row.id))}}');
 function must(search,replacement,label){if(!src.includes(search))throw new Error('V3.5 transform did not match: '+label);src=src.replace(search,replacement)}
 
 must("const SAVE_KEY='xiuxian_world_v02'; const OLD_KEY='xiuxian_world_v01'; const VERSION='3.4.0'; const SAVE_SCHEMA_VERSION=31;","const SAVE_KEY='xiuxian_world_v02'; const OLD_KEY='xiuxian_world_v01'; const VERSION='3.5.0'; const SAVE_SCHEMA_VERSION=32;",'version/schema');
