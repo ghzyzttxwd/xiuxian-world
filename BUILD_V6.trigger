@@ -1,5 +1,4 @@
-mode=v11-public-diagnostic
-patch=1103
-release=c737b55e20313122b46c72f2a92ee7c8084fdd89
-verifier=18e459ecc7117fee7653f0aeebbbb40e30ae5592
-trigger=20260823-1324-diagnostic-r2
+mode=v11-public-verify
+build=1104
+release=53c24f5273e4e5cd3e4f00d1f904c43493fb457a
+trigger=20260823-1324-1104-r1
