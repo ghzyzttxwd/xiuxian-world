@@ -1,0 +1,1 @@
+{"status":"PASS","game_version":"1.2.0","build":"1201","milestone":"secret-realm","verified_commit":"cc71ce1a32e78f62fca863820ae6496d5fe31bf8","stage":"public-pass","checks":["public V1.2 assets","ten-patch runtime rebuild","secret realm smoke","core reward","manifest","V6 icon hash regression","prerelease PASS"]}
