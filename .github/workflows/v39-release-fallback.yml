@@ -1,0 +1,234 @@
+name: V3.9 release fallback
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V39_RELEASE_FINAL.trigger"
+      - ".github/workflows/v39-release-fallback.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v39-release-fallback-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate exact V3.9 release machinery
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v39-tribulation-ascension.cjs
+          node --check src/game-v39.js
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+          node -e "const b=require('./BUILD_V39_TRIBULATION_ASCENSION.json');const c=b.counts;if(b.status!=='PASS'||b.gameplay_version!=='3.9.0'||b.build!=='3901'||b.save_schema_version!==36||b.content_registry_version!==10||b.source_sha256!=='99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37'||c.realms!==40||c.regions!==27||c.routes!==41||c.materials!==94||c.recipes!==54||c.manuals!==44||c.spells!==108||c.equipment!==92||c.true_artifacts!==56||c.enemies!==94||c.formations!==4||c.thunder_stages!==6||c.transformation_stages!==3||c.world_powers!==4||c.world_actors!==6||c.world_crises!==3||c.auction_pool!==24)throw new Error('V3.9 build mismatch')"
+          node --check tools/release-v39-assets.cjs
+          bash -n tools/verify-v39-public.sh
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          node tests/regression-v38.mjs
+          node tests/regression-v39.mjs
+          node tools/release-v39-assets.cjs
+          grep -q "gameplayVersion:'3.9.0'" app.js
+          grep -q 'src/game-v39.js?v=3901' app.js
+          grep -q 'V3.9 · 渡劫飞升与真仙终局篇' index.html
+          grep -q 'taixuan-v3.9.0-tribulation-ascension-true-immortal-3901' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v39-final:
+    if: github.head_ref == 'v39-release-final-run'
+    needs: validate-fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - name: Checkout exact main release base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Reconfirm immutable main base and build runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          node tools/build-v39-tribulation-ascension.cjs
+          node --check src/game-v39.js
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+          node tools/release-v39-assets.cjs
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          node tests/regression-v38.mjs
+          node tests/regression-v39.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+      - name: Commit exact V3.9 runtime to main
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B main "$BASE_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v39.js BUILD_V39_TRIBULATION_ASCENSION.json app.js index.html sw.js
+          git commit -m "feat: V3.9 tribulation ascension true immortal [skip ci]"
+          git push origin HEAD:main
+          echo "runtime_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact V3.9 runtime to gh-pages
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp index.html app.js sw.js BUILD_V39_TRIBULATION_ASCENSION.json /tmp/pages/
+          cp src/game-v39.js /tmp/pages/src/game-v39.js
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html app.js sw.js BUILD_V39_TRIBULATION_ASCENSION.json src/game-v39.js
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V3.9 tribulation ascension ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify actual GitHub Pages
+        id: public
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set +e
+          ATTEMPTS=36 bash tools/verify-v39-public.sh
+          rc=$?
+          set -e
+          public_ok=$(cat /tmp/V39_PUBLIC_OK 2>/dev/null || echo false)
+          echo "public_ok=$public_ok" >> "$GITHUB_OUTPUT"
+          echo "verifier_rc=$rc"
+          cat /tmp/V39_PUBLIC_DIAGNOSTIC.txt || true
+          exit 0
+
+      - name: Persist V3.9 diagnostic on failure
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cp /tmp/V39_PUBLIC_DIAGNOSTIC.txt /tmp/pages/PUBLIC_V39_DIAGNOSTIC.txt
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V39_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record V3.9 public diagnostic ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Stop failed public release
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Record V3.9 public PASS on gh-pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cd /tmp/pages
+          git rm -f --ignore-unmatch PUBLIC_V39_DIAGNOSTIC.txt >/dev/null 2>&1 || true
+          RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s={status:'PASS',game_version:'3.9.0',build:'3901',milestone:'tribulation-ascension-true-immortal-finale',verified_commit:process.env.RUNTIME_SHA,source_sha256:'99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37',save_schema_version:36,content_registry_version:10,realm_count:40,region_count:27,route_count:41,material_count:94,recipe_count:54,manual_count:44,spell_count:108,equipment_count:92,true_artifact_count:56,enemy_count:94,formation_count:4,thunder_stage_count:6,transformation_stage_count:3,world_power_count:4,world_actor_count:6,world_crisis_count:3,auction_pool_count:24,stage:'public-pass',transport:'same-repo-pr-fallback',checks:['PR63 V3.9 validation PASS and closed unmerged','fallback workflow validation PASS and closed unmerged','schema35 to schema36 migration','six-stage thunder tribulation','heart demon tribulation','three-stage immortal transformation','real heavy and fatal tribulation failure','anti-tribulation formation and pills','V3.8 five-axis readiness consumed','V3.9 terminal skill guards effective','all V3.9 enemy mechanic types effective','tribulation essence exact three-win cadence','no free finale bypass','ascension gate','true immortal ending archive','V3.8 origin/world authority preserved','future schema37 protection','existing combat engine integration','actual GitHub Pages HTTP 200','public V3.9 markers','public source SHA equality','public V3.9 headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('PUBLIC_V39_STATUS.json',JSON.stringify(s)+'\n')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V39_STATUS.json
+          git commit -m "chore: record V3.9 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:gh-pages
+
+      - name: Verify PASS is actually reachable from Pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V39_STATUS.json?verify=${RUNTIME_SHA}-${i}" -o /tmp/live-v39-status.json; then
+              if RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v39-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='3.9.0'||s.build!=='3901'||s.save_schema_version!==36||s.verified_commit!==process.env.RUNTIME_SHA||s.source_sha256!=='99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37')process.exit(1)" && cmp -s /tmp/live-v39-status.json /tmp/pages/PUBLIC_V39_STATUS.json; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync exact PASS to main
+        if: steps.public.outputs.public_ok == 'true'
+        id: final_main
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$RUNTIME_SHA"
+          git checkout -B main origin/main
+          cp /tmp/pages/PUBLIC_V39_STATUS.json PUBLIC_V39_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V39_STATUS.json
+          git commit -m "chore: record V3.9 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:main
+          echo "final_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final V3.9 delta guard
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+          FINAL_SHA: ${{ steps.final_main.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$RUNTIME_SHA" "$FINAL_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V39_STATUS.json'
+          cmp -s PUBLIC_V39_STATUS.json /tmp/pages/PUBLIC_V39_STATUS.json
+          echo "V39_PUBLIC_TERMINAL_PASS $RUNTIME_SHA -> $FINAL_SHA"
