@@ -1,0 +1,36 @@
+name: V3.10 no-recharge balance
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V310_BALANCE.trigger"
+      - "tools/audit-v310-balance.mjs"
+      - ".github/workflows/v310-no-recharge-balance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit-v310:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact V3.9 finalized baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.base.sha }}" = "62db848091ce7686c85357a8c963820a9d27f24c"
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+          node -e "const s=require('./PUBLIC_V39_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.9.0'||s.build!=='3901'||s.save_schema_version!==36||s.verified_commit!=='168f308cfed758e3385e2b9ead5a6e0d44d8a9c6')throw new Error('V3.9 baseline mismatch')"
+      - name: Probe real runtime balance surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tools/audit-v310-balance.mjs
+          test -s /tmp/V310_AUDIT.json
