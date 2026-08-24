@@ -1,0 +1,3 @@
+V3.9 final release trigger
+base=b0b9794084342ff3b54c363174ec55d65fe9eed7
+source_sha=99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37
