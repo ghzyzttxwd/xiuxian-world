@@ -9,6 +9,8 @@ on:
       - "tools/v39-tribulation-ascension-runtime.txt"
       - "tools/build-v39-tribulation-ascension.cjs"
       - "tests/regression-v39.mjs"
+      - "tools/release-v39-assets.cjs"
+      - "tools/verify-v39-public.sh"
       - ".github/workflows/v39-tribulation-ascension.yml"
 
 permissions:
@@ -33,25 +35,25 @@ jobs:
           test "${{ github.event.pull_request.base.sha }}" = "1586ef115f935d8a24ff1f64fcbff15e8af4eb25"
           test "$(sha256sum src/game-v38.js | awk '{print $1}')" = "76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda"
           node -e "const s=require('./PUBLIC_V38_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.8.0'||s.build!=='3801'||s.save_schema_version!==35||s.content_registry_version!==9||s.source_sha256!=='76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda')throw new Error('V3.8 baseline mismatch')"
-      - name: Build deterministic V3.9 source
+      - name: Build deterministic frozen V3.9 source
         shell: bash
         run: |
           set -euo pipefail
           node tools/build-v39-tribulation-ascension.cjs
           node --check src/game-v39.js
           first=$(sha256sum src/game-v39.js | awk '{print $1}')
+          test "$first" = "524fbdbd6c7ab799eae40d13abf46344b1a04789e2c19ae57f96949d8324a8a0"
           cp src/game-v39.js /tmp/game-v39-first.js
           node tools/build-v39-tribulation-ascension.cjs >/tmp/v39-build-second.log
           second=$(sha256sum src/game-v39.js | awk '{print $1}')
           test "$first" = "$second"
           cmp -s /tmp/game-v39-first.js src/game-v39.js
-          node -e "const b=require('./BUILD_V39_TRIBULATION_ASCENSION.json');const c=b.counts;if(b.status!=='PASS'||b.gameplay_version!=='3.9.0'||b.build!=='3901'||b.save_schema_version!==36||b.content_registry_version!==10||c.realms!==40||c.regions!==27||c.routes!==41||c.materials!==94||c.recipes!==54||c.manuals!==44||c.spells!==108||c.equipment!==92||c.true_artifacts!==56||c.enemies!==94||c.formations!==4||c.thunder_stages!==6||c.transformation_stages!==3)throw new Error('V3.9 report mismatch')"
+          node -e "const b=require('./BUILD_V39_TRIBULATION_ASCENSION.json');const c=b.counts;if(b.status!=='PASS'||b.gameplay_version!=='3.9.0'||b.build!=='3901'||b.save_schema_version!==36||b.content_registry_version!==10||b.source_sha256!=='524fbdbd6c7ab799eae40d13abf46344b1a04789e2c19ae57f96949d8324a8a0'||c.realms!==40||c.regions!==27||c.routes!==41||c.materials!==94||c.recipes!==54||c.manuals!==44||c.spells!==108||c.equipment!==92||c.true_artifacts!==56||c.enemies!==94||c.formations!==4||c.thunder_stages!==6||c.transformation_stages!==3)throw new Error('V3.9 report mismatch')"
           grep -q "const VERSION='3.9.0'" src/game-v39.js
           grep -q 'const SAVE_SCHEMA_VERSION=36' src/game-v39.js
           grep -q 'realm-true-immortal' src/game-v39.js
           grep -q 'v39ResolveThunder' src/game-v39.js
           grep -q 'v39AscendToTrueImmortal' src/game-v39.js
-          echo "V39_SOURCE_SHA=$first"
       - name: Run V2.9 through V3.9 headless regression
         shell: bash
         run: |
@@ -69,6 +71,18 @@ jobs:
           node tests/regression-v37.mjs
           node tests/regression-v38.mjs
           node tests/regression-v39.mjs
+      - name: Validate V3.9 release transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/release-v39-assets.cjs
+          grep -q '<title>太玄界 · 修仙大世界 V3.9</title>' index.html
+          grep -q 'V3.9 · 渡劫飞升与真仙终局篇' index.html
+          grep -q 'src/game-v39.js?v=3901' app.js
+          grep -q "gameplayVersion:'3.9.0'" app.js
+          grep -q 'taixuan-v3.9.0-tribulation-ascension-true-immortal-3901' sw.js
+          bash -n tools/verify-v39-public.sh
+          grep -q "EXPECT_GAME='524fbdbd6c7ab799eae40d13abf46344b1a04789e2c19ae57f96949d8324a8a0'" tools/verify-v39-public.sh
       - name: Frozen V6 icon regression
         shell: bash
         run: |
