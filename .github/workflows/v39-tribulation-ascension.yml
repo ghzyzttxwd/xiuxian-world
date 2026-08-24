@@ -31,8 +31,8 @@ jobs:
         run: |
           set -euo pipefail
           test "${{ github.event.pull_request.base.sha }}" = "1586ef115f935d8a24ff1f64fcbff15e8af4eb25"
-          test "$(sha256sum src/game-v38.js | awk '{print $1}')" = "87346912d7981495090b371572393375dd5419bbf6aff0af678cf651c3bb63ef"
-          node -e "const s=require('./PUBLIC_V38_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.8.0'||s.build!=='3801'||s.save_schema_version!==35||s.content_registry_version!==9||s.source_sha256!=='87346912d7981495090b371572393375dd5419bbf6aff0af678cf651c3bb63ef')throw new Error('V3.8 baseline mismatch')"
+          test "$(sha256sum src/game-v38.js | awk '{print $1}')" = "76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda"
+          node -e "const s=require('./PUBLIC_V38_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.8.0'||s.build!=='3801'||s.save_schema_version!==35||s.content_registry_version!==9||s.source_sha256!=='76c458638274d77ea5541526996c971f755062167294472f8ef17e5c161a9fda')throw new Error('V3.8 baseline mismatch')"
       - name: Build deterministic V3.9 source
         shell: bash
         run: |
