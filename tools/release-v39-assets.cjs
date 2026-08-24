@@ -1,0 +1,22 @@
+const fs=require('fs');
+function must(text,search,replacement,label){if(!text.includes(search))throw new Error('V3.9 release transform did not match: '+label);if(text.indexOf(search)!==text.lastIndexOf(search))throw new Error('V3.9 release transform ambiguous: '+label);return text.replace(search,replacement)}
+const app=`// 太玄界 V3.9 渡劫飞升与真仙终局篇正式加载器 · build 3901
+(()=>{
+  const fail=(e)=>{console.error(e);document.body.innerHTML='<div style="max-width:680px;margin:40px auto;padding:20px;color:#fff;background:#171a16;border:1px solid #485042;border-radius:14px;font-family:system-ui;line-height:1.7"><h2>太玄界加载失败</h2><div>'+String(e)+'</div><p>请刷新页面；若仍失败，请把这段错误发给我。</p></div>'};
+  try{window.__TAIXUAN_BUILD__={engineeringVersion:'3.9.0',gameplayVersion:'3.9.0',build:'3901',milestone:'tribulation-ascension-true-immortal-finale',source:'src/game-v39.js',legacyPatchChain:false};document.title='太玄界 · 修仙大世界 V3.9';const script=document.createElement('script');script.src='./src/game-v39.js?v=3901';script.async=false;script.onload=()=>{if(!window.__TAIXUAN_TEST__)fail(new Error('V3.9 直接源码运行时未完成初始化'))};script.onerror=()=>fail(new Error('V3.9 游戏核心加载失败：src/game-v39.js'));document.head.appendChild(script)}catch(e){fail(e)}})();
+`;
+fs.writeFileSync('app.js',app,'utf8');
+let index=fs.readFileSync('index.html','utf8');
+index=must(index,'<title>太玄界 · 修仙大世界 V3.8</title>','<title>太玄界 · 修仙大世界 V3.9</title>','title');
+index=must(index,'修仙大世界 · V3.8</p>','修仙大世界 · V3.9</p>','start version');
+index=must(index,'<div id="installStatus" class="install-note"></div><div class="version">V3.8 · 大乘本源与人界大势篇</div>','<div id="installStatus" class="install-note"></div><div class="version">V3.9 · 渡劫飞升与真仙终局篇</div>','version badge');
+index=must(index,'<p class="section-tip">V3.8 正式进入大乘篇：合体圆满后必须感应天地本源、建立世界权柄、让本命法宝承载界源烙印，并以大乘本源髓完成证道。大乘修士开始真实影响人界秩序、世界级势力与三类世界危机；四大道途获得本源层神通与法宝。九霄劫台同时开放肉身、元神、法则、本命法宝、阵法五维渡劫准备，但真正仙劫与飞升仍留给下一阶段。</p>','<p class="section-tip">V3.9 正式进入人界终局：大乘圆满后不能再靠普通突破直达下一境，必须把 V3.8 的肉身、元神、法则、本命法宝与阵法五维准备真正带入六重雷劫，随后面对心魔劫与三段仙凡蜕变。失败会造成重伤、寿元巨损、本命法宝受损，后段劫难甚至可能直接身死；只有完成全部终局阶段，飞升天门才会开启并生成真仙通关档案。</p>','home release note');
+index=must(index,'<script src="./app.js?v=3801"></script>','<script src="./app.js?v=3901"></script>','app cache bust');
+fs.writeFileSync('index.html',index,'utf8');
+const sw=`const CACHE='taixuan-v3.9.0-tribulation-ascension-true-immortal-3901';
+const CORE=['./','./index.html?v=3901','./style.css','./app.js?v=3901','./src/game-v39.js?v=3901','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6'];
+self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=3901'))));});
+`;
+fs.writeFileSync('sw.js',sw,'utf8');console.log('V39_RELEASE_ASSETS_PASS');
