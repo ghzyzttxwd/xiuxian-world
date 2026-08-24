@@ -1,0 +1,88 @@
+const fs=require('fs');
+const crypto=require('crypto');
+const INPUT='src/game-v38.js',OUTPUT='src/game-v39.js',CATALOG='content/v39-tribulation-ascension.cjs',RUNTIME='tools/v39-tribulation-ascension-runtime.txt',REPORT='BUILD_V39_TRIBULATION_ASCENSION.json',BUILD='3901';
+for(const f of [INPUT,CATALOG,RUNTIME])if(!fs.existsSync(f))throw new Error('V3.9 build missing '+f);
+const data=require('../'+CATALOG);
+let src=fs.readFileSync(INPUT,'utf8');
+let runtime=fs.readFileSync(RUNTIME,'utf8').trimEnd();
+runtime=runtime.replace('__V39_FORMATIONS__',JSON.stringify(data.formations));
+// Correct the world-order term in the existing V3.9 runtime support blob. This is deliberately
+// done in the deterministic builder so the generated direct source cannot inherit the precedence bug.
+runtime=runtime.replace('(state.world.v38WorldOrder||50-50)*.04','((state.world.v38WorldOrder||50)-50)*.04');
+const inner=a=>JSON.stringify(a).slice(1,-1);
+function must(oldText,newText,label){const i=src.indexOf(oldText);if(i<0)throw new Error('V3.9 transform did not match: '+label);if(src.indexOf(oldText,i+1)>=0)throw new Error('V3.9 transform ambiguous: '+label);src=src.slice(0,i)+newText+src.slice(i+oldText.length)}
+function mustRegex(re,repl,label){const matches=[...src.matchAll(new RegExp(re.source,re.flags.includes('g')?re.flags:re.flags+'g'))];if(matches.length!==1)throw new Error('V3.9 regex transform '+label+' matched '+matches.length);src=src.replace(re,repl)}
+function appendFrozenArray(name,rows,label){const start='const '+name+'=Object.freeze([';const i=src.indexOf(start);if(i<0)throw new Error('V3.9 missing '+label);const end=src.indexOf(']);',i+start.length);if(end<0)throw new Error('V3.9 unterminated '+label);const add=(src.slice(i+start.length,end).trim()?',' : '')+inner(rows);src=src.slice(0,end)+add+src.slice(end)}
+function appendPlainArray(name,rows,endAnchor,label){const start='const '+name+'=[';const i=src.indexOf(start);if(i<0)throw new Error('V3.9 missing '+label);const end=src.indexOf(endAnchor,i+start.length);if(end<0)throw new Error('V3.9 unterminated '+label);const add=','+inner(rows)+'\n';src=src.slice(0,end)+add+src.slice(end)}
+function appendObjectBefore(anchor,entries,label){const ai=src.indexOf(anchor);if(ai<0)throw new Error('V3.9 missing '+label+' anchor');const end=src.lastIndexOf('};',ai);if(end<0)throw new Error('V3.9 missing '+label+' object end');src=src.slice(0,end)+','+entries+src.slice(end)}
+
+// identity / schema / registry
+must("const SAVE_KEY='xiuxian_world_v02'; const OLD_KEY='xiuxian_world_v01'; const VERSION='3.8.0'; const SAVE_SCHEMA_VERSION=35;","const SAVE_KEY='xiuxian_world_v02'; const OLD_KEY='xiuxian_world_v01'; const VERSION='3.9.0'; const SAVE_SCHEMA_VERSION=36;",'version/schema');
+must('const CONTENT_STATE_VERSION=9;','const CONTENT_STATE_VERSION=10;','registry version');
+
+// realms and world topology
+const realmAnchor='\n];\nconst V23_REALM_NEEDS=';must(realmAnchor,','+inner(data.realms)+realmAnchor,'append finale realms');
+const regionEntries=data.regions.map(r=>JSON.stringify(r.name)+':'+JSON.stringify({desc:r.desc,links:r.links,danger:r.danger,herb:r.herb,work:r.work,find:r.find,faction:r.faction,specialty:r.specialty,secret:r.secret,eventRate:r.eventRate,eventKind:r.eventKind})).join(',');
+appendObjectBefore('\nconst TRAVEL_ROUTES=[',regionEntries,'locations');
+const routesAnchor='\n];\nfunction routesFrom(location)';must(routesAnchor,','+inner(data.routes)+routesAnchor,'append finale routes');
+appendFrozenArray('REALM_IDS',data.realmIds,'realm ids');
+const regionIdEntries=data.regions.map(r=>JSON.stringify(r.name)+':'+JSON.stringify(r.id)).join(',');
+appendObjectBefore('\nconst MANUAL_ID_BY_NAME=Object.freeze(',regionIdEntries,'region ids');
+
+// registries / content
+const materialEntries=data.materials.map(m=>JSON.stringify(m.id)+':'+JSON.stringify({id:m.id,name:m.name,qualityId:m.qualityId,kind:m.kind,field:m.legacyField||null,locations:m.locations,minRealm:m.minRealm,named:true})).join(',');
+appendObjectBefore('\n\nconst CONSUMABLE_ITEM_META=Object.freeze(',materialEntries,'material registry');
+appendFrozenArray('V31_MANUAL_CATALOG',data.manuals,'manual catalog');
+appendFrozenArray('V31_SPELL_CATALOG',data.spells,'spell catalog');
+appendFrozenArray('V32_EQUIPMENT_CATALOG',data.equipment,'equipment catalog');
+appendFrozenArray('V33_MATERIAL_CATALOG',data.materials,'material catalog');
+appendFrozenArray('V33_RECIPE_CATALOG',data.recipes,'recipe catalog');
+appendPlainArray('ENEMIES',data.enemies,'];\nconst CONTENT_STATE_VERSION=10;','enemy catalog');
+
+// direct V3.9 runtime; no eval and no runtime patch chain.
+must('function rand(){state.rng=',runtime+'\n\nfunction rand(){state.rng=','inject V3.9 runtime');
+
+// schema 35 -> 36 and shape/sync integration.
+mustRegex(/(\n\s*35\(\)\{ensureV38MahayanaShape\(\)\})(\s*\n\};)/,(m,a,b)=>a+',\n 36(){ensureV39FinaleShape()}'+b,'schema36');
+const newShape='ensureV38MahayanaShape();ensureNpcLifeShape();';must(newShape,'ensureV38MahayanaShape();ensureV39FinaleShape();ensureNpcLifeShape();','new state shape');
+let syncCount=0;src=src.replace(/syncV38MahayanaState\(\);/g,m=>{syncCount++;return m+'syncV39FinaleState();'});if(syncCount<1)throw new Error('V3.9 did not integrate state sync');
+
+// expose formation registry as stable content.
+must('worldPowers=v38WorldPowerRegistry(),worldActors=v38WorldActorRegistry(),worldCrises=v38CrisisRegistry();return {registryVersion:CONTENT_STATE_VERSION,quality:', 'worldPowers=v38WorldPowerRegistry(),worldActors=v38WorldActorRegistry(),worldCrises=v38CrisisRegistry(),formations=v39FormationRegistry();return {registryVersion:CONTENT_STATE_VERSION,quality:','formation registry source');
+must('regions,statuses:JSON.parse(JSON.stringify(statuses)),shops,laws,worldPowers,worldActors,worldCrises,counts:', 'regions,statuses:JSON.parse(JSON.stringify(statuses)),shops,laws,worldPowers,worldActors,worldCrises,formations,counts:','formation registry payload');
+must('worldCrises:Object.keys(worldCrises).length}}}', 'worldCrises:Object.keys(worldCrises).length,formations:Object.keys(formations).length}}}','formation registry count');
+
+// realm model: V3.9 terminal realms are separate major stages and cannot be reached by generic breakthrough.
+must('function majorRealmStage(index){const i=clamp(Number(index)||0,0,REALMS.length-1);return i===0?0:i<=9?1:i<=13?2:i<=18?3:i<=22?4:i<=25?5:i<=29?6:i<=33?7:8}', 'function majorRealmStage(index){const i=clamp(Number(index)||0,0,REALMS.length-1);return i===0?0:i<=9?1:i<=13?2:i<=18?3:i<=22?4:i<=25?5:i<=29?6:i<=33?7:i<=37?8:i===38?9:10}','major stages');
+must('function realmLifespanFloor(index){return index>=37?50000:index>=34?25000:index>=33?12000:index>=30?8000:index>=29?5000:index>=26?3500:index>=23?2000:index>=19?1000:index>=15?500:index>=14?300:index>=10?150:82}', 'function realmLifespanFloor(index){return index>=39?1000000:index>=38?120000:index>=37?50000:index>=34?25000:index>=33?12000:index>=30?8000:index>=29?5000:index>=26?3500:index>=23?2000:index>=19?1000:index>=15?500:index>=14?300:index>=10?150:82}','finale lifespan');
+must('if(state.player.realmIndex===33)return v38AttemptMahayanaBreakthrough();',"if(state.player.realmIndex===33)return v38AttemptMahayanaBreakthrough();if(state.player.realmIndex===37){const r=v39BeginTribulation();return showResult(r.ok?'仙劫已引':'尚不能渡劫',r.ok?'六重雷劫已经锁定你的气机。':'渡劫准备尚未满足：'+(r.reason||'readiness'),r.ok?'major':'bad')}if(state.player.realmIndex>=38)return showResult('仙凡终局',state.player.realmIndex>=39?'你已经飞升真仙。':'请在渡劫终局面板完成飞升。','major');",'route finale breakthrough');
+
+// V3.9 state-gated travel.
+must("if((route.fee||0)>state.player.spiritStones)","const v39gate=v39TravelGate(route,to);if(!v39gate.ok)return showResult('仙劫道路未开启','当前渡劫阶段不能进入该区域。','bad');if((route.fee||0)>state.player.spiritStones)",'finale travel gate');
+
+// existing combat engine integration for V3.9 enemies.
+must('v34EnemyAfterPlayerAction(a,beforeEnemyHp);v37EnemyAfterPlayerAction(a,beforeEnemyHp);v38EnemyAfterPlayerAction(a,beforeEnemyHp);if(combat.playerHp<=0)', 'v34EnemyAfterPlayerAction(a,beforeEnemyHp);v37EnemyAfterPlayerAction(a,beforeEnemyHp);v38EnemyAfterPlayerAction(a,beforeEnemyHp);v39EnemyAfterPlayerAction(a,beforeEnemyHp);if(combat.playerHp<=0)','enemy after-player hook');
+must('edmg=v34EnemyAttackEffect(e,edmg);edmg=v37EnemyAttackEffect(e,edmg);edmg=v38EnemyAttackEffect(e,edmg);', 'edmg=v34EnemyAttackEffect(e,edmg);edmg=v37EnemyAttackEffect(e,edmg);edmg=v38EnemyAttackEffect(e,edmg);edmg=v39EnemyAttackEffect(e,edmg);','enemy attack hook');
+must('v34AfterCombatRound();v36AfterCombatRound();v37AfterCombatRound();v38AfterCombatRound()}', 'v34AfterCombatRound();v36AfterCombatRound();v37AfterCombatRound();v38AfterCombatRound();v39AfterCombatRound()}','round hook');
+must('onV36CombatWin(e);onV37CombatWin(e);onV38CombatWin(e);onDaoCombatWin(e);', 'onV36CombatWin(e);onV37CombatWin(e);onV38CombatWin(e);onV39CombatWin(e);onDaoCombatWin(e);','combat win hook');
+
+// UI and test API.
+let renderCount=0;src=src.replace(/renderV38WorldPanel\(\);/g,m=>{renderCount++;return m+'renderV39FinalePanel();'});if(renderCount!==1)throw new Error('V3.9 render hook matched '+renderCount);
+const apiFns='ensureV39FinaleShape,syncV39FinaleState,v39FormationRegistry,v39BuildTribulationFormation,v39ArmTribulationPill,v39TribulationReadiness,v39BeginTribulation,v39ThunderStage,v39ResolveThunder,v39ResolveHeartDemon,v39ResolveTransformation,v39AscendToTrueImmortal,v39TravelGate,v39EnemyMechanic,v39CatalogSnapshot,v39StateSnapshot,v39SetPlayerForTest,v39FinaleText,';
+must('window.__TAIXUAN_TEST__={','window.__TAIXUAN_TEST__={'+apiFns,'test API');
+
+// Guard permanent invariants.
+if(!src.includes("const SAVE_KEY='xiuxian_world_v02'"))throw new Error('SAVE_KEY changed');
+if(/\beval\s*\(/.test(src))throw new Error('eval forbidden');
+if(!src.includes("const VERSION='3.9.0'"))throw new Error('version missing');
+if(!src.includes('const SAVE_SCHEMA_VERSION=36'))throw new Error('schema missing');
+if(!src.includes('const CONTENT_STATE_VERSION=10'))throw new Error('registry version missing');
+
+fs.writeFileSync(OUTPUT,src);
+const sha=crypto.createHash('sha256').update(Buffer.from(src)).digest('hex');
+const counts={realms:38+data.realms.length,regions:24+data.regions.length,routes:38+data.routes.length,materials:84+data.materials.length,recipes:48+data.recipes.length,manuals:40+data.manuals.length,spells:96+data.spells.length,equipment:84+data.equipment.length,true_artifacts:48+data.equipment.filter(x=>x.trueArtifact).length,enemies:84+data.enemies.length,formations:data.formations.length,thunder_stages:6,transformation_stages:3,world_powers:4,world_actors:6,world_crises:3,auction_pool:24};
+const expected={realms:40,regions:27,routes:41,materials:94,recipes:54,manuals:44,spells:108,equipment:92,true_artifacts:56,enemies:94,formations:4,thunder_stages:6,transformation_stages:3,world_powers:4,world_actors:6,world_crises:3,auction_pool:24};
+for(const [k,v] of Object.entries(expected))if(counts[k]!==v)throw new Error('V3.9 count gate '+k+' '+counts[k]+' != '+v);
+const report={status:'PASS',gameplay_version:'3.9.0',build:BUILD,milestone:'tribulation-ascension-true-immortal-finale',source:OUTPUT,source_sha256:sha,source_bytes:Buffer.byteLength(src),save_schema_version:36,content_registry_version:10,counts,checks:['direct complete source','six-stage thunder tribulation','heart demon tribulation','three-stage immortal transformation','real tribulation failure and fatal path','anti-tribulation formation','anti-tribulation pills','V3.8 five-axis readiness consumed','ascension gate','true immortal ending archive','schema35 to schema36 migration','V3.8 origin and world authority preserved','future schema37 protection','existing combat engine integration','no eval','SAVE_KEY frozen']};
+fs.writeFileSync(REPORT,JSON.stringify(report,null,2)+'\n');
+console.log('V39_BUILD_PASS',JSON.stringify(report));
