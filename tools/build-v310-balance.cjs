@@ -1,0 +1,20 @@
+const fs=require('fs');
+const crypto=require('crypto');
+const INPUT='src/game-v39.js',OUTPUT='src/game-v310.js',REPORT='BUILD_V310_BALANCE.json',BUILD='31001';
+let src=fs.readFileSync(INPUT,'utf8');
+function must(a,b,label){const i=src.indexOf(a);if(i<0)throw new Error('V3.10 transform miss: '+label);if(src.indexOf(a,i+1)>=0)throw new Error('V3.10 transform ambiguous: '+label);src=src.slice(0,i)+b+src.slice(i+a.length)}
+must("const SAVE_KEY='xiuxian_world_v02'; const OLD_KEY='xiuxian_world_v01'; const VERSION='3.9.0'; const SAVE_SCHEMA_VERSION=36;","const SAVE_KEY='xiuxian_world_v02'; const OLD_KEY='xiuxian_world_v01'; const VERSION='3.10.0'; const SAVE_SCHEMA_VERSION=36;",'version');
+const oldGain="function cultivationGainForDays(days=1,retreatBoost=1){const p=state.player,d=Math.max(1,Math.floor(days)),base=rint(6*d,10*d),rootM=root().mult,manualM=manual().mult,injuryM=[1,.90,.70,.48][clamp(p.injury||0,0,3)],gain=Math.floor(base*rootM*manualM*injuryM*dwellingCultivationMultiplier()*Math.max(.1,retreatBoost));return Math.max(1,gain)}";
+const newGain="function cultivationGainForDays(days=1,retreatBoost=1){const p=state.player,d=Math.max(1,Math.floor(days)),base=rint(6*d,10*d),rootM=root().mult,manualM=manual().mult,realmM=Math.max(1,Number(realm().rate)||1),injuryM=[1,.90,.70,.48][clamp(p.injury||0,0,3)],gain=Math.floor(base*rootM*manualM*realmM*injuryM*dwellingCultivationMultiplier()*Math.max(.1,retreatBoost));return Math.max(1,gain)}";
+must(oldGain,newGain,'realm cultivation rate');
+if(!src.includes("const SAVE_KEY='xiuxian_world_v02'"))throw new Error('SAVE_KEY changed');
+if(/\beval\s*\(/.test(src))throw new Error('eval forbidden');
+if(!src.includes("const VERSION='3.10.0'"))throw new Error('version missing');
+if(!src.includes('const SAVE_SCHEMA_VERSION=36'))throw new Error('schema changed unexpectedly');
+if(!src.includes('const CONTENT_STATE_VERSION=10'))throw new Error('registry changed unexpectedly');
+if(!src.includes('realmM=Math.max(1,Number(realm().rate)||1)'))throw new Error('realm rate missing');
+fs.writeFileSync(OUTPUT,src);
+const sha=crypto.createHash('sha256').update(Buffer.from(src)).digest('hex');
+const report={status:'PASS',gameplay_version:'3.10.0',build:BUILD,milestone:'no-recharge-full-run-balance',source:OUTPUT,source_sha256:sha,source_bytes:Buffer.byteLength(src),save_schema_version:36,content_registry_version:10,changes:['realm cultivation rate is now applied to daily cultivation gain'],invariants:['direct complete source','SAVE_KEY frozen','schema36 retained because no new state','content registry v10 retained','no eval','no runtime patch chain']};
+fs.writeFileSync(REPORT,JSON.stringify(report,null,2)+'\n');
+console.log('V310_BUILD_PASS '+JSON.stringify(report));
