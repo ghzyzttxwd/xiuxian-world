@@ -23,3 +23,6 @@ fs.writeFileSync('/tmp/V310_AUDIT.json',JSON.stringify(out,null,2)+'\n');
 console.log('V310_AUDIT_PASS '+JSON.stringify({version:out.version,schema:out.schema,apiCount:keys.length,initial:out.initial,catalogs:out.catalogs}));
 console.log('V310_API_KEYS '+keys.join(','));
 if(out.realmBalance)console.log('V310_REALM_BALANCE '+JSON.stringify(out.realmBalance));
+for(const name of ['action','travel','attemptBreakthrough','gatherV33Material','v35Trade','chooseDaoPath','craftCoreEssence','craftNascentEssence','craftDeificationEssence','v36ContemplateSpace','v36CraftVoidEssence','v36AttemptRefiningBreakthrough','v37ChooseLaw','v37ContemplateLaw','v37IntegrateUnity','v37CraftUnityEssence','v37AttemptUnityBreakthrough','v38ContemplateOrigin','v38ExerciseWorldAuthority','v38CraftMahayanaEssence','v38TemperNatalOrigin','v38PrepareTribulation','v38AttemptMahayanaBreakthrough','v39BuildTribulationFormation','v39ArmTribulationPill','v39BeginTribulation','v39ResolveThunder','v39ResolveHeartDemon','v39ResolveTransformation','v39AscendToTrueImmortal']){
+  if(typeof api[name]==='function')console.log('V310_FN '+name+' '+String(api[name]).replace(/\s+/g,' '));
+}
