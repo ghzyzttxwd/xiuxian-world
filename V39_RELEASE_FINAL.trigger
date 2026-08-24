@@ -1,0 +1,3 @@
+V3.9 release fallback validation
+base=2db3d2a26812d5a622cf7ea85ec4e5d52eb0dade
+expected_release_job=skipped
