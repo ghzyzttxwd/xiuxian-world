@@ -1,0 +1,74 @@
+name: V3.9 taskbook finalize
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V39_TASKBOOK_FINALIZE.trigger"
+      - "tools/finalize-v39-taskbook.cjs"
+      - ".github/workflows/v39-taskbook-finalize.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-v39-taskbook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact V3.9 terminal baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "a90ad959ac5f3bfee300eed403b9a58f20cd5a34"
+          test "$(git show ${BASE_SHA}:src/game-v39.js | sha256sum | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+          test "$(git rev-parse ${BASE_SHA}:PUBLIC_V39_STATUS.json)" = "6f62177ee17fec1410b191df8b1dc713a8ddab6a"
+          git show ${BASE_SHA}:PUBLIC_V39_STATUS.json >/tmp/v39-status.json
+          node -e "const s=require('/tmp/v39-status.json');if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='3.9.0'||s.build!=='3901'||s.save_schema_version!==36||s.content_registry_version!==10||s.verified_commit!=='168f308cfed758e3385e2b9ead5a6e0d44d8a9c6'||s.source_sha256!=='99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37')throw new Error('V3.9 terminal baseline mismatch')"
+          mapfile -t changed < <(git diff --name-only 168f308cfed758e3385e2b9ead5a6e0d44d8a9c6 "$BASE_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V39_STATUS.json'
+
+      - name: Generate and validate taskbook
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/finalize-v39-taskbook.cjs
+          grep -q '最近重大修订：2026-08-24 · V3.9 渡劫飞升与真仙终局正式完成' docs/PROJECT_TASKBOOK.md
+          grep -q '当前正式基线：V3.9.0 · 渡劫飞升与真仙终局篇 · build 3901 · save schema 36' docs/PROJECT_TASKBOOK.md
+          grep -q '# 2. V3.9 当前真实基线' docs/PROJECT_TASKBOOK.md
+          grep -q '| V3.9 渡劫 / 飞升真仙 | DONE |' docs/PROJECT_TASKBOOK.md
+          grep -q '| V3.10 无充值全流程总平衡 | TODO / CURRENT |' docs/PROJECT_TASKBOOK.md
+          grep -q '\- \[x\] 渡劫完整' docs/PROJECT_TASKBOOK.md
+          grep -q '\- \[x\] 真仙飞升终局完整' docs/PROJECT_TASKBOOK.md
+          grep -q '\- \[ \] 普通玩家不充值可从凡人完整游玩至真仙' docs/PROJECT_TASKBOOK.md
+          grep -q '正式 runtime commit：`168f308cfed758e3385e2b9ead5a6e0d44d8a9c6`' docs/PROJECT_TASKBOOK.md
+          grep -q '正式源码 SHA256：`99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37`' docs/PROJECT_TASKBOOK.md
+          grep -q 'PUBLIC_V39_STATUS.json = PASS' docs/PROJECT_TASKBOOK.md
+          grep -q '下一阶段：V3.10 无充值全流程总平衡' docs/PROJECT_TASKBOOK.md
+          cp docs/PROJECT_TASKBOOK.md /tmp/PROJECT_TASKBOOK_V39.md
+
+      - name: Commit only finalized taskbook to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          git reset --hard
+          git checkout -B main "$BASE_SHA"
+          cp /tmp/PROJECT_TASKBOOK_V39.md docs/PROJECT_TASKBOOK.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_TASKBOOK.md
+          mapfile -t changed < <(git diff --cached --name-only)
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'docs/PROJECT_TASKBOOK.md'
+          git diff --cached --check
+          git commit -m "docs: mark V3.9 true immortal finale complete [skip ci]"
+          git push origin HEAD:main
