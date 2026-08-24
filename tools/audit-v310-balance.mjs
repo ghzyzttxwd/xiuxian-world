@@ -18,12 +18,13 @@ const out={version:state.version,schema:state.saveSchemaVersion,apiKeys:keys,ini
 fs.writeFileSync('/tmp/V310_AUDIT.json',JSON.stringify(out,null,2)+'\n');
 console.log('V310_AUDIT_PASS '+JSON.stringify({version:out.version,schema:out.schema,apiCount:keys.length,initial:out.initial}));
 function compact(label,value){console.log(label+' '+JSON.stringify(value));}
+function rows(v){if(Array.isArray(v))return v;if(v&&typeof v==='object')return Object.values(v);return []}
 const v31=snaps.v31||{};
-compact('V310_MANUALS',(v31.manuals||[]).map(x=>({id:x.id,name:x.name,unlock:x.unlock,path:x.path,mult:x.mult,sources:x.sources})));
+compact('V310_MANUALS',rows(v31.manuals).map(x=>({id:x.id,name:x.name,unlock:x.unlock,path:x.path,mult:x.mult,sources:x.sources})));
 const v33=snaps.v33||{};
-compact('V310_MATERIALS',(v33.materials||[]).map(x=>({id:x.id,name:x.name,qualityId:x.qualityId,locations:x.locations,minRealm:x.minRealm})));
-compact('V310_RECIPES',(v33.recipes||[]).map(x=>({id:x.id,name:x.name,unlock:x.unlock,sources:x.sources,ingredients:x.ingredients,effect:x.effect})));
-const shops=snaps.shops||{};compact('V310_SHOPS',shops);
-const listings=snaps.listings||{};compact('V310_LISTINGS',listings);
+compact('V310_V33_SHAPE',{keys:Object.keys(v33),types:Object.fromEntries(Object.entries(v33).map(([k,v])=>[k,Array.isArray(v)?'array':typeof v]))});
+compact('V310_MATERIALS',rows(v33.materials).map(x=>({id:x.id,name:x.name,qualityId:x.qualityId,locations:x.locations,minRealm:x.minRealm})));
+compact('V310_RECIPES',rows(v33.recipes).map(x=>({id:x.id,name:x.name,unlock:x.unlock,sources:x.sources,ingredients:x.ingredients,effect:x.effect})));
+compact('V310_SHOPS',snaps.shops||{});compact('V310_LISTINGS',snaps.listings||{});
 compact('V310_V36',snaps.v36);compact('V310_V37',snaps.v37);compact('V310_V38',snaps.v38);
 for(const name of ['action','travel','routeInfo','coreRequirements','marketPrices','v33MaterialDropEntries','forgeV32Item','bindV32Artifact','refineV32Artifact','warmV32Artifact','makeNatalV32Artifact','learnV31Manual','learnV31Spell','learnV33Recipe','brewV33Alchemy','v35Quote','v35ShopAccess','v35ListingAccess'])if(typeof api[name]==='function')console.log('V310_FN '+name+' '+String(api[name]).replace(/\s+/g,' '));
