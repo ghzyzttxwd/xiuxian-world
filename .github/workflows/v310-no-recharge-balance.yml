@@ -6,6 +6,8 @@ on:
     paths:
       - "V310_BALANCE.trigger"
       - "tools/audit-v310-balance.mjs"
+      - "tools/build-v310-balance.cjs"
+      - "tests/regression-v310.mjs"
       - ".github/workflows/v310-no-recharge-balance.yml"
 
 permissions:
@@ -14,7 +16,7 @@ permissions:
 jobs:
   audit-v310:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,3 +36,28 @@ jobs:
           npm install --no-save jsdom@24 >/dev/null 2>&1
           node tools/audit-v310-balance.mjs
           test -s /tmp/V310_AUDIT.json
+      - name: Build deterministic V3.10 direct source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v310-balance.cjs
+          node --check src/game-v310.js
+          first=$(sha256sum src/game-v310.js | awk '{print $1}')
+          cp src/game-v310.js /tmp/game-v310-first.js
+          node tools/build-v310-balance.cjs >/tmp/v310-build-second.log
+          second=$(sha256sum src/game-v310.js | awk '{print $1}')
+          test "$first" = "$second"
+          cmp -s /tmp/game-v310-first.js src/game-v310.js
+          node -e "const b=require('./BUILD_V310_BALANCE.json');if(b.status!=='PASS'||b.gameplay_version!=='3.10.0'||b.build!=='31001'||b.save_schema_version!==36||b.content_registry_version!==10||b.source_sha256!==process.argv[1])throw new Error('V3.10 report mismatch')" "$first"
+          echo "V310_SOURCE_SHA=$first"
+      - name: Run V3.10 balance regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v310.mjs
+      - name: Frozen V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
