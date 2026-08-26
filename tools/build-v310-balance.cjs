@@ -47,6 +47,18 @@ const sectBindings="actions.querySelectorAll('[data-sect-task]').forEach(b=>b.on
 const sectBindingsFixed="renderSectLifePanel(info,actions);actions.querySelectorAll('[data-sect-task]').forEach(b=>b.onclick=()=>acceptSectTask(b.dataset.sectTask));const c=actions.querySelector('[data-sect-complete]');if(c)c.onclick=completeRoutineSectTask;const st=actions.querySelector('[data-sect-stipend]');if(st)st.onclick=claimSectStipend;actions.querySelectorAll('[data-sect-exchange]').forEach(b=>b.onclick=()=>sectExchange(b.dataset.sectExchange));actions.querySelectorAll('[data-sect-mentor]').forEach(b=>b.onclick=()=>chooseSectMentor(b.dataset.sectMentor));const mg=actions.querySelector('[data-mentor-guidance]');if(mg)mg.onclick=seekMentorGuidance;const ass=actions.querySelector('[data-sect-assessment]');if(ass)ass.onclick=takeSectAssessment;const pr=actions.querySelector('[data-sect-promote]');if(pr)pr.onclick=promoteSect";
 must(sectBindings,sectBindingsFixed,'Qingyun sect UI event handler preservation');
 
+// Long-lived worlds can legitimately reach a point where every original NPC has died.
+// V3.9 still assumed random minor-person events always had at least one living NPC and
+// dereferenced undefined. Preserve mortality: do not respawn/revive anyone; the person event
+// simply becomes an empty-road event when no living NPC exists.
+must("function startMinorEvent(){\n const type=pick(['wounded','merchant','cave','npc']);\n if(type==='wounded'){\n  const npc=pick(state.npcs.filter(n=>n.alive));npc.known=true;",
+"function startMinorEvent(){\n const type=pick(['wounded','merchant','cave','npc']),aliveNpcs=state.npcs.filter(n=>n.alive);\n if((type==='wounded'||type==='npc')&&!aliveNpcs.length){addPersonal('你在荒野转了一圈，昔日常见的同道踪迹已经难寻。');save();render();showResult('荒野寂寥','附近已经没有能与你相遇的活人。');return}\n if(type==='wounded'){\n  const npc=pick(aliveNpcs);npc.known=true;",'minor event empty living-NPC guard');
+must(" else {const npc=pick(state.npcs.filter(n=>n.alive));npc.known=true;showChoice('偶遇同道'"," else {const npc=pick(aliveNpcs);npc.known=true;showChoice('偶遇同道'",'minor event shared living-NPC pool');
+
+// Expose the event entry point only on the existing internal test surface so regression can
+// prove the empty-population case directly. It is not added to the legal full-run whitelist.
+must("startRegionalEvent,factionStandingSnapshot,","startRegionalEvent,startMinorEvent,factionStandingSnapshot,",'minor event regression surface');
+
 if(!src.includes("const SAVE_KEY='xiuxian_world_v02'"))throw new Error('SAVE_KEY changed');
 if(/\beval\s*\(/.test(src))throw new Error('eval forbidden');
 if(!src.includes("const VERSION='3.10.0'"))throw new Error('version missing');
@@ -56,11 +68,12 @@ if(!src.includes('realmM=Math.max(1,Number(realm().rate)||1)'))throw new Error('
 if(!src.includes("if(p.realmIndex<33)return {ok:false,reason:'realm'};if((p.v38OriginInsight||0)<25)"))throw new Error('pre-mahayana authority repair missing');
 if(!src.includes("if(p.realmIndex<33&&!force)return {ok:false,reason:'realm'};if((inv.originMarks||0)>=9)"))throw new Error('pre-mahayana natal repair missing');
 if(!src.includes("renderSectLifePanel(info,actions);actions.querySelectorAll('[data-sect-task]')"))throw new Error('Qingyun sect UI binding repair missing');
+if(!src.includes("(type==='wounded'||type==='npc')&&!aliveNpcs.length"))throw new Error('empty living-NPC minor-event guard missing');
 for(const r of v39.regions)if(!src.includes(JSON.stringify(r.name)+':'+JSON.stringify(r.id)))throw new Error('region id repair missing '+r.name);
 for(const m of v39.materials)if(!src.includes(JSON.stringify(m.id)+':'+JSON.stringify({id:m.id,name:m.name,qualityId:m.qualityId,kind:m.kind,field:m.legacyField||null,locations:m.locations,minRealm:m.minRealm,named:true})))throw new Error('material repair missing '+m.id);
 
 fs.writeFileSync(OUTPUT,src);
 const sha=crypto.createHash('sha256').update(Buffer.from(src)).digest('hex');
-const report={status:'PASS',gameplay_version:'3.10.0',build:BUILD,milestone:'no-recharge-full-run-balance',source:OUTPUT,source_sha256:sha,source_bytes:Buffer.byteLength(src),save_schema_version:36,content_registry_version:10,changes:['realm cultivation rate is now applied to daily cultivation gain','V3.9 terminal region/material stable registries repaired and factionContract pollution removed','pre-Mahayana authority and natal-origin preparation routes/actions are reachable at realm 33 without lowering the existing breakthrough requirements','Qingyun sect-life rendering no longer invalidates already-bound sect action handlers'],invariants:['direct complete source','SAVE_KEY frozen','schema36 retained because no new state','content registry v10 retained','no eval','no runtime patch chain']};
+const report={status:'PASS',gameplay_version:'3.10.0',build:BUILD,milestone:'no-recharge-full-run-balance',source:OUTPUT,source_sha256:sha,source_bytes:Buffer.byteLength(src),save_schema_version:36,content_registry_version:10,changes:['realm cultivation rate is now applied to daily cultivation gain','V3.9 terminal region/material stable registries repaired and factionContract pollution removed','pre-Mahayana authority and natal-origin preparation routes/actions are reachable at realm 33 without lowering the existing breakthrough requirements','Qingyun sect-life rendering no longer invalidates already-bound sect action handlers','minor person events no longer crash when a long-lived world has no living NPCs'],invariants:['direct complete source','SAVE_KEY frozen','schema36 retained because no new state','content registry v10 retained','no eval','no runtime patch chain','NPC mortality remains meaningful; no respawn or revival added']};
 fs.writeFileSync(REPORT,JSON.stringify(report,null,2)+'\n');
 console.log('V310_BUILD_PASS '+JSON.stringify(report));
