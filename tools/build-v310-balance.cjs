@@ -55,6 +55,17 @@ must("function startMinorEvent(){\n const type=pick(['wounded','merchant','cave'
 "function startMinorEvent(){\n const type=pick(['wounded','merchant','cave','npc']),aliveNpcs=state.npcs.filter(n=>n.alive);\n if((type==='wounded'||type==='npc')&&!aliveNpcs.length){addPersonal('你在荒野转了一圈，昔日常见的同道踪迹已经难寻。');save();render();showResult('荒野寂寥','附近已经没有能与你相遇的活人。');return}\n if(type==='wounded'){\n  const npc=pick(aliveNpcs);npc.known=true;",'minor event empty living-NPC guard');
 must(" else {const npc=pick(state.npcs.filter(n=>n.alive));npc.known=true;showChoice('偶遇同道'"," else {const npc=pick(aliveNpcs);npc.known=true;showChoice('偶遇同道'",'minor event shared living-NPC pool');
 
+// V3.10 full-run exposed a real pre-Unity resource deadlock. At 炼虚圆满 the player
+// needs 合体道胎 to craft 合体归一髓, but the only map source is 归一圣墟 (danger .97),
+// whose encounter table starts at realm 31. The generic explore branch cannot reach its
+// material-gather arm at that danger level, so the old data effectively required a realm29
+// character to kill cross-major-realm enemies. Keep that dangerous combat source, but add a
+// second costly normal source: genuine 三元归一 performed inside 归一圣墟 can condense one
+// 合体道胎 at a modest rate. Each attempt still consumes 法纹晶 + 元神契石 and 8 days.
+const unityOld="const gain=forceGain==null?rint(5,10):Math.max(1,Number(forceGain)||1);p.v37Unity=Math.min(120,(p.v37Unity||0)+gain);p.v37LawActions++;addPersonal('【三元归一】你以肉身承载、元神统御、'+row.name+'定序，归一度 +'+gain+'。','major');save();render();return {ok:true,gain,unity:p.v37Unity}}";
+const unityNew="const gain=forceGain==null?rint(5,10):Math.max(1,Number(forceGain)||1);p.v37Unity=Math.min(120,(p.v37Unity||0)+gain);p.v37LawActions++;let unitySeed=0;if(forceGain==null&&p.location==='归一圣墟'&&rand()<.28){v33AddMaterial('mat-v37-unity-seed',1);unitySeed=1;addPersonal('【合体道胎】三元归一时，肉身、元神与法则短暂凝成稳定道胎，你收住了一枚合体道胎。','major')}addPersonal('【三元归一】你以肉身承载、元神统御、'+row.name+'定序，归一度 +'+gain+'。','major');save();render();return {ok:true,gain,unity:p.v37Unity,unitySeed}}";
+must(unityOld,unityNew,'unity-seed second normal source');
+
 // Expose the event entry point only on the existing internal test surface so regression can
 // prove the empty-population case directly. It is not added to the legal full-run whitelist.
 must("startRegionalEvent,factionStandingSnapshot,","startRegionalEvent,startMinorEvent,factionStandingSnapshot,",'minor event regression surface');
@@ -69,11 +80,12 @@ if(!src.includes("if(p.realmIndex<33)return {ok:false,reason:'realm'};if((p.v38O
 if(!src.includes("if(p.realmIndex<33&&!force)return {ok:false,reason:'realm'};if((inv.originMarks||0)>=9)"))throw new Error('pre-mahayana natal repair missing');
 if(!src.includes("renderSectLifePanel(info,actions);actions.querySelectorAll('[data-sect-task]')"))throw new Error('Qingyun sect UI binding repair missing');
 if(!src.includes("(type==='wounded'||type==='npc')&&!aliveNpcs.length"))throw new Error('empty living-NPC minor-event guard missing');
+if(!src.includes("p.location==='归一圣墟'&&rand()<.28"))throw new Error('unity-seed second source missing');
 for(const r of v39.regions)if(!src.includes(JSON.stringify(r.name)+':'+JSON.stringify(r.id)))throw new Error('region id repair missing '+r.name);
 for(const m of v39.materials)if(!src.includes(JSON.stringify(m.id)+':'+JSON.stringify({id:m.id,name:m.name,qualityId:m.qualityId,kind:m.kind,field:m.legacyField||null,locations:m.locations,minRealm:m.minRealm,named:true})))throw new Error('material repair missing '+m.id);
 
 fs.writeFileSync(OUTPUT,src);
 const sha=crypto.createHash('sha256').update(Buffer.from(src)).digest('hex');
-const report={status:'PASS',gameplay_version:'3.10.0',build:BUILD,milestone:'no-recharge-full-run-balance',source:OUTPUT,source_sha256:sha,source_bytes:Buffer.byteLength(src),save_schema_version:36,content_registry_version:10,changes:['realm cultivation rate is now applied to daily cultivation gain','V3.9 terminal region/material stable registries repaired and factionContract pollution removed','pre-Mahayana authority and natal-origin preparation routes/actions are reachable at realm 33 without lowering the existing breakthrough requirements','Qingyun sect-life rendering no longer invalidates already-bound sect action handlers','minor person events no longer crash when a long-lived world has no living NPCs'],invariants:['direct complete source','SAVE_KEY frozen','schema36 retained because no new state','content registry v10 retained','no eval','no runtime patch chain','NPC mortality remains meaningful; no respawn or revival added']};
+const report={status:'PASS',gameplay_version:'3.10.0',build:BUILD,milestone:'no-recharge-full-run-balance',source:OUTPUT,source_sha256:sha,source_bytes:Buffer.byteLength(src),save_schema_version:36,content_registry_version:10,changes:['realm cultivation rate is now applied to daily cultivation gain','V3.9 terminal region/material stable registries repaired and factionContract pollution removed','pre-Mahayana authority and natal-origin preparation routes/actions are reachable at realm 33 without lowering the existing breakthrough requirements','Qingyun sect-life rendering no longer invalidates already-bound sect action handlers','minor person events no longer crash when a long-lived world has no living NPCs','三元归一 in 归一圣墟 now provides a costly secondary 合体道胎 source so realm29 is not forced to kill realm31+ enemies'],invariants:['direct complete source','SAVE_KEY frozen','schema36 retained because no new state','content registry v10 retained','no eval','no runtime patch chain','NPC mortality remains meaningful; no respawn or revival added','归一圣墟 remains dangerous; enemy tables and combat difficulty are unchanged','合体道胎 remains scarce and still consumes normal law/unity resources to obtain']};
 fs.writeFileSync(REPORT,JSON.stringify(report,null,2)+'\n');
 console.log('V310_BUILD_PASS '+JSON.stringify(report));
