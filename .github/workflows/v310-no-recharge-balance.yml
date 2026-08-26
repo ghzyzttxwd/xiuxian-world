@@ -22,6 +22,27 @@ on:
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
       - ".github/workflows/v310-no-recharge-balance.yml"
+  push:
+    branches: ["v310-no-recharge-balance-validation"]
+    paths:
+      - "V310_BALANCE.trigger"
+      - "tools/audit-v310-balance.mjs"
+      - "tools/build-v310-balance.cjs"
+      - "tools/build-v310-balance-v2.cjs"
+      - "tools/build-v310-fullrun-headless.cjs"
+      - "tools/fullrun-v310-no-recharge.mjs"
+      - "tools/fullrun-v310-no-recharge-v2.mjs"
+      - "tools/fullrun-v310-no-recharge-v3.mjs"
+      - "tools/fullrun-v310-no-recharge-v4.mjs"
+      - "tools/fullrun-v310-no-recharge-v5.mjs"
+      - "tools/fullrun-v310-no-recharge-v6.mjs"
+      - "tools/fullrun-v310-no-recharge-v7.mjs"
+      - "tools/fullrun-v310-no-recharge-v8.mjs"
+      - "tools/fullrun-v310-no-recharge-v9.mjs"
+      - "tools/diagnose-v310-highchain.mjs"
+      - "tests/regression-v310.mjs"
+      - "tests/regression-v310-premahayana-auction.mjs"
+      - ".github/workflows/v310-no-recharge-balance.yml"
 
 permissions:
   contents: read
@@ -38,7 +59,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ github.event.pull_request.base.sha }}" = "62db848091ce7686c85357a8c963820a9d27f24c"
+          test "$(git rev-parse origin/main)" = "62db848091ce7686c85357a8c963820a9d27f24c"
           test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
@@ -78,7 +99,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ github.event.pull_request.base.sha }}" = "62db848091ce7686c85357a8c963820a9d27f24c"
+          test "$(git rev-parse origin/main)" = "62db848091ce7686c85357a8c963820a9d27f24c"
           test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
           node -e "const s=require('./PUBLIC_V39_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.9.0'||s.build!=='3901'||s.save_schema_version!==36||s.verified_commit!=='168f308cfed758e3385e2b9ead5a6e0d44d8a9c6')throw new Error('V3.9 baseline mismatch')"
       - name: Probe real runtime balance surface
