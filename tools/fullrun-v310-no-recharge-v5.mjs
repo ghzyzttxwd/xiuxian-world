@@ -26,6 +26,17 @@ if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 v5 did not obtain v4 f
 
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 
+// Full-run #58 proved the existing realm33 界源晶 / 本命源晶 auction recovery works, then
+// died while the same mandatory first natal-origin mark fell through to 界源玄金 exploration.
+// If the new stock-1 origin-gold auction lot is present, prefer that normal economic path too;
+// if it is absent/unavailable, ensureNamed still falls through to the original dangerous map.
+runner=replaceOnce(
+ runner,
+ "state().player.realmIndex>=33&&(id==='mat-v38-origin-crystal'||id==='mat-v38-natal-source-crystal')&&tryAuctionMaterial(id,n,120)",
+ "state().player.realmIndex>=33&&['mat-v38-origin-crystal','mat-v38-natal-source-crystal','mat-v38-origin-gold'].includes(id)&&tryAuctionMaterial(id,n,160)",
+ 'reuse scarce origin-gold auction recovery before dangerous exploration'
+);
+
 // V3.9 deliberately models a nonfatal immortal-tribulation failure as a recoverable setback:
 // status becomes "failed", the player returns to 九霄劫台 with severe injury, preparation and
 // formation integrity are reduced, lifespan is lost, and later v39BeginTribulation accepts the
@@ -62,6 +73,7 @@ runner=replaceOnce(
 );
 
 // Exact executable proof: recovery remains legal gameplay and no force argument is introduced.
+if(!runner.includes("['mat-v38-origin-crystal','mat-v38-natal-source-crystal','mat-v38-origin-gold'].includes(id)&&tryAuctionMaterial(id,n,160)"))throw new Error('final runner missing scarce origin-gold auction preference');
 if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('final runner missing tribulation retry loop');
 if(!runner.includes("repairTribulationNatal();prepareTribulation();"))throw new Error('final runner does not repair normal setback damage before retry');
 if(!runner.includes("return finishTribulation(attempt+1)"))throw new Error('final runner does not retry recoverable setbacks');
@@ -69,8 +81,8 @@ if(!runner.includes("invoke('v39ResolveThunder',strategy)"))throw new Error('fin
 if(!runner.includes("invoke('v39ResolveHeartDemon','self')"))throw new Error('final runner missing normal heart strategy');
 if(!runner.includes("invoke('v39ResolveTransformation','balanced')"))throw new Error('final runner missing normal transformation strategy');
 if(runner.includes("v39ResolveThunder','success")||runner.includes("v39ResolveHeartDemon','success")||runner.includes("v39ResolveTransformation','success"))throw new Error('forced tribulation success leaked into final runner');
-if(runner.includes('v37SetPlayerForTest')||runner.includes("v33AddMaterial('mat-v37-unity-seed'"))throw new Error('forbidden progression shortcut leaked into final runner');
+if(runner.includes('v37SetPlayerForTest')||runner.includes("v33AddMaterial('mat-v37-unity-seed'")||runner.includes("v33AddMaterial('mat-v38-origin-gold'"))throw new Error('forbidden progression shortcut leaked into final runner');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_FULLRUN_V5_FINAL_RUNNER_PASS '+JSON.stringify({recoverableTribulationRetry:true,natalRepair:true,readinessRebuild:true,formationRebuild:true,stageStrategy:true,noForcedSuccess:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_FULLRUN_V5_FINAL_RUNNER_PASS '+JSON.stringify({originGoldAuctionPreferred:true,originGoldDangerFallbackPreserved:true,recoverableTribulationRetry:true,natalRepair:true,readinessRebuild:true,formationRebuild:true,stageStrategy:true,noForcedSuccess:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?v5final='+Date.now());
