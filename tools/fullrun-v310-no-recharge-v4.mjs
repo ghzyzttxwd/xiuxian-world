@@ -44,6 +44,10 @@ runner=replaceOnce(runner,"ensureNamed('mat-v37-unity-seed',2);","ensureUnitySee
 runner=replaceOnce(runner,"ensureVoidEssence(materialCount('mat-v36-void-essence')+1);","ensureVoidEssence(1);",'consume stocked void essence instead of preserving inventory');
 runner=replaceOnce(runner,"ensureUnityEssence(materialCount('mat-v37-unity-essence')+1);","ensureUnityEssence(1);",'consume stocked unity essence in Mahayana crafting');
 
+const lawChoiceBefore="function ensureLawChosen(){if(state().player.v37LawId)return;if(state().player.realmIndex<29)return;ensureInsight(state().player.insight+10);ensureNamed('mat-v37-law-crystal',2);ensureNamed('mat-v37-rule-dust',1);if(!goAny(['法则古原','万象法坛']))fail('law-choice-location-unreachable',{});const r=spendAction('choose-law',()=>invoke('v37ChooseLaw',lawByPath[DAO_PATH]));if(!r?.ok)fail('law-choice-blocked',{result:r})}";
+const lawChoiceAfter="function ensureLawChosen(){if(state().player.v37LawId)return;if(state().player.realmIndex<29)return;ensureInsight(state().player.insight+10);ensureSwordEscapeSkill();tryAuctionMaterial('mat-v37-law-crystal',2,24);ensureNamed('mat-v37-law-crystal',2);ensureNamed('mat-v37-rule-dust',1);if(!goAny(['法则古原','万象法坛']))fail('law-choice-location-unreachable',{});const r=spendAction('choose-law',()=>invoke('v37ChooseLaw',lawByPath[DAO_PATH]));if(!r?.ok)fail('law-choice-blocked',{result:r})}";
+runner=replaceOnce(runner,lawChoiceBefore,lawChoiceAfter,'prepare normal escape build and auction law crystals before first law choice');
+
 const fleeBefore="if(!preferWin||enemyRealm>s.player.realmIndex||hpRatio<.28){spendAction('combat-flee',()=>invoke('combatAction','flee'));continue}";
 const fleeAfter="if(!preferWin||enemyRealm>s.player.realmIndex||hpRatio<.28){if(DAO_PATH==='sword'&&enemyRealm>s.player.realmIndex&&hpRatio>=.4&&(s.player.activeSkillIds||[]).includes('spell-v36-sword-space-step')){const cc=combat(),row=registry.spells['spell-v36-sword-space-step'],cd=Number(cc?.cooldowns?.['spell-v36-sword-space-step']||0);if(cc&&cd<=0&&!(cc.v36SpaceShift>0)&&cc.playerQi>=Number(row?.qi||0)){spendAction('combat-escape-shift',()=>invoke('combatAction','skill:spell-v36-sword-space-step'));continue}}spendAction('combat-flee',()=>invoke('combatAction','flee'));continue}";
 runner=replaceOnce(runner,fleeBefore,fleeAfter,'use normal sword space shift before cross-realm escape');
@@ -59,6 +63,7 @@ if(!runner.includes("source:'unity-integration'"))throw new Error('final runner 
 if(!runner.includes("'mat-v37-law-crystal','mat-v37-soul-covenant-stone','mat-v37-domain-sand'"))throw new Error('final runner does not allow soul-covenant auction acquisition');
 if(!runner.includes("tryAuctionMaterial('mat-v37-law-crystal',lawTarget,120)"))throw new Error('final runner missing normal auction preference for bulk law crystals');
 if(!runner.includes("tryAuctionMaterial('mat-v37-soul-covenant-stone',soulTarget,240)"))throw new Error('final runner missing normal auction preference for soul-covenant stones');
+if(!runner.includes("ensureSwordEscapeSkill();tryAuctionMaterial('mat-v37-law-crystal',2,24)"))throw new Error('final runner does not prepare escape build and normal auction before first law choice');
 if(!runner.includes("soulTarget=integrationBudget+essenceReserve"))throw new Error('final runner missing explicit unity material budgeting');
 if(!runner.includes("ensureVoidEssence(1);"))throw new Error('final runner still preserves void-essence stock unnecessarily');
 if(runner.includes("ensureUnityEssence(materialCount('mat-v37-unity-essence')+1);"))throw new Error('final runner still preserves unity-essence stock unnecessarily in Mahayana crafting');
@@ -68,5 +73,5 @@ if(!runner.includes("if(state().player.realmIndex===37){cultivateFull();heal();f
 if(runner.includes('v37SetPlayerForTest')||runner.includes("v33AddMaterial('mat-v37-unity-seed'"))throw new Error('forbidden progression shortcut leaked into final runner');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_FULLRUN_V4_FINAL_RUNNER_PASS '+JSON.stringify({unitySeedRouting:true,batchedUnityPreparation:true,lawCrystalAuctionPreferred:true,soulCovenantAuctionPreferred:true,mahayanaUnityStockConsumed:true,swordSpaceEscape:true,swordEscapeCooldownAware:true,realm37Cultivation:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_FULLRUN_V4_FINAL_RUNNER_PASS '+JSON.stringify({unitySeedRouting:true,batchedUnityPreparation:true,lawCrystalAuctionPreferred:true,soulCovenantAuctionPreferred:true,lawChoiceEscapePrepared:true,mahayanaUnityStockConsumed:true,swordSpaceEscape:true,swordEscapeCooldownAware:true,realm37Cultivation:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?v4final='+Date.now());
