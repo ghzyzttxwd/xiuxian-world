@@ -1,5 +1,6 @@
 name: V3.10 highchain NON-PROOF diagnostic
 
+# Trigger revision 2: rerun after restoring the skipped Qingyun sect fact in the diagnostic setup.
 on:
   pull_request:
     branches: ["main"]
