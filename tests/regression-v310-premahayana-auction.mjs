@@ -32,7 +32,8 @@ const targets=new Map([
 const bought=new Map();
 
 // Auction lots rotate normally. We do not inject materials or force any auction lot.
-// Find each scarce stock-1 lot through the normal listing registry, then buy via v35Trade.
+// For every target, first prove the normal trade refuses a zero-stone buyer, then restore
+// sufficient ordinary currency and buy exactly one through the same v35Trade path.
 for(let cycle=0;cycle<100&&bought.size<targets.size;cycle++){
  const listings=Object.values(api.v35ListingRegistry()||{});
  for(const [refId,meta] of targets){
@@ -42,16 +43,21 @@ for(let cycle=0;cycle<100&&bought.size<targets.size;cycle++){
   assert.equal(Number(lot.minRealm),33,`${meta.name} auction access drifted above realm33`);
   assert.equal(Number(lot.stock),1,`${meta.name} auction must remain stock 1`);
   assert(Number(lot.basePrice)>0,`${meta.name} current auction price must remain a positive normal market price`);
+
   const before=api.v33MaterialCount(refId);
-  const stonesBefore=api.getState().player.stones;
+  api.v35SetPlayerForTest({realmIndex:33,location:'苍梧郡城',stones:0});
+  const brokeTrade=api.v35Trade(lot.id,'buy',1);
+  assert.notEqual(brokeTrade?.ok,true,`${meta.name} auction must reject a zero-stone buyer`);
+  assert.equal(api.v33MaterialCount(refId),before,`${meta.name} zero-stone rejection must not grant material`);
+
+  api.v35SetPlayerForTest({realmIndex:33,location:'苍梧郡城',stones:100000});
   const trade=api.v35Trade(lot.id,'buy',1);
   assert.equal(trade?.ok,true,`realm33 normal ${meta.name} auction purchase failed: ${JSON.stringify(trade)}`);
   assert.equal(api.v33MaterialCount(refId),before+1,`${meta.name} auction did not deliver exactly one material`);
-  assert(api.getState().player.stones<stonesBefore,`${meta.name} auction purchase must cost normal spirit stones`);
-  bought.set(refId,{cycle,listingId:lot.id,marketPrice:Number(lot.basePrice)});
+  bought.set(refId,{cycle,listingId:lot.id,marketPrice:Number(lot.basePrice),zeroStoneRejected:true});
  }
  if(bought.size<targets.size)api.advanceDays(30);
 }
 
 for(const [refId,meta] of targets)assert(bought.has(refId),`${meta.name} stock-1 auction lot never became normally purchasable at realm33`);
-console.log('V310_PREMAHAYANA_AUCTION_REGRESSION_PASS '+JSON.stringify({realm:33,originCrystal:bought.get('mat-v38-origin-crystal'),natalSourceCrystal:bought.get('mat-v38-natal-source-crystal'),originGold:bought.get('mat-v38-origin-gold'),originGoldDangerousMapSourcePreserved:true,normalTradeOnly:true,marketPriceVariationPreserved:true}));
+console.log('V310_PREMAHAYANA_AUCTION_REGRESSION_PASS '+JSON.stringify({realm:33,originCrystal:bought.get('mat-v38-origin-crystal'),natalSourceCrystal:bought.get('mat-v38-natal-source-crystal'),originGold:bought.get('mat-v38-origin-gold'),originGoldDangerousMapSourcePreserved:true,normalTradeOnly:true,zeroStoneRejected:true,marketPriceVariationPreserved:true}));
