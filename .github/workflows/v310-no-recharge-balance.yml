@@ -7,6 +7,7 @@ on:
       - "V310_BALANCE.trigger"
       - "tools/audit-v310-balance.mjs"
       - "tools/build-v310-balance.cjs"
+      - "tools/build-v310-balance-v2.cjs"
       - "tools/build-v310-fullrun-headless.cjs"
       - "tools/fullrun-v310-no-recharge.mjs"
       - "tools/fullrun-v310-no-recharge-v2.mjs"
@@ -47,11 +48,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node tools/build-v310-balance.cjs
+          node tools/build-v310-balance-v2.cjs
           node --check src/game-v310.js
           first=$(sha256sum src/game-v310.js | awk '{print $1}')
           cp src/game-v310.js /tmp/game-v310-first.js
-          node tools/build-v310-balance.cjs >/tmp/v310-build-second.log
+          node tools/build-v310-balance-v2.cjs >/tmp/v310-build-second.log
           second=$(sha256sum src/game-v310.js | awk '{print $1}')
           test "$first" = "$second"
           cmp -s /tmp/game-v310-first.js src/game-v310.js
