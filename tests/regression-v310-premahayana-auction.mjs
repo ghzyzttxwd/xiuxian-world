@@ -7,11 +7,13 @@ const GAME='src/game-v310.js';
 const html=fs.readFileSync(INDEX,'utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');
 const source=fs.readFileSync(GAME,'utf8');
 
-// Static guard: these are the two already-existing scarce Cangwu auction recovery lots.
-// V3.10 only aligns their access with the repaired realm33 pre-Mahayana preparation stage.
+// Static guard: realm33 has three scarce Cangwu recovery lots for the mandatory first
+// natal-origin mark. 界源晶 / 本命源晶 are existing V3.9 lots whose access is aligned to 33;
+// 界源玄金 is the evidence-driven second source added after repeated legal full-run deaths.
 assert(source.includes('{"id":"auction-v38-origincrystal","shopId":"shop-cangwu-auction","kind":"material","refId":"mat-v38-origin-crystal","basePrice":1800,"stock":1,"minRealm":33}'),'realm33 界源晶 auction recovery lot missing');
 assert(source.includes('{"id":"auction-v38-sourcecrystal","shopId":"shop-cangwu-auction","kind":"material","refId":"mat-v38-natal-source-crystal","basePrice":2400,"stock":1,"minRealm":33}'),'realm33 本命源晶 auction recovery lot missing');
-assert(!source.includes('"refId":"mat-v38-origin-gold","basePrice"'),'界源玄金 must remain map-sourced; regression detected an auction shortcut');
+assert(source.includes('{"id":"auction-v38-origingold","shopId":"shop-cangwu-auction","kind":"material","refId":"mat-v38-origin-gold","basePrice":3200,"stock":1,"minRealm":33}'),'realm33 界源玄金 scarce recovery lot missing');
+assert(/"id":"mat-v38-origin-gold","name":"界源玄金"[^}]*"locations":\["界源海"\],"minRealm":34/.test(source),'界源玄金 dangerous 界源海 source/minRealm34 must remain intact');
 
 const d=new JSDOM(html,{url:'http://v310-auction.test/',runScripts:'outside-only',pretendToBeVisual:true});
 d.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
@@ -25,12 +27,13 @@ api.v35SetPlayerForTest({realmIndex:33,location:'苍梧郡城',stones:100000});
 const targets=new Map([
  ['mat-v38-origin-crystal',{name:'界源晶',expectedBase:1800}],
  ['mat-v38-natal-source-crystal',{name:'本命源晶',expectedBase:2400}],
+ ['mat-v38-origin-gold',{name:'界源玄金',expectedBase:3200}],
 ]);
 const bought=new Map();
 
-// Auction lots rotate normally. We do not inject either material or force an auction lot.
-// Find each scarce stock-1 lot through the normal listing registry, then buy it through v35Trade.
-for(let cycle=0;cycle<80&&bought.size<targets.size;cycle++){
+// Auction lots rotate normally. We do not inject materials or force any auction lot.
+// Find each scarce stock-1 lot through the normal listing registry, then buy via v35Trade.
+for(let cycle=0;cycle<100&&bought.size<targets.size;cycle++){
  const listings=Object.values(api.v35ListingRegistry()||{});
  for(const [refId,meta] of targets){
   if(bought.has(refId))continue;
@@ -49,6 +52,4 @@ for(let cycle=0;cycle<80&&bought.size<targets.size;cycle++){
 }
 
 for(const [refId,meta] of targets)assert(bought.has(refId),`${meta.name} stock-1 auction lot never became normally purchasable at realm33`);
-assert.equal(api.v33MaterialCount('mat-v38-origin-gold'),0,'regression must not inject or purchase 界源玄金');
-
-console.log('V310_PREMAHAYANA_AUCTION_REGRESSION_PASS '+JSON.stringify({realm:33,originCrystal:bought.get('mat-v38-origin-crystal'),natalSourceCrystal:bought.get('mat-v38-natal-source-crystal'),originGoldStillMapSourced:true,normalTradeOnly:true}));
+console.log('V310_PREMAHAYANA_AUCTION_REGRESSION_PASS '+JSON.stringify({realm:33,originCrystal:bought.get('mat-v38-origin-crystal'),natalSourceCrystal:bought.get('mat-v38-natal-source-crystal'),originGold:bought.get('mat-v38-origin-gold'),originGoldDangerousMapSourcePreserved:true,normalTradeOnly:true}));
