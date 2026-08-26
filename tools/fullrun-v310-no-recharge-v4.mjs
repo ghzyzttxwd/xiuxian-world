@@ -40,7 +40,7 @@ runner=replaceOnce(runner,"ensureNamed('mat-v37-unity-seed',2);","ensureUnitySee
 runner=replaceOnce(runner,"ensureVoidEssence(materialCount('mat-v36-void-essence')+1);","ensureVoidEssence(1);",'consume stocked void essence instead of preserving inventory');
 
 const fleeBefore="if(!preferWin||enemyRealm>s.player.realmIndex||hpRatio<.28){spendAction('combat-flee',()=>invoke('combatAction','flee'));continue}";
-const fleeAfter="if(!preferWin||enemyRealm>s.player.realmIndex||hpRatio<.28){if(DAO_PATH==='sword'&&enemyRealm>s.player.realmIndex&&hpRatio>=.4&&(s.player.activeSkillIds||[]).includes('spell-v36-sword-space-step')){const cc=combat(),row=registry.spells['spell-v36-sword-space-step'];if(cc&&!(cc.v36SpaceShift>0)&&cc.playerQi>=Number(row?.qi||0)){spendAction('combat-escape-shift',()=>invoke('combatAction','skill:spell-v36-sword-space-step'));continue}}spendAction('combat-flee',()=>invoke('combatAction','flee'));continue}";
+const fleeAfter="if(!preferWin||enemyRealm>s.player.realmIndex||hpRatio<.28){if(DAO_PATH==='sword'&&enemyRealm>s.player.realmIndex&&hpRatio>=.4&&(s.player.activeSkillIds||[]).includes('spell-v36-sword-space-step')){const cc=combat(),row=registry.spells['spell-v36-sword-space-step'],cd=Number(cc?.cooldowns?.['spell-v36-sword-space-step']||0);if(cc&&cd<=0&&!(cc.v36SpaceShift>0)&&cc.playerQi>=Number(row?.qi||0)){spendAction('combat-escape-shift',()=>invoke('combatAction','skill:spell-v36-sword-space-step'));continue}}spendAction('combat-flee',()=>invoke('combatAction','flee'));continue}";
 runner=replaceOnce(runner,fleeBefore,fleeAfter,'use normal sword space shift before cross-realm escape');
 
 // Realm 37 must cultivate its full 大乘圆满 bar before tribulation readiness can pass.
@@ -54,9 +54,10 @@ if(!runner.includes("source:'unity-integration'"))throw new Error('final runner 
 if(!runner.includes("integrationBudget+essenceReserve*2"))throw new Error('final runner missing batched unity preparation');
 if(!runner.includes("ensureVoidEssence(1);"))throw new Error('final runner still preserves void-essence stock unnecessarily');
 if(!runner.includes("combat-escape-shift"))throw new Error('final runner missing normal sword escape usage');
+if(!runner.includes("cooldowns?.['spell-v36-sword-space-step']"))throw new Error('final runner would retry sword escape while the skill is still cooling down');
 if(!runner.includes("if(state().player.realmIndex===37){cultivateFull();heal();finishTribulation();break}"))throw new Error('final runner would start tribulation before full realm37 cultivation');
 if(runner.includes('v37SetPlayerForTest')||runner.includes("v33AddMaterial('mat-v37-unity-seed'"))throw new Error('forbidden progression shortcut leaked into final runner');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_FULLRUN_V4_FINAL_RUNNER_PASS '+JSON.stringify({unitySeedRouting:true,batchedUnityPreparation:true,swordSpaceEscape:true,realm37Cultivation:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_FULLRUN_V4_FINAL_RUNNER_PASS '+JSON.stringify({unitySeedRouting:true,batchedUnityPreparation:true,swordSpaceEscape:true,swordEscapeCooldownAware:true,realm37Cultivation:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?v4final='+Date.now());
