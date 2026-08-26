@@ -7,6 +7,7 @@ on:
       - "V310_BALANCE.trigger"
       - "tools/audit-v310-balance.mjs"
       - "tools/build-v310-balance.cjs"
+      - "tools/build-v310-fullrun-headless.cjs"
       - "tools/fullrun-v310-no-recharge.mjs"
       - "tools/fullrun-v310-no-recharge-v2.mjs"
       - "tools/fullrun-v310-no-recharge-v3.mjs"
@@ -58,6 +59,16 @@ jobs:
         run: |
           set -euo pipefail
           node tests/regression-v310.mjs
+      - name: Prepare gameplay-neutral headless full-run copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp src/game-v310.js /tmp/game-v310-release-candidate.js
+          original=$(sha256sum src/game-v310.js | awk '{print $1}')
+          node -e "const b=require('./BUILD_V310_BALANCE.json');if(b.source_sha256!==process.argv[1])throw new Error('candidate changed before headless transform')" "$original"
+          node tools/build-v310-fullrun-headless.cjs
+          node --check src/game-v310.js
+          node -e "const r=require('/tmp/V310_HEADLESS.json');if(r.status!=='PASS'||r.mode!=='fullrun-headless-ui-persistence-only'||r.replacements!==3||r.original_sha256!==process.argv[1])throw new Error('headless transform proof mismatch')" "$original"
       - name: Run legal no-recharge sword full-run
         shell: bash
         env:
