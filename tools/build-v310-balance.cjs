@@ -39,6 +39,14 @@ must("if(p.realmIndex<34)return {ok:false,reason:'realm'};if((p.v38OriginInsight
 must("if(p.realmIndex<34&&!force)return {ok:false,reason:'realm'};if((inv.originMarks||0)>=9)","if(p.realmIndex<33&&!force)return {ok:false,reason:'realm'};if((inv.originMarks||0)>=9)",'pre-mahayana natal origin action');
 must("if(p.location==='人界议庭'&&p.realmIndex>=34)html+='<button data-v38-authority>处理世界事务</button>';","if(p.location==='人界议庭'&&p.realmIndex>=33)html+='<button data-v38-authority>处理世界事务</button>';",'pre-mahayana authority UI');
 
+// V2.6 sect-life rendering appends to actions.innerHTML. V3.9 bound the core sect
+// buttons first and then called renderSectLifePanel(), so the append reparsed the action
+// container and silently discarded every already-bound handler. Render the extension first,
+// then bind the complete current DOM once. This changes no task requirements or rewards.
+const sectBindings="actions.querySelectorAll('[data-sect-task]').forEach(b=>b.onclick=()=>acceptSectTask(b.dataset.sectTask));const c=actions.querySelector('[data-sect-complete]');if(c)c.onclick=completeRoutineSectTask;const st=actions.querySelector('[data-sect-stipend]');if(st)st.onclick=claimSectStipend;actions.querySelectorAll('[data-sect-exchange]').forEach(b=>b.onclick=()=>sectExchange(b.dataset.sectExchange));actions.querySelectorAll('[data-sect-mentor]').forEach(b=>b.onclick=()=>chooseSectMentor(b.dataset.sectMentor));const mg=actions.querySelector('[data-mentor-guidance]');if(mg)mg.onclick=seekMentorGuidance;const ass=actions.querySelector('[data-sect-assessment]');if(ass)ass.onclick=takeSectAssessment;const pr=actions.querySelector('[data-sect-promote]');if(pr)pr.onclick=promoteSect;renderSectLifePanel(info,actions)";
+const sectBindingsFixed="renderSectLifePanel(info,actions);actions.querySelectorAll('[data-sect-task]').forEach(b=>b.onclick=()=>acceptSectTask(b.dataset.sectTask));const c=actions.querySelector('[data-sect-complete]');if(c)c.onclick=completeRoutineSectTask;const st=actions.querySelector('[data-sect-stipend]');if(st)st.onclick=claimSectStipend;actions.querySelectorAll('[data-sect-exchange]').forEach(b=>b.onclick=()=>sectExchange(b.dataset.sectExchange));actions.querySelectorAll('[data-sect-mentor]').forEach(b=>b.onclick=()=>chooseSectMentor(b.dataset.sectMentor));const mg=actions.querySelector('[data-mentor-guidance]');if(mg)mg.onclick=seekMentorGuidance;const ass=actions.querySelector('[data-sect-assessment]');if(ass)ass.onclick=takeSectAssessment;const pr=actions.querySelector('[data-sect-promote]');if(pr)pr.onclick=promoteSect";
+must(sectBindings,sectBindingsFixed,'Qingyun sect UI event handler preservation');
+
 if(!src.includes("const SAVE_KEY='xiuxian_world_v02'"))throw new Error('SAVE_KEY changed');
 if(/\beval\s*\(/.test(src))throw new Error('eval forbidden');
 if(!src.includes("const VERSION='3.10.0'"))throw new Error('version missing');
@@ -47,11 +55,12 @@ if(!src.includes('const CONTENT_STATE_VERSION=10'))throw new Error('registry ver
 if(!src.includes('realmM=Math.max(1,Number(realm().rate)||1)'))throw new Error('realm rate missing');
 if(!src.includes("if(p.realmIndex<33)return {ok:false,reason:'realm'};if((p.v38OriginInsight||0)<25)"))throw new Error('pre-mahayana authority repair missing');
 if(!src.includes("if(p.realmIndex<33&&!force)return {ok:false,reason:'realm'};if((inv.originMarks||0)>=9)"))throw new Error('pre-mahayana natal repair missing');
+if(!src.includes("renderSectLifePanel(info,actions);actions.querySelectorAll('[data-sect-task]')"))throw new Error('Qingyun sect UI binding repair missing');
 for(const r of v39.regions)if(!src.includes(JSON.stringify(r.name)+':'+JSON.stringify(r.id)))throw new Error('region id repair missing '+r.name);
 for(const m of v39.materials)if(!src.includes(JSON.stringify(m.id)+':'+JSON.stringify({id:m.id,name:m.name,qualityId:m.qualityId,kind:m.kind,field:m.legacyField||null,locations:m.locations,minRealm:m.minRealm,named:true})))throw new Error('material repair missing '+m.id);
 
 fs.writeFileSync(OUTPUT,src);
 const sha=crypto.createHash('sha256').update(Buffer.from(src)).digest('hex');
-const report={status:'PASS',gameplay_version:'3.10.0',build:BUILD,milestone:'no-recharge-full-run-balance',source:OUTPUT,source_sha256:sha,source_bytes:Buffer.byteLength(src),save_schema_version:36,content_registry_version:10,changes:['realm cultivation rate is now applied to daily cultivation gain','V3.9 terminal region/material stable registries repaired and factionContract pollution removed','pre-Mahayana authority and natal-origin preparation routes/actions are reachable at realm 33 without lowering the existing breakthrough requirements'],invariants:['direct complete source','SAVE_KEY frozen','schema36 retained because no new state','content registry v10 retained','no eval','no runtime patch chain']};
+const report={status:'PASS',gameplay_version:'3.10.0',build:BUILD,milestone:'no-recharge-full-run-balance',source:OUTPUT,source_sha256:sha,source_bytes:Buffer.byteLength(src),save_schema_version:36,content_registry_version:10,changes:['realm cultivation rate is now applied to daily cultivation gain','V3.9 terminal region/material stable registries repaired and factionContract pollution removed','pre-Mahayana authority and natal-origin preparation routes/actions are reachable at realm 33 without lowering the existing breakthrough requirements','Qingyun sect-life rendering no longer invalidates already-bound sect action handlers'],invariants:['direct complete source','SAVE_KEY frozen','schema36 retained because no new state','content registry v10 retained','no eval','no runtime patch chain']};
 fs.writeFileSync(REPORT,JSON.stringify(report,null,2)+'\n');
 console.log('V310_BUILD_PASS '+JSON.stringify(report));
