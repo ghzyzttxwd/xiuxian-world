@@ -15,6 +15,15 @@ const before="const rows=cat.filter(r=>(r.unlock||0)<=p.realmIndex&&(!r.path||r.
 const after="const safePreDaoSources=new Set(['青石村','青石镇','临江城','青云山','云梦泽']);const rows=cat.filter(r=>{if((r.unlock||0)>p.realmIndex||Number(r.mult||0)<=0)return false;if(r.path&&r.path!=='none'&&!(pathReady&&r.path===DAO_PATH))return false;if(!pathReady){const meta=registry.manuals[r.id]||r,cost=meta.cost||{};if((cost.insight||0)>0||(cost.relic||0)>0||(cost.rare||0)>0||(cost.materials||0)>0||(cost.core||0)>0||(cost.nascent||0)>0||(cost.deification||0)>0)return false;if(cost.named&&Object.keys(cost.named).length)return false;if(!(meta.sources||r.sources||[]).some(x=>safePreDaoSources.has(x)))return false}return true}).sort((a,b)=>Number(b.mult||0)-Number(a.mult||0));return rows[0]||null";
 mustReplace(before,after,'safe pre-dao manual candidates');
 
+const writeAnchor="fs.writeFileSync(outPath,src);";
+const deterministicPatch=`mustReplace(
+ "dom.window.Math.random=seededRandom(SEED);",
+ "dom.window.Date.now=()=>SEED;dom.window.Math.random=seededRandom(SEED);",
+ 'deterministic fresh-save clock'
+);\nfs.writeFileSync(outPath,src);`;
+mustReplace(writeAnchor,deterministicPatch,'inject deterministic fresh-save clock transform');
+
 if(!src.includes('safePreDaoSources'))throw new Error('safe pre-dao manual filter missing');
+if(!src.includes('deterministic fresh-save clock'))throw new Error('deterministic clock transform missing');
 fs.writeFileSync(outPath,src);
 await import(outPath.href+'?seed='+Date.now());
