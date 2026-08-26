@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-const v6Path=new URL('./fullrun-v310-no-recharge-v6.mjs',import.meta.url);
-const v6StagePath=new URL('./.generated-diagnostic-v310-v6stage.mjs',import.meta.url);
+const v7Path=new URL('./fullrun-v310-no-recharge-v7.mjs',import.meta.url);
+const v7StagePath=new URL('./.generated-diagnostic-v310-v7stage.mjs',import.meta.url);
 const finalRunnerPath=new URL('./.generated-fullrun-v310-no-recharge-v2.mjs',import.meta.url);
 
 function replaceOnce(src,before,after,label){
@@ -11,21 +11,21 @@ function replaceOnce(src,before,after,label){
  return src.slice(0,first)+after+src.slice(first+before.length);
 }
 
-// Build the exact current v6 autonomous runner without executing the fresh-save proof.
+// Build the exact current v7 autonomous runner without executing the fresh-save proof.
 // This file is explicitly NON-PROOF: it uses test helpers only to skip the already-proven
 // mortal -> late-Unity prefix and expose realm33+ blockers faster. Every action after the
 // checkpoint still goes through the same normal economy/gather/craft/breakthrough/tribulation
-// policy as v6.
-let v6=fs.readFileSync(v6Path,'utf8');
-v6=replaceOnce(
- v6,
- "await import(finalRunnerPath.href+'?v6final='+Date.now());",
+// policy as v7.
+let v7=fs.readFileSync(v7Path,'utf8');
+v7=replaceOnce(
+ v7,
+ "await import(finalRunnerPath.href+'?v7final='+Date.now());",
  "// highchain diagnostic executes a transformed copy below; never counts as full-run proof.",
- 'suppress v6 proof execution'
+ 'suppress v7 proof execution'
 );
-fs.writeFileSync(v6StagePath,v6);
-await import(v6StagePath.href+'?diagstage='+Date.now());
-if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v6 final runner');
+fs.writeFileSync(v7StagePath,v7);
+await import(v7StagePath.href+'?diagstage='+Date.now());
+if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v7 final runner');
 
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 runner=replaceOnce(
@@ -66,7 +66,8 @@ if(!runner.includes("api.v37AttemptUnityBreakthrough('success')"))throw new Erro
 if(!runner.includes("diagnosticOnly:true"))throw new Error('diagnostic proof disclaimer missing');
 if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('diagnostic lost v5 tribulation recovery semantics');
 if(!runner.includes("source:'unity-integration-jit'"))throw new Error('diagnostic lost v6 JIT unity policy');
+if(!runner.includes("if(!(state().player.activeSkillIds||[]).includes(id)){spendAction('equip-sword-escape-skill'"))throw new Error('diagnostic lost v7 loadout membership fix');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV6Policy:true,skippedPrefixSectFactRestored:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV7Policy:true,skippedPrefixSectFactRestored:true,escapeSkillMembershipFix:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?highchain='+Date.now());
