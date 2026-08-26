@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-const v7Path=new URL('./fullrun-v310-no-recharge-v7.mjs',import.meta.url);
-const v7StagePath=new URL('./.generated-diagnostic-v310-v7stage.mjs',import.meta.url);
+const v8Path=new URL('./fullrun-v310-no-recharge-v8.mjs',import.meta.url);
+const v8StagePath=new URL('./.generated-diagnostic-v310-v8stage.mjs',import.meta.url);
 const finalRunnerPath=new URL('./.generated-fullrun-v310-no-recharge-v2.mjs',import.meta.url);
 
 function replaceOnce(src,before,after,label){
@@ -11,21 +11,21 @@ function replaceOnce(src,before,after,label){
  return src.slice(0,first)+after+src.slice(first+before.length);
 }
 
-// Build the exact current v7 autonomous runner without executing the fresh-save proof.
+// Build the exact current v8 autonomous runner without executing the fresh-save proof.
 // This file is explicitly NON-PROOF: it uses test helpers only to skip the already-proven
 // mortal -> late-Unity prefix and expose realm33+ blockers faster. Every action after the
 // checkpoint still goes through the same normal economy/gather/craft/breakthrough/tribulation
-// policy as v7.
-let v7=fs.readFileSync(v7Path,'utf8');
-v7=replaceOnce(
- v7,
- "await import(finalRunnerPath.href+'?v7final='+Date.now());",
+// policy as v8.
+let v8=fs.readFileSync(v8Path,'utf8');
+v8=replaceOnce(
+ v8,
+ "await import(finalRunnerPath.href+'?v8final='+Date.now());",
  "// highchain diagnostic executes a transformed copy below; never counts as full-run proof.",
- 'suppress v7 proof execution'
+ 'suppress v8 proof execution'
 );
-fs.writeFileSync(v7StagePath,v7);
-await import(v7StagePath.href+'?diagstage='+Date.now());
-if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v7 final runner');
+fs.writeFileSync(v8StagePath,v8);
+await import(v8StagePath.href+'?diagstage='+Date.now());
+if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v8 final runner');
 
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 runner=replaceOnce(
@@ -67,7 +67,8 @@ if(!runner.includes("diagnosticOnly:true"))throw new Error('diagnostic proof dis
 if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('diagnostic lost v5 tribulation recovery semantics');
 if(!runner.includes("source:'unity-integration-jit'"))throw new Error('diagnostic lost v6 JIT unity policy');
 if(!runner.includes("if(!(state().player.activeSkillIds||[]).includes(id)){spendAction('equip-sword-escape-skill'"))throw new Error('diagnostic lost v7 loadout membership fix');
+if(!runner.includes("'mat-v38-origin-crystal','mat-v38-natal-source-crystal','mat-v38-origin-gold']);"))throw new Error('diagnostic lost v8 origin-gold auction whitelist');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV7Policy:true,skippedPrefixSectFactRestored:true,escapeSkillMembershipFix:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV8Policy:true,skippedPrefixSectFactRestored:true,escapeSkillMembershipFix:true,originGoldAuctionWhitelist:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?highchain='+Date.now());
