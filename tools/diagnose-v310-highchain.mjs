@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-const v9Path=new URL('./fullrun-v310-no-recharge-v9.mjs',import.meta.url);
-const v9StagePath=new URL('./.generated-diagnostic-v310-v9stage.mjs',import.meta.url);
+const v10Path=new URL('./fullrun-v310-no-recharge-v10.mjs',import.meta.url);
+const v10StagePath=new URL('./.generated-diagnostic-v310-v10stage.mjs',import.meta.url);
 const finalRunnerPath=new URL('./.generated-fullrun-v310-no-recharge-v2.mjs',import.meta.url);
 
 function replaceOnce(src,before,after,label){
@@ -11,19 +11,19 @@ function replaceOnce(src,before,after,label){
  return src.slice(0,first)+after+src.slice(first+before.length);
 }
 
-// Build the exact current v9 autonomous runner without executing the fresh-save proof.
+// Build the exact current v10 autonomous runner without executing the fresh-save proof.
 // NON-PROOF: test helpers are used only before the realm33 checkpoint. After it, the same
-// normal v9 economy, forging, gathering, breakthrough and tribulation policy is used.
-let v9=fs.readFileSync(v9Path,'utf8');
-v9=replaceOnce(
- v9,
- "await import(finalRunnerPath.href+'?v9final='+Date.now());",
+// normal v10 economy, source routing, forging, gathering, breakthrough and tribulation policy is used.
+let v10=fs.readFileSync(v10Path,'utf8');
+v10=replaceOnce(
+ v10,
+ "await import(finalRunnerPath.href+'?v10final='+Date.now());",
  "// highchain diagnostic executes a transformed copy below; never counts as full-run proof.",
- 'suppress v9 proof execution'
+ 'suppress v10 proof execution'
 );
-fs.writeFileSync(v9StagePath,v9);
-await import(v9StagePath.href+'?diagstage='+Date.now());
-if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v9 final runner');
+fs.writeFileSync(v10StagePath,v10);
+await import(v10StagePath.href+'?diagstage='+Date.now());
+if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v10 final runner');
 
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 runner=replaceOnce(
@@ -56,6 +56,7 @@ if(!runner.includes("nonProofDiagnostic:true"))throw new Error('diagnostic resul
 if(!runner.includes("api.v35SetPlayerForTest({sect:'青云宗'"))throw new Error('diagnostic skipped-prefix sect fact missing');
 if(!runner.includes("api.v37AttemptUnityBreakthrough('success')"))throw new Error('diagnostic lifespan setup missing');
 if(!runner.includes("diagnosticOnly:true"))throw new Error('diagnostic proof disclaimer missing');
+if(!runner.includes("enemyRows.some(e=>(e.areas||[]).includes(loc)&&combatKinds.includes(e.kind))"))throw new Error('diagnostic lost v10 combat-kind-aware source selection');
 if(!runner.includes("ensureArtifactLoadoutItem('item-v37-lawcleaver-sword','assault',3)"))throw new Error('diagnostic lost v9 legal sword assault gearing');
 if(!runner.includes("ensureArtifactLoadoutItem('item-v32-swordguard-wheel','guard',3)"))throw new Error('diagnostic lost v9 legal sword guard gearing');
 if(!runner.includes("'mat-v38-origin-crystal','mat-v38-natal-source-crystal','mat-v38-origin-gold']);"))throw new Error('diagnostic lost v8 origin-gold auction whitelist');
@@ -63,5 +64,5 @@ if(!runner.includes("source:'unity-integration-jit'"))throw new Error('diagnosti
 if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('diagnostic lost recoverable tribulation retry');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV9Policy:true,legalRealm33SwordGear:true,originGoldAuctionWhitelist:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV10Policy:true,combatKindAwareMaterialSources:true,legalRealm33SwordGear:true,originGoldAuctionWhitelist:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?highchain='+Date.now());
