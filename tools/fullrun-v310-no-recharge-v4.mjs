@@ -30,8 +30,8 @@ if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 v4 did not obtain fina
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 
 const ensureNamedBefore="function ensureNamed(id,n){if(materialCount(id)>=n)return;";
-const ensureNamedAfter="function ensureNamed(id,n){if(materialCount(id)>=n)return;if(id==='mat-v37-unity-seed'){ensureUnitySeeds(n);return}";
-runner=replaceOnce(runner,ensureNamedBefore,ensureNamedAfter,'route all unity-seed requests through integration');
+const ensureNamedAfter="function ensureNamed(id,n){if(materialCount(id)>=n)return;if(id==='mat-v37-unity-seed'){ensureUnitySeeds(n);return}if(state().player.realmIndex>=33&&(id==='mat-v38-origin-crystal'||id==='mat-v38-natal-source-crystal')&&tryAuctionMaterial(id,n,120))return;";
+runner=replaceOnce(runner,ensureNamedBefore,ensureNamedAfter,'route unity seeds and reusable V3.8 auction recovery before dangerous exploration');
 
 const auctionIdsBefore="const AUCTION_MATERIAL_IDS=new Set(['mat-v36-space-crystal','mat-v36-void-sand','mat-v36-void-essence','mat-v37-law-crystal','mat-v37-domain-sand','mat-v38-origin-crystal','mat-v38-natal-source-crystal']);";
 const auctionIdsAfter="const AUCTION_MATERIAL_IDS=new Set(['mat-v36-space-crystal','mat-v36-void-sand','mat-v36-void-essence','mat-v37-law-crystal','mat-v37-soul-covenant-stone','mat-v37-domain-sand','mat-v38-origin-crystal','mat-v38-natal-source-crystal']);";
@@ -66,6 +66,7 @@ runner=replaceOnce(runner,"if(state().player.realmIndex===37){finishTribulation(
 // Hard proof against transformer-layer false positives: inspect the exact executable.
 if(!runner.includes("function ensureUnitySeeds(n)"))throw new Error('final runner missing unity-seed integration helper');
 if(!runner.includes("if(id==='mat-v37-unity-seed'){ensureUnitySeeds(n);return}"))throw new Error('final runner missing unity-seed global routing guard');
+if(!runner.includes("state().player.realmIndex>=33&&(id==='mat-v38-origin-crystal'||id==='mat-v38-natal-source-crystal')&&tryAuctionMaterial(id,n,120)"))throw new Error('final runner missing reusable pre-Mahayana auction recovery routing');
 if(runner.includes("ensureNamed('mat-v37-unity-seed',2);"))throw new Error('final runner still contains dangerous unity-seed exploration call');
 if(!runner.includes("source:'unity-integration'"))throw new Error('final runner missing unity-integration evidence log');
 if(!runner.includes("'mat-v37-law-crystal','mat-v37-soul-covenant-stone','mat-v37-domain-sand'"))throw new Error('final runner does not allow soul-covenant auction acquisition');
@@ -85,5 +86,5 @@ if(!runner.includes("if(state().player.realmIndex===37){cultivateFull();heal();f
 if(runner.includes('v37SetPlayerForTest')||runner.includes("v33AddMaterial('mat-v37-unity-seed'"))throw new Error('forbidden progression shortcut leaked into final runner');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_FULLRUN_V4_FINAL_RUNNER_PASS '+JSON.stringify({unitySeedRouting:true,batchedUnityPreparation:true,lawCrystalAuctionPreferred:true,soulCovenantAuctionPreferred:true,lawChoiceEscapePrepared:true,ordinaryUnityAuctionPreferred:true,natalOriginAuctionPreferred:true,mahayanaUnityStockConsumed:true,swordSpaceEscape:true,swordEscapeCooldownAware:true,realm37Cultivation:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_FULLRUN_V4_FINAL_RUNNER_PASS '+JSON.stringify({unitySeedRouting:true,batchedUnityPreparation:true,lawCrystalAuctionPreferred:true,soulCovenantAuctionPreferred:true,lawChoiceEscapePrepared:true,ordinaryUnityAuctionPreferred:true,natalOriginAuctionPreferred:true,reusableMahayanaAuctionRecovery:true,mahayanaUnityStockConsumed:true,swordSpaceEscape:true,swordEscapeCooldownAware:true,realm37Cultivation:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?v4final='+Date.now());
