@@ -15,6 +15,7 @@ on:
       - "tools/fullrun-v310-no-recharge-v4.mjs"
       - "tools/fullrun-v310-no-recharge-v5.mjs"
       - "tools/fullrun-v310-no-recharge-v6.mjs"
+      - "tools/diagnose-v310-highchain.mjs"
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
       - ".github/workflows/v310-no-recharge-balance.yml"
@@ -23,6 +24,46 @@ permissions:
   contents: read
 
 jobs:
+  highchain-non-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Prepare current candidate for NON-PROOF diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.base.sha }}" = "62db848091ce7686c85357a8c963820a9d27f24c"
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tools/build-v310-balance-v2.cjs
+          node tests/regression-v310.mjs
+          node tests/regression-v310-premahayana-auction.mjs
+          node tools/build-v310-fullrun-headless.cjs
+          node --check src/game-v310.js
+      - name: Run realm33+ NON-PROOF diagnostic
+        shell: bash
+        env:
+          V310_DAO_PATH: sword
+          V310_FULLRUN_SEED: "31006701"
+          V310_FULLRUN_MAX_ACTIONS: "120000"
+          V310_FULLRUN_MAX_FARM_ACTIONS: "2400"
+        run: |
+          set -euo pipefail
+          node tools/diagnose-v310-highchain.mjs
+          node -e "const r=require('./V310_FULLRUN_RESULT.json');if(!r.nonProofDiagnostic)throw new Error('diagnostic result missing NON-PROOF marker');if(r.proof?.freshSave!==false||!r.proof?.diagnosticOnly)throw new Error('diagnostic attempted to masquerade as full-run proof')"
+      - name: Upload NON-PROOF highchain evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v310-highchain-non-proof-diagnostic
+          path: V310_FULLRUN_RESULT.json
+          if-no-files-found: ignore
+          retention-days: 7
+
   audit-v310:
     runs-on: ubuntu-latest
     timeout-minutes: 60
