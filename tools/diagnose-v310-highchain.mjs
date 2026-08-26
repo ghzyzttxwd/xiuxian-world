@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-const v8Path=new URL('./fullrun-v310-no-recharge-v8.mjs',import.meta.url);
-const v8StagePath=new URL('./.generated-diagnostic-v310-v8stage.mjs',import.meta.url);
+const v9Path=new URL('./fullrun-v310-no-recharge-v9.mjs',import.meta.url);
+const v9StagePath=new URL('./.generated-diagnostic-v310-v9stage.mjs',import.meta.url);
 const finalRunnerPath=new URL('./.generated-fullrun-v310-no-recharge-v2.mjs',import.meta.url);
 
 function replaceOnce(src,before,after,label){
@@ -11,21 +11,19 @@ function replaceOnce(src,before,after,label){
  return src.slice(0,first)+after+src.slice(first+before.length);
 }
 
-// Build the exact current v8 autonomous runner without executing the fresh-save proof.
-// This file is explicitly NON-PROOF: it uses test helpers only to skip the already-proven
-// mortal -> late-Unity prefix and expose realm33+ blockers faster. Every action after the
-// checkpoint still goes through the same normal economy/gather/craft/breakthrough/tribulation
-// policy as v8.
-let v8=fs.readFileSync(v8Path,'utf8');
-v8=replaceOnce(
- v8,
- "await import(finalRunnerPath.href+'?v8final='+Date.now());",
+// Build the exact current v9 autonomous runner without executing the fresh-save proof.
+// NON-PROOF: test helpers are used only before the realm33 checkpoint. After it, the same
+// normal v9 economy, forging, gathering, breakthrough and tribulation policy is used.
+let v9=fs.readFileSync(v9Path,'utf8');
+v9=replaceOnce(
+ v9,
+ "await import(finalRunnerPath.href+'?v9final='+Date.now());",
  "// highchain diagnostic executes a transformed copy below; never counts as full-run proof.",
- 'suppress v8 proof execution'
+ 'suppress v9 proof execution'
 );
-fs.writeFileSync(v8StagePath,v8);
-await import(v8StagePath.href+'?diagstage='+Date.now());
-if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v8 final runner');
+fs.writeFileSync(v9StagePath,v9);
+await import(v9StagePath.href+'?diagstage='+Date.now());
+if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v9 final runner');
 
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 runner=replaceOnce(
@@ -37,12 +35,6 @@ runner=replaceOnce(
 
 const freshStart="invoke('newGame',`V310无充值-${DAO_PATH}-${SEED}`);\ncheckpoint('new-game');";
 const diagnosticStart=`invoke('newGame',\`V310高链诊断-NONPROOF-\${DAO_PATH}-\${SEED}\`);
-// NON-PROOF SETUP ONLY. Build/path helper establishes a competent sword loadout. The sect
-// helper records the Qingyun membership that a genuine sword full-run already earned in the
-// skipped mortal prefix; otherwise the anti-shortcut guard correctly rejects a realm33 sword
-// character that somehow never entered the sect. A forced realm29 -> 30 Unity breakthrough
-// then applies the game's own lifespan milestone so the diagnostic is not poisoned by the
-// fresh mortal lifespan of 82 years.
 if(!api.v34ActivateBuildForTest('build-sword-burst'))throw new Error('diagnostic sword build setup failed');
 api.v35SetPlayerForTest({sect:'青云宗',sectRank:'真传弟子',contribution:500,standing:{qingyun:60,blood:-20}});
 api.v37SetPlayerForTest({realmIndex:29,location:'归一圣墟',lawId:'law-severing',lawProficiency:180,unity:110,unityEssence:4,spaceInsight:60,insight:100,progressFull:true,stones:10000});
@@ -64,11 +56,12 @@ if(!runner.includes("nonProofDiagnostic:true"))throw new Error('diagnostic resul
 if(!runner.includes("api.v35SetPlayerForTest({sect:'青云宗'"))throw new Error('diagnostic skipped-prefix sect fact missing');
 if(!runner.includes("api.v37AttemptUnityBreakthrough('success')"))throw new Error('diagnostic lifespan setup missing');
 if(!runner.includes("diagnosticOnly:true"))throw new Error('diagnostic proof disclaimer missing');
-if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('diagnostic lost v5 tribulation recovery semantics');
-if(!runner.includes("source:'unity-integration-jit'"))throw new Error('diagnostic lost v6 JIT unity policy');
-if(!runner.includes("if(!(state().player.activeSkillIds||[]).includes(id)){spendAction('equip-sword-escape-skill'"))throw new Error('diagnostic lost v7 loadout membership fix');
+if(!runner.includes("ensureArtifactLoadoutItem('item-v37-lawcleaver-sword','assault',3)"))throw new Error('diagnostic lost v9 legal sword assault gearing');
+if(!runner.includes("ensureArtifactLoadoutItem('item-v32-swordguard-wheel','guard',3)"))throw new Error('diagnostic lost v9 legal sword guard gearing');
 if(!runner.includes("'mat-v38-origin-crystal','mat-v38-natal-source-crystal','mat-v38-origin-gold']);"))throw new Error('diagnostic lost v8 origin-gold auction whitelist');
+if(!runner.includes("source:'unity-integration-jit'"))throw new Error('diagnostic lost v6 JIT unity policy');
+if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('diagnostic lost recoverable tribulation retry');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV8Policy:true,skippedPrefixSectFactRestored:true,escapeSkillMembershipFix:true,originGoldAuctionWhitelist:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV9Policy:true,legalRealm33SwordGear:true,originGoldAuctionWhitelist:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?highchain='+Date.now());
