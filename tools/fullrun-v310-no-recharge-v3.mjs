@@ -21,6 +21,12 @@ mustReplace(
  'sword dao insight after mentor milestones'
 );
 
+mustReplace(
+ `if(!src.includes("spendAction('decipher-relic-ui'"))throw new Error('normal relic decipher strategy missing');`,
+ `if(!src.includes("source:'secret-realm'"))throw new Error('normal secret-realm insight strategy missing');`,
+ 'retire obsolete relic decipher self-check'
+);
+
 const before="const rows=cat.filter(r=>(r.unlock||0)<=p.realmIndex&&(!r.path||r.path==='none'||(pathReady&&r.path===DAO_PATH))&&Number(r.mult||0)>0).sort((a,b)=>Number(b.mult||0)-Number(a.mult||0));return rows[0]||null";
 const after="const safePreDaoSources=new Set(['青石村','青石镇','临江城','青云山','云梦泽']);const rows=cat.filter(r=>{if((r.unlock||0)>p.realmIndex||Number(r.mult||0)<=0)return false;if(r.path&&r.path!=='none'&&!(pathReady&&r.path===DAO_PATH))return false;if(!pathReady){const meta=registry.manuals[r.id]||r,cost=meta.cost||{};if((cost.insight||0)>0||(cost.relic||0)>0||(cost.rare||0)>0||(cost.materials||0)>0||(cost.core||0)>0||(cost.nascent||0)>0||(cost.deification||0)>0)return false;if(cost.named&&Object.keys(cost.named).length)return false;if(!(meta.sources||r.sources||[]).some(x=>safePreDaoSources.has(x)))return false}return true}).sort((a,b)=>Number(b.mult||0)-Number(a.mult||0));return rows[0]||null";
 mustReplace(before,after,'safe pre-dao manual candidates');
