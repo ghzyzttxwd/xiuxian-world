@@ -1,11 +1,14 @@
 name: V3.10 highchain NON-PROOF diagnostic
 
-# Trigger revision 2: rerun after restoring the skipped Qingyun sect fact in the diagnostic setup.
+# Trigger revision 3: validate the current v16 realm33+ recovery economy and highchain.
 on:
   pull_request:
     branches: ["main"]
     paths:
+      - "tools/fullrun-v310-no-recharge-v16.mjs"
       - "tools/diagnose-v310-highchain.mjs"
+      - "tools/build-v310-balance-v2.cjs"
+      - "tests/regression-v310-premahayana-auction.mjs"
       - ".github/workflows/v310-highchain-diagnostic.yml"
 
 permissions:
