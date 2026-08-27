@@ -1,6 +1,10 @@
 name: V3.10 highchain NON-PROOF diagnostic
 
-# Trigger revision 4: validate the current v17 policy and realm33+ recovery economy.
+concurrency:
+  group: v310-highchain-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Trigger revision 5: validate current v17 policy and cancel superseded diagnostics.
 on:
   pull_request:
     branches: ["main"]
