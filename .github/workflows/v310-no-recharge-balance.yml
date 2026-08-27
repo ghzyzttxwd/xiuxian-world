@@ -25,6 +25,7 @@ on:
       - "tools/fullrun-v310-no-recharge-v14.mjs"
       - "tools/fullrun-v310-no-recharge-v15.mjs"
       - "tools/fullrun-v310-no-recharge-v16.mjs"
+      - "tools/fullrun-v310-no-recharge-v17.mjs"
       - "tools/diagnose-v310-highchain.mjs"
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
@@ -53,6 +54,7 @@ on:
       - "tools/fullrun-v310-no-recharge-v14.mjs"
       - "tools/fullrun-v310-no-recharge-v15.mjs"
       - "tools/fullrun-v310-no-recharge-v16.mjs"
+      - "tools/fullrun-v310-no-recharge-v17.mjs"
       - "tools/diagnose-v310-highchain.mjs"
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
@@ -163,7 +165,7 @@ jobs:
           V310_FULLRUN_MAX_FARM_ACTIONS: "2400"
         run: |
           set -euo pipefail
-          node tools/fullrun-v310-no-recharge-v16.mjs
+          node tools/fullrun-v310-no-recharge-v17.mjs
           node -e "const r=require('./V310_FULLRUN_RESULT.json');if(r.status!=='PASS'||r.final.realmIndex!==39||!r.final.ascended||!r.proof?.freshSave||!r.proof?.noRecharge||!r.proof?.legalGameplayCallsOnly||r.forbiddenCalls?.length)throw new Error('legal full-run proof incomplete')"
       - name: Upload V3.10 full-run evidence
         if: always()
