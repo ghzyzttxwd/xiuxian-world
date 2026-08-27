@@ -1,5 +1,9 @@
 name: V3.10 no-recharge balance
 
+concurrency:
+  group: v310-balance-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: ["main"]
