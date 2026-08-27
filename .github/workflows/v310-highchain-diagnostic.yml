@@ -4,12 +4,13 @@ concurrency:
   group: v310-highchain-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Trigger revision 5: validate current v17 policy and cancel superseded diagnostics.
+# Trigger revision 6: validate current v18 policy and cancel superseded diagnostics.
 on:
   pull_request:
     branches: ["main"]
     paths:
       - "tools/fullrun-v310-no-recharge-v17.mjs"
+      - "tools/fullrun-v310-no-recharge-v18.mjs"
       - "tools/diagnose-v310-highchain.mjs"
       - "tools/build-v310-balance-v2.cjs"
       - "tests/regression-v310-premahayana-auction.mjs"
