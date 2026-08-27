@@ -16,11 +16,14 @@ function replaceOnce(src,before,after,label){
 // ensureNamed() legitimately travelled away from 九霄劫台 to obtain materials, while the runner
 // invoked a terrace-only action without returning. V19 changes itinerary only: after each batch
 // of normal material procurement, return to 九霄劫台 before both prep actions and formation build.
+// It also completes the existing natal-origin progression to 9 marks before readiness: seven marks
+// satisfy the raw natal gate but contribute only 0.084 artifact score; nine normal marks contribute
+// 0.108 and satisfy the separate unchanged >=0.10 anti-tribulation artifact readiness requirement.
 let v18=fs.readFileSync(v18Path,'utf8');
 v18=replaceOnce(
  v18,
  "await import(finalRunnerPath.href+'?v18final='+Date.now());",
- "// v19 executes the final runner after fixing tribulation-stage return travel.",
+ "// v19 executes the final runner after fixing tribulation-stage return travel/readiness preparation.",
  'suppress v18 final auto-import'
 );
 fs.writeFileSync(v18StagePath,v18);
@@ -36,8 +39,12 @@ const formationBefore="const formation='formation-v39-five-elements';const f=reg
 const formationAfter="const formation='formation-v39-five-elements';const f=registry.formations[formation];if(!f)fail('formation-registry-missing',{formation});for(const [id,n] of Object.entries(f.cost||{}))ensureNamed(id,n);if(!goTo('九霄劫台'))fail('tribulation-formation-return-unreachable',{formation});const built=spendAction('build-tribulation-formation',()=>invoke('v39BuildTribulationFormation',formation));if(!built?.ok)fail('formation-build-blocked',{result:built,location:state().player.location});";
 runner=replaceOnce(runner,formationBefore,formationAfter,'return to 九霄劫台 after formation-material procurement');
 
+runner=replaceOnce(runner,"ensureOrigin(300);ensureAuthority(170);ensureNatalMarks(7);","ensureOrigin(300);ensureAuthority(170);ensureNatalMarks(9);",'finish legal natal preparation for anti-tribulation artifact score');
+
 if(!runner.includes("fail('tribulation-prep-return-unreachable',{kind:k})"))throw new Error('V3.10 v19 prep terrace-return guard missing');
 if(!runner.includes("fail('tribulation-formation-return-unreachable',{formation})"))throw new Error('V3.10 v19 formation terrace-return guard missing');
+if(!runner.includes("ensureOrigin(300);ensureAuthority(170);ensureNatalMarks(9);"))throw new Error('V3.10 v19 nine-mark readiness preparation missing');
+if(runner.includes("ensureOrigin(300);ensureAuthority(170);ensureNatalMarks(7);"))throw new Error('V3.10 v19 obsolete seven-mark readiness stop survived');
 if(!runner.includes("invoke('v38PrepareTribulation',k)"))throw new Error('V3.10 v19 normal tribulation-prep API lost');
 if(!runner.includes("invoke('v39BuildTribulationFormation',formation)"))throw new Error('V3.10 v19 normal formation-build API lost');
 if(!runner.includes("tryAuctionMaterial('mat-v36-void-essence',n,160)"))throw new Error('V3.10 v19 lost v17 void-essence patience');
@@ -47,5 +54,5 @@ if(runner.includes('v37SetPlayerForTest')||runner.includes("v33AddMaterial('mat-
 fs.writeFileSync(finalRunnerPath,runner);
 const syntax=spawnSync(process.execPath,['--check',finalRunnerPath.pathname],{encoding:'utf8'});
 if(syntax.status!==0)throw new Error('V3.10 v19 generated runner syntax check failed: '+(syntax.stderr||syntax.stdout||'unknown syntax error'));
-console.log('V310_FULLRUN_V19_FINAL_RUNNER_PASS '+JSON.stringify({tribulationPrepReturnsToTerrace:true,tribulationFormationReturnsToTerrace:true,normalMaterialProcurementPreserved:true,normalPrepApiPreserved:true,normalFormationApiPreserved:true,noDirectResourceInjection:true,noGameplayMutation:true,generatedRunnerSyntaxChecked:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_FULLRUN_V19_FINAL_RUNNER_PASS '+JSON.stringify({tribulationPrepReturnsToTerrace:true,tribulationFormationReturnsToTerrace:true,natalMarksForArtifactReadiness:9,natalArtifactScoreFromMarks:0.108,normalMaterialProcurementPreserved:true,normalPrepApiPreserved:true,normalFormationApiPreserved:true,noDirectResourceInjection:true,noGameplayMutation:true,generatedRunnerSyntaxChecked:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?v19final='+Date.now());
