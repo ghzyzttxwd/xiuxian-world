@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-const v14Path=new URL('./fullrun-v310-no-recharge-v14.mjs',import.meta.url);
-const v14StagePath=new URL('./.generated-diagnostic-v310-v14stage.mjs',import.meta.url);
+const v15Path=new URL('./fullrun-v310-no-recharge-v15.mjs',import.meta.url);
+const v15StagePath=new URL('./.generated-diagnostic-v310-v15stage.mjs',import.meta.url);
 const finalRunnerPath=new URL('./.generated-fullrun-v310-no-recharge-v2.mjs',import.meta.url);
 
 function replaceOnce(src,before,after,label){
@@ -11,20 +11,19 @@ function replaceOnce(src,before,after,label){
  return src.slice(0,first)+after+src.slice(first+before.length);
 }
 
-// Build the exact current v14 autonomous runner without executing the fresh-save proof.
+// Build the exact current v15 autonomous runner without executing the fresh-save proof.
 // NON-PROOF: test helpers are used only before the realm33 checkpoint. After it, the same
-// normal economy/drop routing plus the fully legal refinement-9/warmth-100 sword artifact
-// preparation and narrow realm34 marrow-serpent combat policy are used.
-let v14=fs.readFileSync(v14Path,'utf8');
-v14=replaceOnce(
- v14,
- "await import(finalRunnerPath.href+'?v14final='+Date.now());",
+// normal economy/drop routing is used, including the new scarce stock-1 marrow auction recovery.
+let v15=fs.readFileSync(v15Path,'utf8');
+v15=replaceOnce(
+ v15,
+ "await import(finalRunnerPath.href+'?v15final='+Date.now());",
  "// highchain diagnostic executes a transformed copy below; never counts as full-run proof.",
- 'suppress v14 proof execution'
+ 'suppress v15 proof execution'
 );
-fs.writeFileSync(v14StagePath,v14);
-await import(v14StagePath.href+'?diagstage='+Date.now());
-if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v14 final runner');
+fs.writeFileSync(v15StagePath,v15);
+await import(v15StagePath.href+'?diagstage='+Date.now());
+if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v15 final runner');
 
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 runner=replaceOnce(
@@ -57,19 +56,18 @@ if(!runner.includes("nonProofDiagnostic:true"))throw new Error('diagnostic resul
 if(!runner.includes("api.v35SetPlayerForTest({sect:'青云宗'"))throw new Error('diagnostic skipped-prefix sect fact missing');
 if(!runner.includes("api.v37AttemptUnityBreakthrough('success')"))throw new Error('diagnostic lifespan setup missing');
 if(!runner.includes("diagnosticOnly:true"))throw new Error('diagnostic proof disclaimer missing');
+if(!runner.includes("['mat-v38-origin-crystal','mat-v38-natal-source-crystal','mat-v38-origin-gold','mat-v38-heaven-vein-marrow'].includes(id)&&tryAuctionMaterial(id,n,160)"))throw new Error('diagnostic lost v15 marrow auction preference');
+if(!runner.includes("'mat-v38-origin-gold','mat-v38-heaven-vein-marrow']);"))throw new Error('diagnostic lost v15 marrow auction whitelist');
 if(!runner.includes("ensureArtifactLoadoutItem('item-v37-lawcleaver-sword','assault',9)"))throw new Error('diagnostic lost v14 max assault');
 if(!runner.includes("ensureArtifactLoadoutItem('item-v32-swordguard-wheel','guard',9)"))throw new Error('diagnostic lost v14 max guard');
 if(!runner.includes("ensureArtifactLoadoutItem('item-v37-sword-domain-banner','support',9)"))throw new Error('diagnostic lost v14 sword support');
 if(!runner.includes("ensureArtifactMaxPreparation('item-v32-sevenstar-swordcase',9,100)"))throw new Error('diagnostic lost v14 max natal preparation');
-if(!runner.includes("marrowLoadout.support==='item-v37-sword-domain-banner'"))throw new Error('diagnostic lost v14 support challenge gate');
-if(!runner.includes("marrowMaxIds.every(id=>(marrowInventory[id]?.refinement||0)>=9&&(marrowInventory[id]?.warmth||0)>=100)"))throw new Error('diagnostic lost v14 max preparation challenge gate');
-if(!runner.includes("marrowSerpentChallenge=preferWin&&preparedRealm33Sword&&enemyRealm===34&&c.enemy?.kind==='祖脉异兽'"))throw new Error('diagnostic lost v13 narrow marrow fight policy');
-if(!runner.includes("enemyRealm>s.player.realmIndex&&!marrowSerpentChallenge"))throw new Error('diagnostic lost higher-realm flee guard');
-if(!runner.includes("x.materialId===id&&x.mode==='named-source'"))throw new Error('diagnostic lost v12 actual drop-table routing');
-if(!runner.includes("domainOrdered[0]!=='万象法坛'"))throw new Error('diagnostic lost v12 runtime domain-sand assertion');
-if(!runner.includes("mat-v38-heaven-vein-marrow','天穹祖脉'"))throw new Error('diagnostic lost v12 runtime heaven-vein-marrow assertion');
+if(!runner.includes("marrowSerpentChallenge=preferWin&&preparedRealm33Sword&&enemyRealm===34&&c.enemy?.kind==='祖脉异兽'"))throw new Error('diagnostic lost dangerous fallback combat policy');
+if(!runner.includes("x.materialId===id&&x.mode==='named-source'"))throw new Error('diagnostic lost actual drop-table fallback routing');
+if(!runner.includes("domainOrdered[0]!=='万象法坛'"))throw new Error('diagnostic lost runtime domain-sand assertion');
+if(!runner.includes("mat-v38-heaven-vein-marrow','天穹祖脉'"))throw new Error('diagnostic lost runtime heaven-vein-marrow map assertion');
 if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('diagnostic lost recoverable tribulation retry');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV14Policy:true,maxSwordArtifactBuild:true,allFourArtifactsRefinement9:true,allFourArtifactsWarmth100:true,swordSupport:'item-v37-sword-domain-banner',preparedRealm33SwordMayFightRealm34AncestralBeast:true,actualDropTableMaterialRouting:true,runtimeDomainSandAssertion:true,runtimeHeavenVeinMarrowAssertion:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV15Policy:true,heavenVeinMarrowAuctionPreferred:true,stockOneNormalTradeOnly:true,dangerousMarrowFallbackPreserved:true,maxSwordArtifactBuildStillLegal:true,actualDropTableMaterialRouting:true,runtimeDomainSandAssertion:true,runtimeHeavenVeinMarrowAssertion:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?highchain='+Date.now());
