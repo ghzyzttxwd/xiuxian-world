@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-const v18Path=new URL('./fullrun-v310-no-recharge-v18.mjs',import.meta.url);
-const v18StagePath=new URL('./.generated-diagnostic-v310-v18stage.mjs',import.meta.url);
+const v19Path=new URL('./fullrun-v310-no-recharge-v19.mjs',import.meta.url);
+const v19StagePath=new URL('./.generated-diagnostic-v310-v19stage.mjs',import.meta.url);
 const finalRunnerPath=new URL('./.generated-fullrun-v310-no-recharge-v2.mjs',import.meta.url);
 
 function replaceOnce(src,before,after,label){
@@ -11,21 +11,20 @@ function replaceOnce(src,before,after,label){
  return src.slice(0,first)+after+src.slice(first+before.length);
 }
 
-// Build the exact current v18 autonomous runner without executing the fresh-save proof.
-// NON-PROOF: test helpers are used only before the realm34 checkpoint. The diagnostic now starts
-// immediately after a forced Mahayana-success milestone because highchain #27 already proved the
-// realm33 stock-1 marrow/dew route reaches a real Mahayana attempt; repeating that expensive prefix
-// consumed the entire 30-minute diagnostic budget. After the checkpoint, all gameplay remains normal.
-let v18=fs.readFileSync(v18Path,'utf8');
-v18=replaceOnce(
- v18,
- "await import(finalRunnerPath.href+'?v18final='+Date.now());",
+// Build the exact current v19 autonomous runner without executing the fresh-save proof.
+// NON-PROOF: test helpers are used only before the realm34 checkpoint. The diagnostic starts
+// immediately after a forced Mahayana-success milestone. After the checkpoint all progression,
+// material procurement, tribulation preparation, formation construction and finale actions are normal.
+let v19=fs.readFileSync(v19Path,'utf8');
+v19=replaceOnce(
+ v19,
+ "await import(finalRunnerPath.href+'?v19final='+Date.now());",
  "// highchain diagnostic executes a transformed copy below; never counts as full-run proof.",
- 'suppress v18 proof execution'
+ 'suppress v19 proof execution'
 );
-fs.writeFileSync(v18StagePath,v18);
-await import(v18StagePath.href+'?diagstage='+Date.now());
-if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v18 final runner');
+fs.writeFileSync(v19StagePath,v19);
+await import(v19StagePath.href+'?diagstage='+Date.now());
+if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v19 final runner');
 
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 runner=replaceOnce(
@@ -76,7 +75,10 @@ if(!runner.includes("x.materialId===id&&x.mode==='named-source'"))throw new Erro
 if(!runner.includes("domainOrdered[0]!=='万象法坛'"))throw new Error('diagnostic lost runtime domain-sand assertion');
 if(!runner.includes("mat-v38-heaven-vein-marrow','天穹祖脉'"))throw new Error('diagnostic lost runtime heaven-vein-marrow map assertion');
 if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('diagnostic lost recoverable tribulation retry');
+if(!runner.includes("fail('tribulation-prep-return-unreachable',{kind:k})"))throw new Error('diagnostic lost v19 prep return-to-terrace routing');
+if(!runner.includes("fail('tribulation-formation-return-unreachable',{formation})"))throw new Error('diagnostic lost v19 formation return-to-terrace routing');
+if(!runner.includes("ensureOrigin(300);ensureAuthority(170);ensureNatalMarks(9);"))throw new Error('diagnostic lost v19 nine-mark artifact-readiness preparation');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:34,currentV18Policy:true,forcedUnityAndMahayanaBeforeCheckpoint:true,realisticMahayanaLifespanFloor:true,diagnosticStones:500000,diagnosticUnityEssence:20,voidEssenceAuctionMaxCycles:160,realm33SwordGearRefinement:3,worldEssenceDewAuctionRouteStaticallyPreserved:true,heavenVeinMarrowAuctionRouteStaticallyPreserved:true,actualDropTableMaterialRouting:true,runtimeDomainSandAssertion:true,runtimeHeavenVeinMarrowAssertion:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:34,currentV19Policy:true,forcedUnityAndMahayanaBeforeCheckpoint:true,realisticMahayanaLifespanFloor:true,diagnosticStones:500000,diagnosticUnityEssence:20,voidEssenceAuctionMaxCycles:160,realm33SwordGearRefinement:3,worldEssenceDewAuctionRouteStaticallyPreserved:true,heavenVeinMarrowAuctionRouteStaticallyPreserved:true,tribulationPrepReturnsToTerrace:true,formationReturnsToTerrace:true,natalMarksForArtifactReadiness:9,actualDropTableMaterialRouting:true,runtimeDomainSandAssertion:true,runtimeHeavenVeinMarrowAssertion:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?highchain='+Date.now());
