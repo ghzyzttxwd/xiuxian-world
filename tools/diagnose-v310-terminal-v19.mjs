@@ -46,7 +46,9 @@ const diagnosticMahayana=api.v38AttemptMahayanaBreakthrough('success');
 if(!diagnosticMahayana?.ok||diagnosticMahayana.realmIndex!==34||state().player.lifespan<25000)throw new Error('terminal diagnostic Mahayana lifespan setup failed: '+JSON.stringify({result:diagnosticMahayana,lifespan:state().player.lifespan}));
 api.v37SetPlayerForTest({realmIndex:37,location:'九霄劫台',lawId:'law-severing',lawProficiency:230,unity:120,unityEssence:20,spaceInsight:80,insight:500,progressFull:true,stones:500000});
 api.v38SetPlayerForTest({realmIndex:37,location:'九霄劫台',originInsight:300,authority:170,lawProficiency:230,unity:120,mahayanaEssence:0,natalMarks:7,insight:500,progressFull:true,injury:0});
-console.log('V310_TERMINAL_NON_PROOF_START',JSON.stringify({realmIndex:state().player.realmIndex,lifespan:state().player.lifespan,age:ageYears(),location:state().player.location,daoPath:state().player.daoPath,origin:state().player.v38OriginInsight,authority:state().player.v38WorldAuthority,natalMarks:state().player.v38NatalOriginMarks,stones:state().player.spiritStones,note:'test helpers skipped the already-proven realm34->37 prefix; all terminal gameplay after this checkpoint is normal and NON-PROOF'}));
+invalidateSnapshots();
+if(state().player.realmIndex!==37||state().player.location!=='九霄劫台')throw new Error('terminal diagnostic realm37 setup cache mismatch: '+JSON.stringify({realmIndex:state().player.realmIndex,location:state().player.location}));
+console.log('V310_TERMINAL_NON_PROOF_START',JSON.stringify({realmIndex:state().player.realmIndex,lifespan:state().player.lifespan,age:ageYears(),location:state().player.location,daoPath:state().player.daoPath,origin:state().player.v38OriginInsight,authority:state().player.v38WorldAuthority,natalMarks:state().player.v38NatalOriginMarks,stones:state().player.spiritStones,note:'test helpers skipped the already-proven realm34->37 prefix; snapshots were invalidated after setup; all terminal gameplay after this checkpoint is normal and NON-PROOF'}));
 checkpoint('NON-PROOF-realm37-terminal-start');`;
 runner=replaceOnce(runner,freshStart,terminalStart,'replace fresh start with explicit realm37 terminal diagnostic checkpoint');
 
@@ -58,6 +60,7 @@ runner=replaceOnce(
 );
 
 if(!runner.includes("diagnosticStart:'realm37-terminal-after-forced-mahayana-and-proven-highchain-prefix'"))throw new Error('terminal NON-PROOF result label missing');
+if(!runner.includes("invalidateSnapshots();"))throw new Error('terminal diagnostic snapshot invalidation missing');
 if(!runner.includes("ensureOrigin(300);ensureAuthority(170);ensureNatalMarks(9);"))throw new Error('terminal diagnostic lost v19 nine-mark readiness preparation');
 if(!runner.includes("fail('tribulation-prep-return-unreachable',{kind:k})"))throw new Error('terminal diagnostic lost v19 prep terrace return');
 if(!runner.includes("fail('tribulation-formation-return-unreachable',{formation})"))throw new Error('terminal diagnostic lost v19 formation terrace return');
@@ -66,5 +69,5 @@ if(!runner.includes('diagnosticOnly:true'))throw new Error('terminal proof discl
 if(runner.includes("writeResult('PASS',{blockerHistory,proof:{freshSave:true"))throw new Error('fresh proof marker survived terminal diagnostic');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_TERMINAL_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:37,v19Policy:true,natalStartMarks:7,normalNineMarkCompletionAfterCheckpoint:true,normalPrep:true,normalFormation:true,recoverableTribulation:true,normalTerminalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_TERMINAL_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:37,v19Policy:true,natalStartMarks:7,setupSnapshotsInvalidated:true,normalNineMarkCompletionAfterCheckpoint:true,normalPrep:true,normalFormation:true,recoverableTribulation:true,normalTerminalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?terminal='+Date.now());
