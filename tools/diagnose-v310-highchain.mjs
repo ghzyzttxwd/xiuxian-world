@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-const v16Path=new URL('./fullrun-v310-no-recharge-v16.mjs',import.meta.url);
-const v16StagePath=new URL('./.generated-diagnostic-v310-v16stage.mjs',import.meta.url);
+const v17Path=new URL('./fullrun-v310-no-recharge-v17.mjs',import.meta.url);
+const v17StagePath=new URL('./.generated-diagnostic-v310-v17stage.mjs',import.meta.url);
 const finalRunnerPath=new URL('./.generated-fullrun-v310-no-recharge-v2.mjs',import.meta.url);
 
 function replaceOnce(src,before,after,label){
@@ -11,19 +11,19 @@ function replaceOnce(src,before,after,label){
  return src.slice(0,first)+after+src.slice(first+before.length);
 }
 
-// Build the exact current v16 autonomous runner without executing the fresh-save proof.
+// Build the exact current v17 autonomous runner without executing the fresh-save proof.
 // NON-PROOF: test helpers are used only before the realm33 checkpoint. After it, the same
-// normal economy/drop routing is used, including scarce stock-1 marrow and world-dew recovery.
-let v16=fs.readFileSync(v16Path,'utf8');
-v16=replaceOnce(
- v16,
- "await import(finalRunnerPath.href+'?v16final='+Date.now());",
+// normal economy/drop routing is used. V17's realm25 void-auction patience is preserved too.
+let v17=fs.readFileSync(v17Path,'utf8');
+v17=replaceOnce(
+ v17,
+ "await import(finalRunnerPath.href+'?v17final='+Date.now());",
  "// highchain diagnostic executes a transformed copy below; never counts as full-run proof.",
- 'suppress v16 proof execution'
+ 'suppress v17 proof execution'
 );
-fs.writeFileSync(v16StagePath,v16);
-await import(v16StagePath.href+'?diagstage='+Date.now());
-if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v16 final runner');
+fs.writeFileSync(v17StagePath,v17);
+await import(v17StagePath.href+'?diagstage='+Date.now());
+if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 highchain diagnostic did not obtain v17 final runner');
 
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 runner=replaceOnce(
@@ -56,8 +56,9 @@ if(!runner.includes("nonProofDiagnostic:true"))throw new Error('diagnostic resul
 if(!runner.includes("api.v35SetPlayerForTest({sect:'青云宗'"))throw new Error('diagnostic skipped-prefix sect fact missing');
 if(!runner.includes("api.v37AttemptUnityBreakthrough('success')"))throw new Error('diagnostic lifespan setup missing');
 if(!runner.includes("diagnosticOnly:true"))throw new Error('diagnostic proof disclaimer missing');
-if(!runner.includes("['mat-v38-origin-crystal','mat-v38-natal-source-crystal','mat-v38-origin-gold','mat-v38-world-essence-dew','mat-v38-heaven-vein-marrow'].includes(id)&&tryAuctionMaterial(id,n,160)"))throw new Error('diagnostic lost v16 V3.8 recovery auction preference');
-if(!runner.includes("'mat-v38-origin-gold','mat-v38-world-essence-dew','mat-v38-heaven-vein-marrow']);"))throw new Error('diagnostic lost v16 V3.8 recovery auction whitelist');
+if(!runner.includes("tryAuctionMaterial('mat-v36-void-essence',n,160)"))throw new Error('diagnostic lost v17 void-essence auction horizon');
+if(!runner.includes("['mat-v38-origin-crystal','mat-v38-natal-source-crystal','mat-v38-origin-gold','mat-v38-world-essence-dew','mat-v38-heaven-vein-marrow'].includes(id)&&tryAuctionMaterial(id,n,160)"))throw new Error('diagnostic lost V3.8 recovery auction preference');
+if(!runner.includes("'mat-v38-origin-gold','mat-v38-world-essence-dew','mat-v38-heaven-vein-marrow']);"))throw new Error('diagnostic lost V3.8 recovery auction whitelist');
 if(!runner.includes("ensureArtifactLoadoutItem('item-v37-lawcleaver-sword','assault',9)"))throw new Error('diagnostic lost v14 max assault');
 if(!runner.includes("ensureArtifactLoadoutItem('item-v32-swordguard-wheel','guard',9)"))throw new Error('diagnostic lost v14 max guard');
 if(!runner.includes("ensureArtifactLoadoutItem('item-v37-sword-domain-banner','support',9)"))throw new Error('diagnostic lost v14 sword support');
@@ -69,5 +70,5 @@ if(!runner.includes("mat-v38-heaven-vein-marrow','天穹祖脉'"))throw new Erro
 if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('diagnostic lost recoverable tribulation retry');
 
 fs.writeFileSync(finalRunnerPath,runner);
-console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV16Policy:true,worldEssenceDewAuctionPreferred:true,heavenVeinMarrowAuctionPreferred:true,stockOneNormalTradeOnly:true,dangerousFallbacksPreserved:true,maxSwordArtifactBuildStillLegal:true,actualDropTableMaterialRouting:true,runtimeDomainSandAssertion:true,runtimeHeavenVeinMarrowAssertion:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_HIGHCHAIN_DIAGNOSTIC_RUNNER_READY '+JSON.stringify({nonProof:true,startRealm:33,currentV17Policy:true,voidEssenceAuctionMaxCycles:160,worldEssenceDewAuctionPreferred:true,heavenVeinMarrowAuctionPreferred:true,stockOneNormalTradeOnly:true,dangerousFallbacksPreserved:true,maxSwordArtifactBuildStillLegal:true,actualDropTableMaterialRouting:true,runtimeDomainSandAssertion:true,runtimeHeavenVeinMarrowAssertion:true,normalGameplayAfterCheckpoint:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?highchain='+Date.now());
