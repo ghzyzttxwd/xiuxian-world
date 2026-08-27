@@ -20,7 +20,7 @@ assert(/"id":"mat-v38-heaven-vein-marrow","name":"天脉髓"[^}]*"locations":\["
 assert(source.includes("const cost={'mat-v38-origin-crystal':2,'mat-v38-heaven-vein-marrow':1,'mat-v38-world-essence-dew':1,'mat-v37-unity-essence':1}"),'大乘本源髓 ingredient costs must remain 2界源晶+1天脉髓+1世界真露+1合体归一髓');
 assert(source.includes("if(i===33)return {kind:'大乘证道',mahayanaEssence:5,lawProf:180,unity:110,origin:45,authority:20,natalMarks:1,insight:42"),'大乘证道 must still require five 大乘本源髓');
 
-function freshApi(label){
+function freshApi(label,realm=33){
  const d=new JSDOM(html,{url:'http://v310-auction.test/',runScripts:'outside-only',pretendToBeVisual:true});
  d.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
  d.window.scrollTo=()=>{};
@@ -28,7 +28,7 @@ function freshApi(label){
  d.window.eval(source);
  const api=d.window.__TAIXUAN_TEST__;
  api.newGame(label);
- api.v35SetPlayerForTest({realmIndex:33,location:'苍梧郡城',stones:100000});
+ api.v35SetPlayerForTest({realmIndex:realm,location:'苍梧郡城',stones:100000});
  return {d,api};
 }
 
@@ -108,4 +108,28 @@ function verifyStockOneRecovery(refId,name){
 const dewRecovery=verifyStockOneRecovery('mat-v38-world-essence-dew','世界真露');
 const marrowRecovery=verifyStockOneRecovery('mat-v38-heaven-vein-marrow','天脉髓');
 
-console.log('V310_PREMAHAYANA_AUCTION_REGRESSION_PASS '+JSON.stringify({realm:33,originCrystal:bought.get('mat-v38-origin-crystal'),natalSourceCrystal:bought.get('mat-v38-natal-source-crystal'),originGold:bought.get('mat-v38-origin-gold'),worldEssenceDew:bought.get('mat-v38-world-essence-dew'),heavenVeinMarrow:bought.get('mat-v38-heaven-vein-marrow'),worldEssenceDewRecovery:dewRecovery,heavenVeinMarrowRecovery:marrowRecovery,originGoldDangerousMapSourcePreserved:true,worldEssenceDewDangerousMapsPreserved:true,heavenVeinMarrowDangerousMapAndDropPreserved:true,mahayanaEssenceCostPreserved:true,mahayanaFiveEssenceGatePreserved:true,normalTradeOnly:true,zeroStoneRejected:true,stockOneScarcityPreserved:true,marketPriceVariationPreserved:true}));
+// Runner-policy regression: after expanding the auction pool, 24 cycles no longer necessarily
+// cover five stock-1 炼虚真髓 purchases. Prove the current GAME still supplies five copies through
+// ordinary realm25 auction rotation; the full-run harness must wait long enough instead of falling
+// back prematurely to dangerous 空冥裂谷 crafting.
+function verifyFiveVoidEssences(){
+ const {api:a}=freshApi('V310-炼虚真髓五份轮换回归',25);
+ const refId='mat-v36-void-essence',purchases=[];
+ for(let cycle=0;cycle<=160&&purchases.length<5;cycle++){
+  const lot=Object.values(a.v35ListingRegistry()||{}).find(x=>x&&x.shopId==='shop-cangwu-auction'&&x.kind==='material'&&x.refId===refId&&Number(x.stock||0)>0);
+  if(lot){
+   const before=a.v33MaterialCount(refId);
+   const trade=a.v35Trade(lot.id,'buy',1);
+   assert.equal(trade?.ok,true,`炼虚真髓 normal auction purchase ${purchases.length+1} failed: ${JSON.stringify(trade)}`);
+   assert.equal(a.v33MaterialCount(refId),before+1,'炼虚真髓 auction must deliver exactly one per stock-1 lot');
+   purchases.push({cycle,listingId:lot.id,marketPrice:Number(lot.basePrice)});
+  }
+  if(purchases.length<5)a.advanceDays(30);
+ }
+ assert.equal(purchases.length,5,'current auction pool must make five 炼虚真髓 copies normally recoverable within 160 cycles');
+ assert(purchases[4].cycle>24,'regression premise changed: fifth 炼虚真髓 now fits inside the obsolete 24-cycle runner horizon');
+ return {purchases,fifthCycle:purchases[4].cycle};
+}
+const voidEssenceFive=verifyFiveVoidEssences();
+
+console.log('V310_PREMAHAYANA_AUCTION_REGRESSION_PASS '+JSON.stringify({realm:33,originCrystal:bought.get('mat-v38-origin-crystal'),natalSourceCrystal:bought.get('mat-v38-natal-source-crystal'),originGold:bought.get('mat-v38-origin-gold'),worldEssenceDew:bought.get('mat-v38-world-essence-dew'),heavenVeinMarrow:bought.get('mat-v38-heaven-vein-marrow'),worldEssenceDewRecovery:dewRecovery,heavenVeinMarrowRecovery:marrowRecovery,voidEssenceFive,originGoldDangerousMapSourcePreserved:true,worldEssenceDewDangerousMapsPreserved:true,heavenVeinMarrowDangerousMapAndDropPreserved:true,mahayanaEssenceCostPreserved:true,mahayanaFiveEssenceGatePreserved:true,normalTradeOnly:true,zeroStoneRejected:true,stockOneScarcityPreserved:true,marketPriceVariationPreserved:true}));
