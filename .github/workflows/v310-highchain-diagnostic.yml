@@ -1,11 +1,11 @@
 name: V3.10 highchain NON-PROOF diagnostic
 
-# Trigger revision 3: validate the current v16 realm33+ recovery economy and highchain.
+# Trigger revision 4: validate the current v17 policy and realm33+ recovery economy.
 on:
   pull_request:
     branches: ["main"]
     paths:
-      - "tools/fullrun-v310-no-recharge-v16.mjs"
+      - "tools/fullrun-v310-no-recharge-v17.mjs"
       - "tools/diagnose-v310-highchain.mjs"
       - "tools/build-v310-balance-v2.cjs"
       - "tests/regression-v310-premahayana-auction.mjs"
