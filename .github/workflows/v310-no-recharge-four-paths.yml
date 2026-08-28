@@ -104,7 +104,7 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          node tools/fullrun-v310-no-recharge-v33.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
+          node tools/fullrun-v310-no-recharge-v34.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
           rc=${PIPESTATUS[0]}
           set -e
           if [ "$rc" -ne 0 ]; then
