@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/v310-natal-origin-id-candidate.yml"
       - "tools/build-v310-balance-v4.cjs"
+      - "tools/fullrun-v310-no-recharge-v58.mjs"
       - "tests/regression-v310-natal-origin-id.mjs"
 
 permissions:
@@ -30,7 +31,8 @@ jobs:
         run: |
           set -euo pipefail
           node --check tools/build-v310-balance-v4.cjs
+          node --check tools/fullrun-v310-no-recharge-v58.mjs
           node --check tests/regression-v310-natal-origin-id.mjs
           node tests/regression-v310-natal-origin-id.mjs
           node --check src/game-v310.js
-          node -e "const r=require('./BUILD_V310_BALANCE.json');if(r.status!=='PASS'||r.gameplay_version!=='3.10.0'||r.build!==31001||r.save_schema_version!==36||r.content_registry_version!==10)throw new Error('V3.10 candidate report mismatch')"
+          node -e "const r=require('./BUILD_V310_BALANCE.json');if(r.status!=='PASS'||r.gameplay_version!=='3.10.0'||r.build!==31001||r.save_schema_version!==36||r.content_registry_version!==10||!r.changes?.some(x=>String(x).includes('natal-artifact combat scaling')))throw new Error('V3.10 candidate report mismatch')"
