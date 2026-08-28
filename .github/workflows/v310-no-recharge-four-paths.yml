@@ -109,13 +109,14 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          node tools/fullrun-v310-no-recharge-v56.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
+          node tools/fullrun-v310-no-recharge-v57.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
           rc=${PIPESTATUS[0]}
           set -e
           if [ "$rc" -ne 0 ]; then
             echo "V310_FULLRUN_PROCESS_EXIT=$rc"
             exit "$rc"
           fi
+          grep -q 'V310_FULLRUN_V57_GEAR_CALL' V310_FULLRUN_LOG.txt
           node -e "const r=require('./V310_FULLRUN_RESULT.json');if(r.status!=='PASS'||r.daoPath!==process.argv[1]||r.final.realmIndex!==39||!r.final.ascended||!r.proof?.freshSave||!r.proof?.noRecharge||!r.proof?.legalGameplayCallsOnly||!r.proof?.ascensionComplete||r.forbiddenCalls?.length)throw new Error('four-path legal full-run proof incomplete')" "${{ matrix.dao }}"
       - name: Upload path evidence
         if: always()
