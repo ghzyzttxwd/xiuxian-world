@@ -12,13 +12,17 @@ function replaceOnce(src,before,after,label){
  return src.slice(0,first)+after+src.slice(first+before.length);
 }
 
-// V32 moved all three non-sword paths to Foundation Perfection, then each died during a failed flee.
-// The inherited autonomous combat policy attempted flee on every round whenever preferWin=false, and
-// also switched from fighting to repeated flee attempts below 28% HP. In the real combat rules a failed
-// flee still grants the enemy a full counterattack, so repeated low-HP fleeing is self-destructive.
-// V33 changes runner decision-making only: one optional flee attempt from an equal/lower encounter while
-// healthy, at most two attempts against an overmatched enemy while still healthy, then normal combat.
-// Flee chance, enemy stats, damage, death risk, healing, rewards, RNG and all game data remain unchanged.
+// V32 moved all three non-sword paths beyond the earlier resource/order blockers, then exposed a
+// separate autonomous-combat defect: V22's current risk policy can repeatedly choose flee after each
+// failed escape. In the real combat rules every failed flee grants the enemy a normal counterattack,
+// so an otherwise viable player can die from the runner repeatedly gambling on escape.
+//
+// V33 keeps V22/V23's risk classification, the realm34 marrow exception and sword space-step escape,
+// but bounds ordinary flee attempts per encounter. A near-peer incidental encounter gets at most one
+// healthy flee roll; a genuinely overmatched encounter gets at most two. Once those attempts are used,
+// or HP is already too low to keep gambling, the runner falls through to its existing normal combat
+// skills/artifacts/attack logic. Flee chance, enemies, damage, death risk, healing, rewards, RNG and
+// all game data remain unchanged.
 let v32=fs.readFileSync(v32Path,'utf8');
 v32=replaceOnce(
  v32,
@@ -38,26 +42,39 @@ runner=replaceOnce(
  'track flee attempts per encounter'
 );
 
-const fleeBefore="if(!preferWin||enemyRealm>s.player.realmIndex||hpRatio<.28){spendAction('combat-flee',()=>invoke('combatAction','flee'));continue}";
-const fleeAfter=`const overmatched=enemyRealm>s.player.realmIndex;
-  const optionalFlee=!preferWin&&!overmatched&&hpRatio>=.58&&fleeAttempts<1;
-  const overmatchFlee=overmatched&&hpRatio>=.38&&fleeAttempts<2;
+const fleeBefore="const cautiousIncidentalFloor=s.player.realmIndex>=3?s.player.realmIndex-3:-1;if((!preferWin&&enemyRealm>cautiousIncidentalFloor)||(preferWin&&enemyRealm>s.player.realmIndex&&!marrowSerpentChallenge)||hpRatio<.36){if(DAO_PATH==='sword'&&enemyRealm>s.player.realmIndex&&hpRatio>=.4&&(s.player.activeSkillIds||[]).includes('spell-v36-sword-space-step')){const cc=combat(),row=registry.spells['spell-v36-sword-space-step'],cd=Number(cc?.cooldowns?.['spell-v36-sword-space-step']||0);if(cc&&cd<=0&&!(cc.v36SpaceShift>0)&&cc.playerQi>=Number(row?.qi||0)){spendAction('combat-escape-shift',()=>invoke('combatAction','skill:spell-v36-sword-space-step'));continue}}spendAction('combat-flee',()=>invoke('combatAction','flee'));continue}";
+const fleeAfter=`const cautiousIncidentalFloor=s.player.realmIndex>=3?s.player.realmIndex-3:-1;
+  const unsafeIncidental=!preferWin&&enemyRealm>cautiousIncidentalFloor;
+  const overmatchedTarget=preferWin&&enemyRealm>s.player.realmIndex&&!marrowSerpentChallenge;
+  const structurallyOvermatched=enemyRealm>s.player.realmIndex&&!marrowSerpentChallenge;
+  const optionalFlee=unsafeIncidental&&!structurallyOvermatched&&hpRatio>=.58&&fleeAttempts<1;
+  const overmatchFlee=structurallyOvermatched&&hpRatio>=.38&&fleeAttempts<2;
   if(optionalFlee||overmatchFlee){
+   if(DAO_PATH==='sword'&&enemyRealm>s.player.realmIndex&&hpRatio>=.4&&(s.player.activeSkillIds||[]).includes('spell-v36-sword-space-step')){
+    const cc=combat(),row=registry.spells['spell-v36-sword-space-step'],cd=Number(cc?.cooldowns?.['spell-v36-sword-space-step']||0);
+    if(cc&&cd<=0&&!(cc.v36SpaceShift>0)&&cc.playerQi>=Number(row?.qi||0)){
+     spendAction('combat-escape-shift',()=>invoke('combatAction','skill:spell-v36-sword-space-step'));
+     continue;
+    }
+   }
    fleeAttempts++;
    spendAction('combat-flee',()=>invoke('combatAction','flee'));
    continue;
   }
-  if((!preferWin||overmatched)&&!policyLogged){
+  if((unsafeIncidental||overmatchedTarget||hpRatio<.36)&&!policyLogged){
    policyLogged=true;
-   console.log('V310_FULLRUN_V33_COMBAT_POLICY',JSON.stringify({preferWin,enemy:c.enemy?.name||null,enemyRealm,playerRealm:s.player.realmIndex,hpRatio:Number(hpRatio.toFixed(3)),fleeAttempts,decision:'fight-after-limited-flee',actions}));
+   console.log('V310_FULLRUN_V33_COMBAT_POLICY',JSON.stringify({preferWin,enemy:c.enemy?.name||null,enemyRealm,playerRealm:s.player.realmIndex,hpRatio:Number(hpRatio.toFixed(3)),fleeAttempts,unsafeIncidental,overmatchedTarget,decision:'fight-after-bounded-flee',actions}));
   }`;
-runner=replaceOnce(runner,fleeBefore,fleeAfter,'replace repeated panic-flee loop with bounded flee policy');
+runner=replaceOnce(runner,fleeBefore,fleeAfter,'replace current v22 repeated flee branch with bounded flee policy');
 
 if(!runner.includes('let guard=0,fleeAttempts=0,policyLogged=false;'))throw new Error('V3.10 v33 flee attempt state missing');
-if(!runner.includes('const optionalFlee=!preferWin&&!overmatched&&hpRatio>=.58&&fleeAttempts<1;'))throw new Error('V3.10 v33 optional flee bound missing');
-if(!runner.includes('const overmatchFlee=overmatched&&hpRatio>=.38&&fleeAttempts<2;'))throw new Error('V3.10 v33 overmatch flee bound missing');
+if(!runner.includes('const cautiousIncidentalFloor=s.player.realmIndex>=3?s.player.realmIndex-3:-1;'))throw new Error('V3.10 v33 lost v22 incidental safety margin');
+if(!runner.includes('const optionalFlee=unsafeIncidental&&!structurallyOvermatched&&hpRatio>=.58&&fleeAttempts<1;'))throw new Error('V3.10 v33 optional flee bound missing');
+if(!runner.includes('const overmatchFlee=structurallyOvermatched&&hpRatio>=.38&&fleeAttempts<2;'))throw new Error('V3.10 v33 overmatch flee bound missing');
 if(!runner.includes('V310_FULLRUN_V33_COMBAT_POLICY'))throw new Error('V3.10 v33 combat policy evidence missing');
-if(runner.includes("hpRatio<.28){spendAction('combat-flee'"))throw new Error('V3.10 v33 retained low-HP panic flee');
+if(runner.includes("||hpRatio<.36){if(DAO_PATH==='sword'"))throw new Error('V3.10 v33 retained v22 repeated panic-flee branch');
+if(!runner.includes("marrowSerpentChallenge=preferWin&&preparedRealm33Sword&&enemyRealm===34&&c.enemy?.kind==='祖脉异兽'"))throw new Error('V3.10 v33 lost realm34 marrow exception');
+if(!runner.includes("combat-escape-shift"))throw new Error('V3.10 v33 lost sword space-step escape policy');
 if(!runner.includes("registry.realms?.[item.realmRequirement]?.index"))throw new Error('V3.10 v33 lost v32 natal unlock lookup');
 if(!runner.includes("cultivateFull();prepareMajor(i);prepareMinorSideGate(i);"))throw new Error('V3.10 v33 lost v32 breakthrough ordering');
 if(!runner.includes('function ensureBloodContractRare(n)'))throw new Error('V3.10 v33 lost v30 legal rare route');
@@ -68,5 +85,5 @@ if(runner.includes("invoke('v37SetPlayerForTest'")||runner.includes("v33AddMater
 fs.writeFileSync(finalRunnerPath,runner);
 const syntax=spawnSync(process.execPath,['--check',finalRunnerPath.pathname],{encoding:'utf8'});
 if(syntax.status!==0)throw new Error('V3.10 v33 generated runner syntax check failed: '+(syntax.stderr||syntax.stdout||'unknown syntax error'));
-console.log('V310_FULLRUN_V33_FINAL_RUNNER_PASS '+JSON.stringify({boundedFleeAttempts:true,noLowHpPanicFlee:true,fleeChanceUnchanged:true,enemyStatsUnchanged:true,damageUnchanged:true,deathRiskUnchanged:true,healingUnchanged:true,rewardsUnchanged:true,rngUnchanged:true,v32UnlockAndOrderPreserved:true,v30RareStrategyPreserved:true,noDirectResourceInjection:true,noGameplayMutation:true,generatedRunnerSyntaxChecked:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_FULLRUN_V33_FINAL_RUNNER_PASS '+JSON.stringify({boundedFleeAttempts:true,noRepeatedLowHpPanicFlee:true,v22RiskClassificationPreserved:true,realm34MarrowExceptionPreserved:true,swordSpaceEscapePreserved:true,fleeChanceUnchanged:true,enemyStatsUnchanged:true,damageUnchanged:true,deathRiskUnchanged:true,healingUnchanged:true,rewardsUnchanged:true,rngUnchanged:true,v32UnlockAndOrderPreserved:true,v30RareStrategyPreserved:true,noDirectResourceInjection:true,noGameplayMutation:true,generatedRunnerSyntaxChecked:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?v33final='+Date.now());
