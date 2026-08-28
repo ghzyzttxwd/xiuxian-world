@@ -8,6 +8,7 @@ on:
       - "tools/build-v310-balance-v4.cjs"
       - "tools/fullrun-v310-no-recharge-v58.mjs"
       - "tests/regression-v310-natal-origin-id.mjs"
+      - "tests/regression-v310-resource-utility.mjs"
 
 permissions:
   contents: read
@@ -26,6 +27,12 @@ jobs:
           set -euo pipefail
           git merge-base --is-ancestor 62db848091ce7686c85357a8c963820a9d27f24c HEAD
           test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+      - name: Install headless dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
       - name: Run isolated natal-origin identity regression
         shell: bash
         run: |
@@ -36,3 +43,20 @@ jobs:
           node tests/regression-v310-natal-origin-id.mjs
           node --check src/game-v310.js
           node -e "const r=require('./BUILD_V310_BALANCE.json');if(r.status!=='PASS'||r.gameplay_version!=='3.10.0'||r.build!=='31001'||r.save_schema_version!==36||r.content_registry_version!==10||!r.changes?.some(x=>String(x).includes('natal-artifact combat scaling')))throw new Error('V3.10 candidate report mismatch')"
+      - name: Run named-material utility regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tests/regression-v310-resource-utility.mjs
+          node tools/build-v310-balance-v4.cjs >/tmp/v310-build-v4-resource.log
+          node tests/regression-v310-resource-utility.mjs
+          test -s V310_RESOURCE_UTILITY_AUDIT.json
+          node -e "const a=require('./V310_RESOURCE_UTILITY_AUDIT.json');if(a.status!=='PASS'||a.unused?.length||a.highUnused?.length)throw new Error('V3.10 resource utility audit incomplete')"
+      - name: Upload resource utility audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v310-resource-utility-audit
+          path: V310_RESOURCE_UTILITY_AUDIT.json
+          if-no-files-found: ignore
+          retention-days: 7
