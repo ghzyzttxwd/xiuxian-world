@@ -25,7 +25,7 @@ function replaceOnce(src,before,after,label){
 //
 // V36 changes runner strategy only. Secret realms remain first-choice insight; after a bounded period
 // without a safe realm, the runner buys three relics through the existing V3.5 auction and clicks the
-// real [data-relic] UI. Refining routes are funded for route fees PLUS the unchanged recipe stone cost.
+// real [data-relic] UI. Refining travel is funded for route fees PLUS the unchanged recipe stone cost.
 // Structurally overmatched encounters may make up to six normal flee attempts instead of being forced
 // into a low-HP fight after two. No resource grant, price/drop/enemy/flee chance, recipe cost, realm
 // requirement, RNG, time cost or runtime game rule is changed.
@@ -65,6 +65,9 @@ const unsafeAfter=`if(sr&&!sr.cleared&&!safe&&regionalIncidentalCeiling>state().
 runner=replaceOnce(runner,unsafeBefore,unsafeAfter,'use normal auction relics when safe insight realm does not arrive');
 
 // --- 2. Preserve recipe stones across travel to refining locations. ---
+// This helper recalculates route cost if ensureStones() itself relocated the player to a work city.
+// Patch only the stable funding+travel expressions below, not the full ensureCore/Nascent/Deification
+// functions: earlier runner layers legitimately evolved those functions around the same core actions.
 const goAnyAnchor="function goAny(candidates){for(const x of candidates){if(goTo(x))return x}return null}";
 const goAnyFunded=`function goAny(candidates){for(const x of candidates){if(goTo(x))return x}return null}
 function goAnyFunded(candidates,reserve,label){
@@ -83,17 +86,24 @@ function goAnyFunded(candidates,reserve,label){
 }`;
 runner=replaceOnce(runner,goAnyAnchor,goAnyFunded,'add route-fee-aware refining travel helper');
 
-const coreBefore="function ensureCore(n){let guard=0;while(state().player.coreEssence<n){if(++guard>40)fail('core-essence-loop',{target:n});ensureHerbs(state().player.herbs+4);ensureBeast(state().player.beastMaterials+2);ensureStones(state().player.spiritStones+6);if(!goAny(['赤霞谷','落星矿脉','古河遗迹']))fail('core-craft-location-unreachable',{});const before=state().player.coreEssence;spendAction('craft-core',()=>invoke('craftCoreEssence'));if(state().player.coreEssence<=before)fail('core-craft-no-progress',{target:n})}}";
-const coreAfter="function ensureCore(n){let guard=0;while(state().player.coreEssence<n){if(++guard>40)fail('core-essence-loop',{target:n});ensureHerbs(state().player.herbs+4);ensureBeast(state().player.beastMaterials+2);if(!goAnyFunded(['赤霞谷','落星矿脉','古河遗迹'],6,'core'))fail('core-craft-location-unreachable',{});const before=state().player.coreEssence;spendAction('craft-core',()=>invoke('craftCoreEssence'));if(state().player.coreEssence<=before)fail('core-craft-no-progress',{target:n})}}";
-runner=replaceOnce(runner,coreBefore,coreAfter,'fund core refining after route fees');
-
-const nascentBefore="function ensureNascent(n){let guard=0;while(state().player.nascentEssence<n){if(++guard>40)fail('nascent-essence-loop',{target:n});ensureCore(state().player.coreEssence+1);ensureRelic(state().player.relicFragments+2);ensureHerbs(state().player.herbs+6);ensureStones(state().player.spiritStones+12);if(!goAny(['古河遗迹','玄阴禁地']))fail('nascent-craft-location-unreachable',{});const before=state().player.nascentEssence;spendAction('craft-nascent',()=>invoke('craftNascentEssence'));if(state().player.nascentEssence<=before)fail('nascent-craft-no-progress',{target:n})}}";
-const nascentAfter="function ensureNascent(n){let guard=0;while(state().player.nascentEssence<n){if(++guard>40)fail('nascent-essence-loop',{target:n});ensureCore(state().player.coreEssence+1);ensureRelic(state().player.relicFragments+2);ensureHerbs(state().player.herbs+6);if(!goAnyFunded(['古河遗迹','玄阴禁地'],12,'nascent'))fail('nascent-craft-location-unreachable',{});const before=state().player.nascentEssence;spendAction('craft-nascent',()=>invoke('craftNascentEssence'));if(state().player.nascentEssence<=before)fail('nascent-craft-no-progress',{target:n})}}";
-runner=replaceOnce(runner,nascentBefore,nascentAfter,'fund nascent refining after route fees');
-
-const deifBefore="function ensureDeification(n){let guard=0;while(state().player.deificationEssence<n){if(++guard>50)fail('deification-essence-loop',{target:n});ensureNascent(state().player.nascentEssence+1);ensureRelic(state().player.relicFragments+3);ensureBeast(state().player.beastMaterials+4);ensureHerbs(state().player.herbs+8);ensureStones(state().player.spiritStones+25);if(!goAny(['古河遗迹','玄阴禁地']))fail('deification-craft-location-unreachable',{});const before=state().player.deificationEssence;spendAction('craft-deification',()=>invoke('craftDeificationEssence'));if(state().player.deificationEssence<=before)fail('deification-craft-no-progress',{target:n})}}";
-const deifAfter="function ensureDeification(n){let guard=0;while(state().player.deificationEssence<n){if(++guard>50)fail('deification-essence-loop',{target:n});ensureNascent(state().player.nascentEssence+1);ensureRelic(state().player.relicFragments+3);ensureBeast(state().player.beastMaterials+4);ensureHerbs(state().player.herbs+8);if(!goAnyFunded(['古河遗迹','玄阴禁地'],25,'deification'))fail('deification-craft-location-unreachable',{});const before=state().player.deificationEssence;spendAction('craft-deification',()=>invoke('craftDeificationEssence'));if(state().player.deificationEssence<=before)fail('deification-craft-no-progress',{target:n})}}";
-runner=replaceOnce(runner,deifBefore,deifAfter,'fund deification refining after route fees');
+runner=replaceOnce(
+ runner,
+ "ensureStones(state().player.spiritStones+6);if(!goAny(['赤霞谷','落星矿脉','古河遗迹']))",
+ "if(!goAnyFunded(['赤霞谷','落星矿脉','古河遗迹'],6,'core'))",
+ 'fund core refining at stable travel anchor'
+);
+runner=replaceOnce(
+ runner,
+ "ensureStones(state().player.spiritStones+12);if(!goAny(['古河遗迹','玄阴禁地']))",
+ "if(!goAnyFunded(['古河遗迹','玄阴禁地'],12,'nascent'))",
+ 'fund nascent refining at stable travel anchor'
+);
+runner=replaceOnce(
+ runner,
+ "ensureStones(state().player.spiritStones+25);if(!goAny(['古河遗迹','玄阴禁地']))",
+ "if(!goAnyFunded(['古河遗迹','玄阴禁地'],25,'deification'))",
+ 'fund deification refining at stable travel anchor'
+);
 
 // --- 3. Do not force a wounded lower-major-realm player to fight after only two failed escapes. ---
 runner=replaceOnce(
