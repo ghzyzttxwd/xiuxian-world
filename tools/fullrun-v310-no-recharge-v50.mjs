@@ -103,7 +103,7 @@ runner=replaceFunction(runner,'function ensureUnityEssence(',safeOrderedEssence,
 if(!runner.includes('V310_FULLRUN_V50_UNITY_SEED_BATCH')||!runner.includes('V310_FULLRUN_V50_ESSENCE_READY')||!runner.includes('V310_FULLRUN_V50_ESSENCE_BATCH'))throw new Error('V3.10 v50 evidence markers missing');
 if(!runner.includes("ensureUnitySeeds(2*missing,2*missing,missing);"))throw new Error('V3.10 v50 exact final-input reservation call missing');
 if(!runner.includes("const lawTarget=batch+Math.max(0,reserveLaw),covenantTarget=batch+Math.max(0,reserveCovenant);"))throw new Error('V3.10 v50 reserve-aware seed batching missing');
-if(!runner.includes('V310_FULLRUN_V49_FINAL_RUNNER_PASS'))throw new Error('V3.10 v50 lost V49 hard-rule proof');
+if(!runner.includes("ensureNatalMarks(req.natalMarks||1);ensureUnityEssence(req.mahayanaEssence||5);ensureMahayanaEssence(req.mahayanaEssence||5);"))throw new Error('V3.10 v50 lost V49 realm33 exact unity-essence prefetch');
 if(!runner.includes('V310_FULLRUN_V48_UNITY_SITE'))throw new Error('V3.10 v50 lost V48 safe ordinary unity-site selection');
 if(!runner.includes('V310_FULLRUN_V45_ESCAPE_OPTIONS'))throw new Error('V3.10 v50 lost V45 effect-aware escape');
 if(runner.includes("invoke('v37SetPlayerForTest'")||runner.includes("v33AddMaterial('mat-v37-unity-essence'")||runner.includes("v33AddMaterial('mat-v37-unity-seed'")||runner.includes("invoke('v34ActivateBuildForTest'"))throw new Error('forbidden shortcut leaked into V3.10 v50 runner');
