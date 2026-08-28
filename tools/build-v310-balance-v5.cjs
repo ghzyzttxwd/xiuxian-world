@@ -1,0 +1,39 @@
+const fs=require('fs');
+const crypto=require('crypto');
+
+// Layer the no-dead-resource repair over the validated V38 natal identity candidate.
+// 万劫真髓 is already a real V39 combat reward (one on every third qualifying V39 combat win)
+// but V3.9/V3.10 never consumed it anywhere. Make it a thematic ingredient of 九转渡劫丹
+// without changing its source, drop cadence, guard value, alchemy success, enemies or tribulation odds.
+require('./build-v310-balance-v4.cjs');
+
+const OUTPUT='src/game-v310.js',REPORT='BUILD_V310_BALANCE.json';
+let src=fs.readFileSync(OUTPUT,'utf8');
+const before='"ingredients":{"mat-v39-thunder-crystal":1,"mat-v39-life-thread":1,"mat-v38-tribulation-stone":1}';
+const after='"ingredients":{"mat-v39-thunder-crystal":1,"mat-v39-life-thread":1,"mat-v38-tribulation-stone":1,"mat-v39-tribulation-essence":1}';
+const first=src.indexOf(before);
+if(first<0)throw new Error('V3.10 九转渡劫丹 ingredient anchor missing');
+if(src.indexOf(before,first+1)>=0)throw new Error('V3.10 九转渡劫丹 ingredient anchor ambiguous');
+const recipePos=src.lastIndexOf('"id":"recipe-v39-thunder-ninefold"',first);
+if(recipePos<0||first-recipePos>800)throw new Error('V3.10 ingredient anchor is not 九转渡劫丹');
+src=src.slice(0,first)+after+src.slice(first+before.length);
+if(src.includes(before))throw new Error('V3.10 stale 九转渡劫丹 cost survived');
+if(!src.includes(after))throw new Error('V3.10 万劫真髓 sink missing');
+
+// Preserve the normal acquisition route and every relevant gameplay coefficient.
+if(!src.includes("if(state.player.battleWins%3===0){v33AddMaterial('mat-v39-tribulation-essence',1);gained=1}"))throw new Error('V39 万劫真髓 normal combat source drifted');
+if(!src.includes('"mat-v39-tribulation-essence":{"id":"mat-v39-tribulation-essence","name":"万劫真髓","qualityId":"tian","kind":"tribulation","field":"tribulationEssence","locations":["九霄劫台","仙劫雷海"],"minRealm":37,"named":true}'))throw new Error('V39 万劫真髓 catalog drifted');
+if(!src.includes('"effect":{"v39Guard":"thunder","v39Value":18}'))throw new Error('九转渡劫丹 guard value drifted');
+
+fs.writeFileSync(OUTPUT,src);
+const sha=crypto.createHash('sha256').update(Buffer.from(src)).digest('hex');
+const report=JSON.parse(fs.readFileSync(REPORT,'utf8'));
+report.source_sha256=sha;
+report.source_bytes=Buffer.byteLength(src);
+report.changes=[...(report.changes||[]),
+ '万劫真髓 now has a normal endgame sink: 九转渡劫丹 consumes 1 万劫真髓 in addition to its existing materials; its V39 combat acquisition cadence and the pill thunder-guard value remain unchanged'
+];
+report.invariants=(report.invariants||[]);
+report.invariants.push('万劫真髓 remains a realm-37 V39 tribulation material from 九霄劫台 / 仙劫雷海 and is still awarded by the existing every-third qualifying V39 combat-win rule; no drop cadence, enemy stat, alchemy success rate, tribulation probability, RNG seed or action cap changed');
+fs.writeFileSync(REPORT,JSON.stringify(report,null,2)+'\n');
+console.log('V310_BUILD_V5_PASS '+JSON.stringify({source_sha256:sha,tribulationEssenceSink:{recipe:'recipe-v39-thunder-ninefold',count:1},combatSourcePreserved:true,thunderGuardValuePreserved:18,directSource:true}));
