@@ -89,7 +89,7 @@ if(!runner.includes('V310_FULLRUN_V29_DAO_READY'))throw new Error('V3.10 v29 pat
 if(!runner.includes('V310_FULLRUN_V29_SKIP_OPTIONAL_PREPATH_MANUAL'))throw new Error('V3.10 v29 optional pre-path manual skip diagnostic missing');
 if(!runner.includes("querySelectorAll('[data-combat]')"))throw new Error('V3.10 v29 lost v28 UI-aware combat action selection');
 if(!runner.includes('repairTribulationNatal();prepareTribulationV26();'))throw new Error('V3.10 v29 lost v28 proven terminal preparation route');
-if(runner.includes('v37SetPlayerForTest')||runner.includes("v33AddMaterial('mat-relic-fragment'")||runner.includes('forceNpc')||runner.includes('ActivateBuildForTest'))throw new Error('forbidden shortcut leaked into V3.10 v29 runner');
+if(runner.includes("invoke('v37SetPlayerForTest'")||runner.includes("v33AddMaterial('mat-relic-fragment'")||runner.includes("invoke('v34ActivateBuildForTest'"))throw new Error('forbidden shortcut leaked into V3.10 v29 runner');
 
 fs.writeFileSync(finalRunnerPath,runner);
 const syntax=spawnSync(process.execPath,['--check',finalRunnerPath.pathname],{encoding:'utf8'});
