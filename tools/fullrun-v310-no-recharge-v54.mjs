@@ -4,6 +4,7 @@ import {spawnSync} from 'child_process';
 const v53Path=new URL('./fullrun-v310-no-recharge-v53.mjs',import.meta.url);
 const v53StagePath=new URL('./.generated-fullrun-v310-no-recharge-v54-v53stage.mjs',import.meta.url);
 const finalRunnerPath=new URL('./.generated-fullrun-v310-no-recharge-v2.mjs',import.meta.url);
+const V54_SAFETY_MARGIN=.20;
 
 function replaceOnce(src,before,after,label){
  const first=src.indexOf(before);
