@@ -11,6 +11,24 @@ function replaceOnce(src,before,after,label){
  if(src.indexOf(before,first+1)>=0)throw new Error('V3.10 v36 transform ambiguous: '+label);
  return src.slice(0,first)+after+src.slice(first+before.length);
 }
+function replaceFirstGoAnyInFunction(src,signature,replacement,label){
+ const start=src.indexOf(signature);
+ if(start<0)throw new Error('V3.10 v36 function miss: '+label);
+ const open=src.indexOf('{',start);
+ if(open<0)throw new Error('V3.10 v36 function-open miss: '+label);
+ let depth=0,end=-1;
+ for(let i=open;i<src.length;i++){
+  const ch=src[i];
+  if(ch==='{')depth++;
+  else if(ch==='}'&&--depth===0){end=i;break}
+ }
+ if(end<0)throw new Error('V3.10 v36 function-close miss: '+label);
+ const fn=src.slice(start,end+1);
+ const matches=[...fn.matchAll(/goAny\(\[[^\]]+\]\)/g)];
+ if(matches.length!==1)throw new Error('V3.10 v36 expected one refining goAny in '+label+', got '+matches.length+' :: '+fn.slice(0,800));
+ const m=matches[0],patched=fn.slice(0,m.index)+replacement+fn.slice(m.index+m[0].length);
+ return src.slice(0,start)+patched+src.slice(end+1);
+}
 
 // V35 proved the new paid beast-material route by moving all four seeds beyond the old realm13
 // blocker. Its four artifacts then exposed three independent autonomous-player defects:
@@ -66,8 +84,8 @@ runner=replaceOnce(runner,unsafeBefore,unsafeAfter,'use normal auction relics wh
 
 // --- 2. Preserve recipe stones across travel to refining locations. ---
 // This helper recalculates route cost if ensureStones() itself relocated the player to a work city.
-// Patch only the stable funding+travel expressions below, not the full ensureCore/Nascent/Deification
-// functions: earlier runner layers legitimately evolved those functions around the same core actions.
+// The three historical ensure* functions have evolved in earlier runner layers, so patch by function
+// scope rather than assuming their complete minified text is still identical to the base runner.
 const goAnyAnchor="function goAny(candidates){for(const x of candidates){if(goTo(x))return x}return null}";
 const goAnyFunded=`function goAny(candidates){for(const x of candidates){if(goTo(x))return x}return null}
 function goAnyFunded(candidates,reserve,label){
@@ -85,25 +103,9 @@ function goAnyFunded(candidates,reserve,label){
  fail('funded-route-loop',{label,candidates,reserve,location:state().player.location,stones:state().player.spiritStones});
 }`;
 runner=replaceOnce(runner,goAnyAnchor,goAnyFunded,'add route-fee-aware refining travel helper');
-
-runner=replaceOnce(
- runner,
- "ensureStones(state().player.spiritStones+6);if(!goAny(['赤霞谷','落星矿脉','古河遗迹']))",
- "if(!goAnyFunded(['赤霞谷','落星矿脉','古河遗迹'],6,'core'))",
- 'fund core refining at stable travel anchor'
-);
-runner=replaceOnce(
- runner,
- "ensureStones(state().player.spiritStones+12);if(!goAny(['古河遗迹','玄阴禁地']))",
- "if(!goAnyFunded(['古河遗迹','玄阴禁地'],12,'nascent'))",
- 'fund nascent refining at stable travel anchor'
-);
-runner=replaceOnce(
- runner,
- "ensureStones(state().player.spiritStones+25);if(!goAny(['古河遗迹','玄阴禁地']))",
- "if(!goAnyFunded(['古河遗迹','玄阴禁地'],25,'deification'))",
- 'fund deification refining at stable travel anchor'
-);
+runner=replaceFirstGoAnyInFunction(runner,'function ensureCore(',"goAnyFunded(['赤霞谷','落星矿脉','古河遗迹'],6,'core')",'ensureCore');
+runner=replaceFirstGoAnyInFunction(runner,'function ensureNascent(',"goAnyFunded(['古河遗迹','玄阴禁地'],12,'nascent')",'ensureNascent');
+runner=replaceFirstGoAnyInFunction(runner,'function ensureDeification(',"goAnyFunded(['古河遗迹','玄阴禁地'],25,'deification')",'ensureDeification');
 
 // --- 3. Do not force a wounded lower-major-realm player to fight after only two failed escapes. ---
 runner=replaceOnce(
@@ -122,8 +124,6 @@ if(!runner.includes('function goAnyFunded(candidates,reserve,label)'))throw new 
 if(!runner.includes("goAnyFunded(['赤霞谷','落星矿脉','古河遗迹'],6,'core')"))throw new Error('V3.10 v36 core reserve missing');
 if(!runner.includes("goAnyFunded(['古河遗迹','玄阴禁地'],12,'nascent')"))throw new Error('V3.10 v36 nascent reserve missing');
 if(!runner.includes("goAnyFunded(['古河遗迹','玄阴禁地'],25,'deification')"))throw new Error('V3.10 v36 deification reserve missing');
-if(runner.includes("ensureStones(state().player.spiritStones+12);if(!goAny(['古河遗迹','玄阴禁地'])"))throw new Error('V3.10 v36 stale pre-travel nascent funding survived');
-if(runner.includes("ensureStones(state().player.spiritStones+25);if(!goAny(['古河遗迹','玄阴禁地'])"))throw new Error('V3.10 v36 stale pre-travel deification funding survived');
 if(!runner.includes('const overmatchFlee=structurallyOvermatched&&fleeAttempts<6;'))throw new Error('V3.10 v36 overmatched escape budget missing');
 if(runner.includes('const overmatchFlee=structurallyOvermatched&&hpRatio>=.38&&fleeAttempts<2;'))throw new Error('V3.10 v36 stale two-flee overmatch policy survived');
 if(!runner.includes("if(tryBeastMarket(n,24))return;"))throw new Error('V3.10 v36 lost v35 paid beast route');
