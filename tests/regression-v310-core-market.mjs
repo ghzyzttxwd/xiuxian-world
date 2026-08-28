@@ -26,12 +26,14 @@ function fresh(){
 
 const {api}=fresh();
 api.v35SetPlayerForTest({realmIndex:13,location:'临江城',stones:10000});
-let lot=Object.values(api.v35ListingRegistry()||{}).find(x=>x&&x.id==='listing-market-beast');
+const lot=Object.values(api.v35ListingRegistry()||{}).find(x=>x&&x.id==='listing-market-beast');
 assert(lot,'临江坊市兽材 listing not exposed by normal registry');
-assert.equal(Number(lot.stock),4,'兽材 fixed-market stock must remain 4 per cycle');
+// v35ListingRegistry exposes the immutable listing configuration. Effective fixed-shop stock is
+// stored in world.v35StockByListing and is exposed by the normal v35Trade result, not by lot.stock.
+assert.equal(Number(lot.stock),4,'兽材 configured fixed-market stock cap must remain 4');
 assert.equal(Number(lot.minRealm),10,'兽材 market access must remain 筑基初期 realm index 10');
+assert.equal(Number(lot.basePrice),18,'兽材 configured base price drifted');
 const q=api.v35Quote(lot.id,'buy',1);assert(q&&q.total>0,'兽材 market quote must be a positive normal price');
-assert.equal(Number(lot.catalogBasePrice||lot.configBasePrice||18),18,'兽材 configured base price drifted');
 
 // Zero currency must reject the purchase and grant nothing.
 const zeroBefore=api.v33MaterialCount('mat-beast-material');
@@ -40,22 +42,26 @@ const rejected=api.v35Trade(lot.id,'buy',1);
 assert.notEqual(rejected?.ok,true,'zero-stone buyer must not receive兽材');
 assert.equal(api.v33MaterialCount('mat-beast-material'),zeroBefore,'zero-stone rejection granted兽材');
 
-// Buy exactly one full stock through the normal trade API.
+// Buy exactly one full effective stock through the normal trade API. The trade result reports
+// remaining effective stock after v35SetStock; the static registry intentionally continues to say 4.
 api.v35SetPlayerForTest({realmIndex:13,location:'临江城',stones:10000});
 let trade=api.v35Trade(lot.id,'buy',4);
 assert.equal(trade?.ok,true,'normal first-cycle兽材 purchase failed: '+JSON.stringify(trade));
+assert.equal(Number(trade.stock),0,'兽材 effective stock must exhaust after four purchases in one cycle');
 assert.equal(api.v33MaterialCount('mat-beast-material'),zeroBefore+4,'first cycle did not deliver exactly four兽材');
-lot=Object.values(api.v35ListingRegistry()||{}).find(x=>x&&x.id==='listing-market-beast');
-assert.equal(Number(lot.stock),0,'兽材 listing must exhaust after four purchases in one cycle');
 const exhausted=api.v35Trade(lot.id,'buy',1);
 assert.notEqual(exhausted?.ok,true,'exhausted兽材 stock supplied a fifth same-cycle unit');
+assert.equal(exhausted?.reason,'stock','fifth same-cycle兽材 purchase must be rejected specifically by stock');
 
-// The existing V3.5 fixed-market rule restocks every 10-day economy cycle.
+// The existing V3.5 fixed-market rule restocks every 10-day economy cycle. Prove the reset by
+// successfully buying two more and observing two units remain from the configured cap of four.
+const cycleBefore=api.v35EconomySnapshot().stockCycle;
 api.advanceDays(10);
-lot=Object.values(api.v35ListingRegistry()||{}).find(x=>x&&x.id==='listing-market-beast');
-assert.equal(Number(lot.stock),4,'兽材 fixed market did not restock to four on the next normal economy cycle');
+const cycleAfter=api.v35EconomySnapshot().stockCycle;
+assert(cycleAfter>cycleBefore,'normal 10-day advance did not move the fixed-shop stock cycle');
 trade=api.v35Trade(lot.id,'buy',2);
 assert.equal(trade?.ok,true,'second-cycle two-unit兽材 purchase failed: '+JSON.stringify(trade));
+assert.equal(Number(trade.stock),2,'second-cycle purchase should leave two effective兽材 in stock');
 assert.equal(api.v33MaterialCount('mat-beast-material'),zeroBefore+6,'two normal market cycles did not provide six paid兽材');
 
 // Six paid兽材 are exactly enough for the unchanged three-copy 结丹灵髓 gate.
@@ -77,4 +83,4 @@ const modes=api.v35EconomySnapshot().health.resources['mat-beast-material']||[];
 assert(modes.includes('gather'),'兽材 dangerous map/gather source disappeared from economy health');
 assert(modes.includes('trade'),'兽材 new trade source missing from economy health');
 
-console.log('V310_CORE_MARKET_REGRESSION_PASS '+JSON.stringify({basePrice:18,stockPerCycle:4,minRealm:10,restockDays:10,zeroStoneRejected:true,firstCycleBought:4,secondCycleBought:2,normalCoreCrafts:3,beastSpent:6,dangerousSourcesPreserved:true,coreCostsPreserved:true,multiSourceModes:modes}));
+console.log('V310_CORE_MARKET_REGRESSION_PASS '+JSON.stringify({basePrice:18,configuredStockPerCycle:4,minRealm:10,restockDays:10,zeroStoneRejected:true,firstCycleBought:4,firstCycleRemaining:0,sameCycleFifthRejected:true,secondCycleBought:2,secondCycleRemaining:2,normalCoreCrafts:3,beastSpent:6,dangerousSourcesPreserved:true,coreCostsPreserved:true,multiSourceModes:modes}));
