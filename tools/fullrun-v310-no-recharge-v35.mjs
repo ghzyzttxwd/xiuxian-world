@@ -97,7 +97,9 @@ if(!runner.includes("const loc=goAny(['黑风岭','万兽山脉']);"))throw new 
 if(runner.includes('plan.relic+insightDeficit*3'))throw new Error('V3.10 v35 obsolete spirit relic over-preparation survived');
 if(!runner.includes("ensureInsight(plan.insight);\n  ensureRelic(plan.relic);"))throw new Error('V3.10 v35 exact spirit insight/relic order missing');
 if(!runner.includes("spirit:{locations:['古河遗迹','玄阴禁地'],stones:45,rare:2,insight:3,materials:0,relic:5"))throw new Error('V3.10 v35 formal spirit inheritance cost drifted');
-if(!runner.includes('V310_FULLRUN_V34_FINAL_RUNNER_PASS'))throw new Error('V3.10 v35 lost v34 auction-first relic layer');
+if(!runner.includes("function tryRelicAuction(n,maxCycles=24)"))throw new Error('V3.10 v35 lost v34 auction-first relic helper');
+if(!runner.includes("if(tryRelicAuction(n,24))return;"))throw new Error('V3.10 v35 lost v34 auction-first relic priority');
+if(!runner.includes("source:'auction'"))throw new Error('V3.10 v35 lost v34 normal auction evidence');
 if(!runner.includes('V310_FULLRUN_V33_COMBAT_POLICY'))throw new Error('V3.10 v35 lost v33 bounded flee policy');
 if(runner.includes("invoke('v37SetPlayerForTest'")||runner.includes("v33AddMaterial('mat-beast-material'")||runner.includes("v33AddMaterial('mat-relic-fragment'")||runner.includes("invoke('v34ActivateBuildForTest'"))throw new Error('forbidden shortcut leaked into V3.10 v35 runner');
 
