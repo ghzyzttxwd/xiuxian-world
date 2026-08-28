@@ -103,15 +103,24 @@ jobs:
           V310_FULLRUN_MAX_FARM_ACTIONS: "2400"
         run: |
           set -euo pipefail
-          node tools/fullrun-v310-no-recharge-v33.mjs
+          set +e
+          node tools/fullrun-v310-no-recharge-v33.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "V310_FULLRUN_PROCESS_EXIT=$rc"
+            exit "$rc"
+          fi
           node -e "const r=require('./V310_FULLRUN_RESULT.json');if(r.status!=='PASS'||r.daoPath!==process.argv[1]||r.final.realmIndex!==39||!r.final.ascended||!r.proof?.freshSave||!r.proof?.noRecharge||!r.proof?.legalGameplayCallsOnly||!r.proof?.ascensionComplete||r.forbiddenCalls?.length)throw new Error('four-path legal full-run proof incomplete')" "${{ matrix.dao }}"
       - name: Upload path evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: v310-no-recharge-fullrun-${{ matrix.dao }}
-          path: V310_FULLRUN_RESULT.json
-          if-no-files-found: ignore
+          path: |
+            V310_FULLRUN_RESULT.json
+            V310_FULLRUN_LOG.txt
+          if-no-files-found: error
           retention-days: 7
       - name: Frozen V6 icon regression
         shell: bash
