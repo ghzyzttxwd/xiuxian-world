@@ -1,0 +1,82 @@
+name: V3.10 release prep NON-PUBLISHING validation
+
+on:
+  push:
+    branches: ["v310-release-prep-nonpublish"]
+    paths:
+      - ".github/workflows/v310-release-prep-nonpublish.yml"
+      - "tools/release-v310-assets.cjs"
+      - "tools/verify-v310-public.sh"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v310-release-prep-nonpublish
+  cancel-in-progress: true
+
+env:
+  PROOF_HEAD: 967bd0dc3ae5969e329af9c8a30377013773e24c
+
+jobs:
+  validate-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebuild exact proof source and compare current release candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PROOF_HEAD^{commit}"
+          rm -rf /tmp/v310-proof
+          git worktree add --detach /tmp/v310-proof "$PROOF_HEAD"
+          (
+            cd /tmp/v310-proof
+            node tools/build-v310-balance-v3.cjs
+            node --check src/game-v310.js
+            sha256sum src/game-v310.js | awk '{print $1}' > /tmp/V310_PROOF_SOURCE_SHA
+          )
+          node tools/build-v310-balance-v3.cjs
+          node --check src/game-v310.js
+          current_sha=$(sha256sum src/game-v310.js | awk '{print $1}')
+          proof_sha=$(cat /tmp/V310_PROOF_SOURCE_SHA)
+          test "$current_sha" = "$proof_sha"
+          cmp -s src/game-v310.js /tmp/v310-proof/src/game-v310.js
+          node -e "const b=require('./BUILD_V310_BALANCE.json');if(b.status!=='PASS'||b.gameplay_version!=='3.10.0'||b.build!=='31001'||b.save_schema_version!==36||b.content_registry_version!==10||b.source_sha256!==process.argv[1])throw new Error('V3.10 report mismatch')" "$current_sha"
+          PROOF_HEAD="$PROOF_HEAD" SOURCE_SHA="$current_sha" node -e "const fs=require('fs');fs.writeFileSync('V310_RELEASE_PREP_LOCK.json',JSON.stringify({status:'PASS',proof_head:process.env.PROOF_HEAD,gameplay_version:'3.10.0',build:'31001',source_sha256:process.env.SOURCE_SHA,save_schema_version:36,content_registry_version:10,stage:'non-publishing-release-prep'})+'\n')"
+      - name: Run V3.10 regression surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v310.mjs
+          node tests/regression-v310-premahayana-auction.mjs
+          node tests/regression-v310-core-market.mjs
+      - name: Validate V3.10 release transform without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/release-v310-assets.cjs
+          bash -n tools/verify-v310-public.sh
+          node tools/release-v310-assets.cjs
+          node --check app.js
+          grep -q "gameplayVersion:'3.10.0'" app.js
+          grep -q 'src/game-v310.js?v=31001' app.js
+          grep -q 'V3.10 · 无充值全流程总平衡篇' index.html
+          grep -q 'taixuan-v3.10.0-no-recharge-full-run-balance-31001' sw.js
+          ! grep -q 'eval' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+      - name: Upload non-publishing source lock evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v310-release-prep-lock
+          path: |
+            V310_RELEASE_PREP_LOCK.json
+            BUILD_V310_BALANCE.json
+          if-no-files-found: error
+          retention-days: 7
