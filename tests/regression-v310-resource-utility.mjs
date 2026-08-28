@@ -36,7 +36,9 @@ scanCostKeys(reg.items||{},'item-cost');
 scanCostKeys(reg.artifacts||{},'artifact-cost');
 scanCostKeys(reg.formations||{},'formation-cost');
 
-// A material is economically useful if a normal shop explicitly accepts it for resale.
+// A material is economically useful if a normal shop explicitly accepts it for resale. The test
+// registry exposes shop metadata but not V35_FIXED_LISTINGS, so parse that immutable JSON catalog
+// from the same runtime source rather than silently losing valid black-market / market sell sinks.
 function scanSellable(value,path='shops'){
  if(Array.isArray(value)){value.forEach((v,i)=>scanSellable(v,`${path}[${i}]`));return}
  if(!value||typeof value!=='object')return;
@@ -44,6 +46,17 @@ function scanSellable(value,path='shops'){
  for(const [k,v] of Object.entries(value))if(v&&typeof v==='object')scanSellable(v,`${path}.${k}`);
 }
 scanSellable(reg.shops||{});
+function frozenJsonCatalog(name,nextName){
+ const startToken=`const ${name}=Object.freeze(`,endToken=`);\nconst ${nextName}=`;
+ const start=source.indexOf(startToken);
+ assert(start>=0,`${name} source catalog missing`);
+ const bodyStart=start+startToken.length;
+ const end=source.indexOf(endToken,bodyStart);
+ assert(end>bodyStart,`${name} source catalog end missing`);
+ return JSON.parse(source.slice(bodyStart,end));
+}
+const fixedListings=frozenJsonCatalog('V35_FIXED_LISTINGS','V35_AUCTION_POOL');
+scanSellable(fixedListings,'fixed-listings');
 
 // Direct progression sinks use v33AddMaterial(...,-n). For one-line runtime functions, count
 // (a) literal negative calls and (b) material ids used as numeric cost-map keys in a function that
@@ -64,4 +77,4 @@ const highUnused=high.filter(r=>r.sinks.length===0);
 fs.writeFileSync('V310_RESOURCE_UTILITY_AUDIT.json',JSON.stringify({status:unused.length?'FAIL':'PASS',namedMaterials:rows.length,highTierMaterials:high.length,unused,highUnused,rows},null,2)+'\n');
 assert.strictEqual(highUnused.length,0,`V3.10 high-tier named materials without a gameplay/economic sink: ${highUnused.map(x=>`${x.id}(${x.name})`).join(', ')}`);
 assert.strictEqual(unused.length,0,`V3.10 named materials without a gameplay/economic sink: ${unused.map(x=>`${x.id}(${x.name})`).join(', ')}`);
-console.log('V310_RESOURCE_UTILITY_REGRESSION_PASS '+JSON.stringify({namedMaterials:rows.length,highTierMaterials:high.length,unused:0,highUnused:0}));
+console.log('V310_RESOURCE_UTILITY_REGRESSION_PASS '+JSON.stringify({namedMaterials:rows.length,highTierMaterials:high.length,unused:0,highUnused:0,fixedShopSellablesAudited:true}));
