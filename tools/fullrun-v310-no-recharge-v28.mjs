@@ -44,13 +44,13 @@ const tryBefore="const tryCombat=(a)=>{if(!combat())return true;const before=com
 const tryAfter="const tryCombat=(a)=>{if(!combat())return true;const enabled=[...dom.window.document.querySelectorAll('[data-combat]')].find(b=>b.dataset.combat===a&&!b.disabled);if(!enabled)return false;const before=combat().round;spendAction(`combat-${a}`,()=>invoke('combatAction',a));const now=combat();if(!now||now.round!==before)advanced=true;return !now};";
 runner=replaceOnce(runner,tryBefore,tryAfter,'skip disabled combat controls before audited action spend');
 
-const terminalBefore='function finishTribulation(attempt=0){prepareTribulation();';
-const terminalAfter='function finishTribulation(attempt=0){prepareTribulationV26();';
+const terminalBefore='repairTribulationNatal();prepareTribulation();';
+const terminalAfter='repairTribulationNatal();prepareTribulationV26();';
 runner=replaceOnce(runner,terminalBefore,terminalAfter,'retire regressed v27 worst-case terminal overstock path');
 
 if(!runner.includes("querySelectorAll('[data-combat]')"))throw new Error('V3.10 v28 UI combat availability gate missing');
 if(!runner.includes("b.dataset.combat===a&&!b.disabled"))throw new Error('V3.10 v28 enabled combat-button requirement missing');
-if(!runner.includes('function finishTribulation(attempt=0){prepareTribulationV26();'))throw new Error('V3.10 v28 did not restore v26 terminal preparation route');
+if(!runner.includes('repairTribulationNatal();prepareTribulationV26();'))throw new Error('V3.10 v28 did not restore v26 terminal preparation route');
 if(!runner.includes('function v27PrepareTribulationKind(kind,cost)'))throw new Error('V3.10 v28 lost v27 diagnostic implementation');
 if(!runner.includes("invoke('v38PrepareTribulation',k)"))throw new Error('V3.10 v28 normal V38 preparation API lost');
 if(!runner.includes("invoke('v39BuildTribulationFormation',formation)"))throw new Error('V3.10 v28 normal V39 formation API lost');
