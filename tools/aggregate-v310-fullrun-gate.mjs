@@ -76,15 +76,32 @@ for(const p of requiredPaths){
   battleLosses:Number(f.battleLosses||0),
   lifeCycles:Number(r.proof?.lifeCycles||0),
   totalDeaths:Number(r.proof?.totalDeaths||0),
-  realmAges:{r19:a19,r23:a23,r30:a30,r34:a34,r37:a37,r39:a39},
+  realmAges:{r14:realmAge(r,14),r19:a19,r23:a23,r30:a30,r34:a34,r37:a37,r39:a39},
   timeSpans:{nascentToDeification:earlyMajorSpan,unityToMahayana:lateMajorSpan,mahayana:mahayanaSpan},
   finalResources:{stones:Number(f.stones||0),rareMaterials:Number(f.rareMaterials||0),originInsight:Number(f.originInsight||0),worldAuthority:Number(f.worldAuthority||0),natalMarks:Number(f.natalMarks||0)}
  };
 }
+
 const actionValues=requiredPaths.map(p=>paths[p].actions),minActions=Math.min(...actionValues),maxActions=Math.max(...actionValues);
 const actionSpreadRatio=maxActions/minActions;
 const manuals=new Set(requiredPaths.map(p=>paths[p].finalManual).filter(Boolean));
 assert(manuals.size>=3,'V3.10 four-path terminal builds collapsed onto fewer than three distinct manuals');
+if(actionSpreadRatio>3)throw new Error(`V3.10 four-path action spread exceeds 3x (${actionSpreadRatio.toFixed(3)}); one route may be materially dominating or lagging`);
+
+const dominanceCheckpoints=[14,19,23,30,34,37,39];
+const uniqueFastestByRealm={};
+const uniqueFastestCount=Object.fromEntries(requiredPaths.map(p=>[p,0]));
+for(const realm of dominanceCheckpoints){
+ const ages=requiredPaths.map(p=>({p,age:Number(paths[p].realmAges[`r${realm}`])}));
+ const min=Math.min(...ages.map(x=>x.age));
+ const leaders=ages.filter(x=>Math.abs(x.age-min)<=1e-9).map(x=>x.p);
+ uniqueFastestByRealm[realm]=leaders.length===1?leaders[0]:null;
+ if(leaders.length===1)uniqueFastestCount[leaders[0]]++;
+}
+for(const p of requiredPaths){
+ assert(uniqueFastestCount[p]<dominanceCheckpoints.length,`V3.10 route dominance detected: ${p} is uniquely fastest at every major checkpoint (${dominanceCheckpoints.join(',')})`);
+}
+
 const summary={
  status:'PASS',
  gameplay_version:'3.10.0',
@@ -99,8 +116,13 @@ const summary={
  terminalManualVariety:manuals.size,
  actionSpreadRatio:Number(actionSpreadRatio.toFixed(3)),
  actionSpreadAssessment:actionSpreadRatio<=2?'balanced-within-2x':actionSpreadRatio<=3?'review-2x-to-3x':'fail-over-3x',
- notes:['Action spread is reported as a balance-dominance signal; it is not silently relaxed to force PASS.','Static scarce-resource and price/stock/source invariants remain covered by regression-v310-premahayana-auction.mjs and regression-v310-core-market.mjs.']
+ routeDominance:{checkpoints:dominanceCheckpoints,uniqueFastestByRealm,uniqueFastestCount,noSingleRouteWinsAll:true},
+ notes:[
+  'Action spread is reported as a balance-dominance signal; it is not silently relaxed to force PASS.',
+  'A single route uniquely fastest at every selected major realm checkpoint is a hard failure.',
+  'Static scarce-resource and price/stock/source invariants remain covered by regression-v310-premahayana-auction.mjs and regression-v310-core-market.mjs.',
+  'Named-material utility is independently fail-closed by regression-v310-resource-utility.mjs.'
+ ]
 };
-if(actionSpreadRatio>3)throw new Error(`V3.10 four-path action spread exceeds 3x (${actionSpreadRatio.toFixed(3)}); one route may be materially dominating or lagging`);
 fs.writeFileSync('V310_FINAL_GATE_SUMMARY.json',JSON.stringify(summary,null,2)+'\n');
 console.log('V310_FINAL_GATE_AGGREGATE_PASS '+JSON.stringify(summary));
