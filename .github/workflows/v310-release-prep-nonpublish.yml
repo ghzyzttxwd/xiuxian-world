@@ -5,8 +5,10 @@ on:
     branches: ["v310-release-prep-nonpublish"]
     paths:
       - ".github/workflows/v310-release-prep-nonpublish.yml"
+      - ".github/workflows/v310-release-fallback.yml"
       - "tools/release-v310-assets.cjs"
       - "tools/verify-v310-public.sh"
+      - "tools/aggregate-v310-fullrun-gate.mjs"
 
 permissions:
   contents: read
@@ -17,6 +19,8 @@ concurrency:
 
 env:
   PROOF_HEAD: 967bd0dc3ae5969e329af9c8a30377013773e24c
+  PROOF_RUN_ID: "33189407456"
+  LOCKED_SOURCE_SHA: bef81ede62e1c208bbca737c23092878da7734f3cd9f7864f4fb359b84393744
 
 jobs:
   validate-only:
@@ -44,9 +48,10 @@ jobs:
           current_sha=$(sha256sum src/game-v310.js | awk '{print $1}')
           proof_sha=$(cat /tmp/V310_PROOF_SOURCE_SHA)
           test "$current_sha" = "$proof_sha"
+          test "$current_sha" = "$LOCKED_SOURCE_SHA"
           cmp -s src/game-v310.js /tmp/v310-proof/src/game-v310.js
           node -e "const b=require('./BUILD_V310_BALANCE.json');if(b.status!=='PASS'||b.gameplay_version!=='3.10.0'||b.build!=='31001'||b.save_schema_version!==36||b.content_registry_version!==10||b.source_sha256!==process.argv[1])throw new Error('V3.10 report mismatch')" "$current_sha"
-          PROOF_HEAD="$PROOF_HEAD" SOURCE_SHA="$current_sha" node -e "const fs=require('fs');fs.writeFileSync('V310_RELEASE_PREP_LOCK.json',JSON.stringify({status:'PASS',proof_head:process.env.PROOF_HEAD,gameplay_version:'3.10.0',build:'31001',source_sha256:process.env.SOURCE_SHA,save_schema_version:36,content_registry_version:10,stage:'non-publishing-release-prep'})+'\n')"
+          PROOF_HEAD="$PROOF_HEAD" PROOF_RUN_ID="$PROOF_RUN_ID" SOURCE_SHA="$current_sha" node -e "const fs=require('fs');fs.writeFileSync('V310_RELEASE_PREP_LOCK.json',JSON.stringify({status:'PASS',proof_head:process.env.PROOF_HEAD,proof_run_id:Number(process.env.PROOF_RUN_ID),gameplay_version:'3.10.0',build:'31001',source_sha256:process.env.SOURCE_SHA,save_schema_version:36,content_registry_version:10,stage:'non-publishing-release-prep'})+'\n')"
       - name: Run V3.10 regression surface
         shell: bash
         run: |
@@ -56,12 +61,21 @@ jobs:
           node tests/regression-v310.mjs
           node tests/regression-v310-premahayana-auction.mjs
           node tests/regression-v310-core-market.mjs
-      - name: Validate V3.10 release transform without publishing
+      - name: Validate V3.10 release transform and fail-closed gate without publishing
         shell: bash
         run: |
           set -euo pipefail
           node --check tools/release-v310-assets.cjs
+          node --check tools/aggregate-v310-fullrun-gate.mjs
           bash -n tools/verify-v310-public.sh
+          test -s .github/workflows/v310-release-fallback.yml
+          grep -q "PROOF_HEAD: $PROOF_HEAD" .github/workflows/v310-release-fallback.yml
+          grep -q "PROOF_RUN_ID: \"$PROOF_RUN_ID\"" .github/workflows/v310-release-fallback.yml
+          grep -q "LOCKED_SOURCE_SHA: $LOCKED_SOURCE_SHA" .github/workflows/v310-release-fallback.yml
+          grep -q "if: github.head_ref == 'v310-release-final-run'" .github/workflows/v310-release-fallback.yml
+          grep -q 'test "$run_status" = "completed"' .github/workflows/v310-release-fallback.yml
+          grep -q 'test "$run_conclusion" = "success"' .github/workflows/v310-release-fallback.yml
+          grep -q 'no-recharge-sword no-recharge-flame no-recharge-body no-recharge-spirit' .github/workflows/v310-release-fallback.yml
           node tools/release-v310-assets.cjs
           node --check app.js
           grep -q "gameplayVersion:'3.10.0'" app.js
@@ -71,6 +85,13 @@ jobs:
           ! grep -q 'eval' app.js
           test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
           test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+          rm -rf /tmp/v310-partial && mkdir -p /tmp/v310-partial/body
+          PARTIAL_DIR=/tmp/v310-partial node -e "const fs=require('fs');fs.writeFileSync(process.env.PARTIAL_DIR+'/body/V310_FULLRUN_RESULT.json',JSON.stringify({status:'PASS',daoPath:'body'}))"
+          if node tools/aggregate-v310-fullrun-gate.mjs /tmp/v310-partial >/tmp/v310-partial.out 2>/tmp/v310-partial.err; then
+            echo 'aggregate gate incorrectly accepted incomplete evidence' >&2
+            exit 1
+          fi
+          grep -q 'missing V3.10 full-run result for sword' /tmp/v310-partial.err
       - name: Upload non-publishing source lock evidence
         uses: actions/upload-artifact@v4
         with:
