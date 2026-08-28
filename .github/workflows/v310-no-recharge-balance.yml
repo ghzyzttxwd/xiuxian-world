@@ -100,7 +100,7 @@ jobs:
           V310_FULLRUN_MAX_FARM_ACTIONS: "2400"
         run: |
           set -euo pipefail
-          node tools/fullrun-v310-no-recharge-v53.mjs
+          node tools/fullrun-v310-no-recharge-v54.mjs
           node -e "const r=require('./V310_FULLRUN_RESULT.json');if(r.status!=='PASS'||r.final.realmIndex!==39||!r.final.ascended||!r.proof?.freshSave||!r.proof?.noRecharge||!r.proof?.legalGameplayCallsOnly||r.forbiddenCalls?.length)throw new Error('legal full-run proof incomplete')"
       - name: Upload V3.10 full-run evidence
         if: always()
