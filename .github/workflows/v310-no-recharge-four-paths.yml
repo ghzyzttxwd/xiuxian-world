@@ -104,12 +104,12 @@ jobs:
         env:
           V310_DAO_PATH: ${{ matrix.dao }}
           V310_FULLRUN_SEED: ${{ matrix.seed }}
-          V310_FULLRUN_MAX_ACTIONS: "180000"
+          V310_FULLRUN_MAX_ACTIONS: "300000"
           V310_FULLRUN_MAX_FARM_ACTIONS: "2400"
         run: |
           set -euo pipefail
           set +e
-          node tools/fullrun-v310-no-recharge-v43.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
+          node tools/fullrun-v310-no-recharge-v44.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
           rc=${PIPESTATUS[0]}
           set -e
           if [ "$rc" -ne 0 ]; then
