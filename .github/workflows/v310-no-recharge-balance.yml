@@ -12,10 +12,12 @@ on:
       - "tools/audit-v310-balance.mjs"
       - "tools/build-v310-balance.cjs"
       - "tools/build-v310-balance-v2.cjs"
+      - "tools/build-v310-balance-v3.cjs"
       - "tools/build-v310-fullrun-headless.cjs"
       - "tools/fullrun-v310-no-recharge*.mjs"
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
+      - "tests/regression-v310-core-market.mjs"
       - ".github/workflows/v310-no-recharge-balance.yml"
   push:
     branches: ["v310-no-recharge-balance-validation"]
@@ -24,10 +26,12 @@ on:
       - "tools/audit-v310-balance.mjs"
       - "tools/build-v310-balance.cjs"
       - "tools/build-v310-balance-v2.cjs"
+      - "tools/build-v310-balance-v3.cjs"
       - "tools/build-v310-fullrun-headless.cjs"
       - "tools/fullrun-v310-no-recharge*.mjs"
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
+      - "tests/regression-v310-core-market.mjs"
       - ".github/workflows/v310-no-recharge-balance.yml"
 
 permissions:
@@ -60,11 +64,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node tools/build-v310-balance-v2.cjs
+          node tools/build-v310-balance-v3.cjs
           node --check src/game-v310.js
           first=$(sha256sum src/game-v310.js | awk '{print $1}')
           cp src/game-v310.js /tmp/game-v310-first.js
-          node tools/build-v310-balance-v2.cjs >/tmp/v310-build-second.log
+          node tools/build-v310-balance-v3.cjs >/tmp/v310-build-second.log
           second=$(sha256sum src/game-v310.js | awk '{print $1}')
           test "$first" = "$second"
           cmp -s /tmp/game-v310-first.js src/game-v310.js
@@ -76,6 +80,7 @@ jobs:
           set -euo pipefail
           node tests/regression-v310.mjs
           node tests/regression-v310-premahayana-auction.mjs
+          node tests/regression-v310-core-market.mjs
       - name: Prepare gameplay-neutral headless full-run copy
         shell: bash
         run: |
@@ -95,7 +100,7 @@ jobs:
           V310_FULLRUN_MAX_FARM_ACTIONS: "2400"
         run: |
           set -euo pipefail
-          node tools/fullrun-v310-no-recharge-v34.mjs
+          node tools/fullrun-v310-no-recharge-v35.mjs
           node -e "const r=require('./V310_FULLRUN_RESULT.json');if(r.status!=='PASS'||r.final.realmIndex!==39||!r.final.ascended||!r.proof?.freshSave||!r.proof?.noRecharge||!r.proof?.legalGameplayCallsOnly||r.forbiddenCalls?.length)throw new Error('legal full-run proof incomplete')"
       - name: Upload V3.10 full-run evidence
         if: always()
