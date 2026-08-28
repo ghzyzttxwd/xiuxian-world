@@ -58,6 +58,29 @@ function frozenJsonCatalog(name,nextName){
 const fixedListings=frozenJsonCatalog('V35_FIXED_LISTINGS','V35_AUCTION_POOL');
 scanSellable(fixedListings,'fixed-listings');
 
+// V3.5 also has a real dynamic sink: NPCs can request one named material from their current
+// location and v35ResolveNamedNpcRequest deducts req.materialId from inventory. Count this only
+// for materials whose source locations intersect the actual NPC faction-home/movement network.
+// This deliberately does NOT make later V36-V39 materials useful unless NPCs can really reach
+// those maps, so high-realm dead resources still fail closed.
+const requestSelector="V33_MATERIAL_CATALOG.filter(m=>m.named&&(m.minRealm||0)<=Math.max(3,(n.realmIndex||0)+4)&&(m.locations||[]).includes(n.location))";
+const requestConsumer="v33AddMaterial(req.materialId,-req.cost)";
+assert(source.includes(requestSelector),'V3.10 named-material NPC request selector drifted');
+assert(source.includes(requestConsumer),'V3.10 named-material NPC request consumer drifted');
+const homesStartToken='const NPC_FACTION_HOMES={',homesEndToken='};\nfunction npcSpawnLocation';
+const homesStart=source.indexOf(homesStartToken),homesEnd=source.indexOf(homesEndToken,homesStart+homesStartToken.length);
+assert(homesStart>=0&&homesEnd>homesStart,'NPC faction home catalog missing');
+const npcHomeBlock=source.slice(homesStart+homesStartToken.length,homesEnd);
+const npcReachableLocations=new Set([...npcHomeBlock.matchAll(/['"]([^'"]+)['"]/g)].map(m=>m[1]).filter(x=>Object.prototype.hasOwnProperty.call((api.getState?.()||{}),x)===false));
+// The regex above also sees faction keys; intersect with runtime material locations, so only actual
+// map names can create sinks.
+const allMaterialLocations=new Set(named.flatMap(m=>Array.isArray(m.locations)?m.locations:[]));
+for(const x of [...npcReachableLocations])if(!allMaterialLocations.has(x))npcReachableLocations.delete(x);
+for(const m of named){
+ const loc=(m.locations||[]).find(x=>npcReachableLocations.has(x));
+ if(loc)add(m.id,`dynamic-npc-request:${loc}`);
+}
+
 // Direct progression sinks use v33AddMaterial(...,-n). For one-line runtime functions, count
 // (a) literal negative calls and (b) material ids used as numeric cost-map keys in a function that
 // performs a negative loop deduction. Do not count positive output calls from the same function.
@@ -74,7 +97,7 @@ const rows=named.map(m=>({id:m.id,name:m.name,minRealm:m.minRealm,kind:m.kind,si
 const unused=rows.filter(r=>r.sinks.length===0);
 const high=rows.filter(r=>Number(r.minRealm)>=24);
 const highUnused=high.filter(r=>r.sinks.length===0);
-fs.writeFileSync('V310_RESOURCE_UTILITY_AUDIT.json',JSON.stringify({status:unused.length?'FAIL':'PASS',namedMaterials:rows.length,highTierMaterials:high.length,unused,highUnused,rows},null,2)+'\n');
+fs.writeFileSync('V310_RESOURCE_UTILITY_AUDIT.json',JSON.stringify({status:unused.length?'FAIL':'PASS',namedMaterials:rows.length,highTierMaterials:high.length,npcReachableLocations:[...npcReachableLocations].sort(),unused,highUnused,rows},null,2)+'\n');
 assert.strictEqual(highUnused.length,0,`V3.10 high-tier named materials without a gameplay/economic sink: ${highUnused.map(x=>`${x.id}(${x.name})`).join(', ')}`);
 assert.strictEqual(unused.length,0,`V3.10 named materials without a gameplay/economic sink: ${unused.map(x=>`${x.id}(${x.name})`).join(', ')}`);
-console.log('V310_RESOURCE_UTILITY_REGRESSION_PASS '+JSON.stringify({namedMaterials:rows.length,highTierMaterials:high.length,unused:0,highUnused:0,fixedShopSellablesAudited:true}));
+console.log('V310_RESOURCE_UTILITY_REGRESSION_PASS '+JSON.stringify({namedMaterials:rows.length,highTierMaterials:high.length,unused:0,highUnused:0,fixedShopSellablesAudited:true,dynamicNpcRequestsAudited:true,npcReachableLocations:[...npcReachableLocations].sort()}));
