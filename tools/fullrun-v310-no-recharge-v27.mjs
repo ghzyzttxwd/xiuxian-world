@@ -38,7 +38,7 @@ if(!fs.existsSync(finalRunnerPath))throw new Error('V3.10 v27 did not obtain v26
 let runner=fs.readFileSync(finalRunnerPath,'utf8');
 runner=replaceOnce(runner,'function prepareTribulation(){','function prepareTribulationV26(){','preserve v26 terminal preparation for audit comparison');
 
-const finishAnchor='function finishTribulation(){prepareTribulation();';
+const finishAnchor='function finishTribulation(attempt=0){';
 const v27Prep=`function v27PrepareTribulationKind(kind,cost){
  const startPrep=Number(state().player.v38TribulationPrep?.[kind]||0);
  if(startPrep>=60)return;
@@ -64,7 +64,7 @@ const v27Prep=`function v27PrepareTribulationKind(kind,cost){
  console.log('V310_FULLRUN_V27_TRIB_PREP',JSON.stringify({kind,startPrep,finalPrep:state().player.v38TribulationPrep?.[kind]||0,plannedCalls,usedCalls:guard,stockBefore,stockReady,stockAfter:Object.fromEntries(Object.keys(cost).map(id=>[id,materialCount(id)])),actionsUsed:actions-actionStart,ageYearsUsed:Number((ageYears()-ageStart).toFixed(2)),totalActions:actions,totalAge:Number(ageYears().toFixed(2))}));
 }
 function prepareTribulation(){
- ensureSpace(80);ensureLaw(230);ensureUnity(110);ensureOrigin(300);ensureAuthority(170);ensureNatalMarks(7);
+ ensureSpace(80);ensureLaw(230);ensureUnity(110);ensureOrigin(300);ensureAuthority(170);ensureNatalMarks(9);
  const prepCosts={body:{'mat-v38-tribulation-stone':1,'mat-v38-heaven-vein-marrow':1},soul:{'mat-v38-soulstar-dew':1,'mat-v38-tribulation-stone':1},law:{'mat-v38-origin-crystal':1,'mat-v38-immortal-mortal-dust':1},artifact:{'mat-v38-natal-source-crystal':1,'mat-v38-tribulation-stone':1},formation:{'mat-v38-tribulation-array-core':1,'mat-v38-origin-gold':1}};
  for(const kind of ['body','soul','law','artifact','formation'])v27PrepareTribulationKind(kind,prepCosts[kind]);
  if(!goTo('九霄劫台'))fail('tribulation-terrace-unreachable',{stage:'v27-before-formation'});
@@ -78,21 +78,23 @@ function prepareTribulation(){
  if(!ready?.ready)fail('tribulation-readiness',{readiness:ready});
  console.log('V310_FULLRUN_V27_TRIB_READY',JSON.stringify({readiness:ready,prep:state().player.v38TribulationPrep,formationId:state().player.v39FormationId,actions,age:Number(ageYears().toFixed(2))}));
 }
-function finishTribulation(){prepareTribulation();`;
+function finishTribulation(attempt=0){`;
 runner=replaceOnce(runner,finishAnchor,v27Prep,'install batched route-aware terminal preparation');
 
 if(!runner.includes('function prepareTribulationV26(){'))throw new Error('V3.10 v27 did not preserve v26 terminal prep for comparison');
 if(!runner.includes('function v27PrepareTribulationKind(kind,cost)'))throw new Error('V3.10 v27 batching helper missing');
 if(!runner.includes('Math.ceil(missing/8)'))throw new Error('V3.10 v27 real minimum preparation gain planning missing');
+if(!runner.includes("ensureOrigin(300);ensureAuthority(170);ensureNatalMarks(9);"))throw new Error('V3.10 v27 nine-mark readiness preparation missing');
 if(!runner.includes('V310_FULLRUN_V27_TRIB_PREP'))throw new Error('V3.10 v27 per-category diagnostics missing');
 if(!runner.includes('V310_FULLRUN_V27_TRIB_READY'))throw new Error('V3.10 v27 readiness diagnostic missing');
 if(!runner.includes("invoke('v38PrepareTribulation',kind)"))throw new Error('V3.10 v27 normal V38 preparation API lost');
 if(!runner.includes("invoke('v39BuildTribulationFormation',formation)"))throw new Error('V3.10 v27 normal V39 formation API lost');
 if(!runner.includes("invoke('v39BeginTribulation')")||!runner.includes("invoke('v39AscendToTrueImmortal')"))throw new Error('V3.10 v27 terminal V39 chain lost');
+if(!runner.includes('function finishTribulation(attempt=0)'))throw new Error('V3.10 v27 recoverable tribulation retry loop lost');
 if(runner.includes('v37SetPlayerForTest')||runner.includes('v33AddMaterial(\'mat-v38-tribulation-stone\'')||runner.includes('v33AddMaterial(\'mat-v38-soulstar-dew\'')||runner.includes('v33AddMaterial(\'mat-v38-tribulation-array-core\''))throw new Error('forbidden terminal resource shortcut leaked into V3.10 v27 runner');
 
 fs.writeFileSync(finalRunnerPath,runner);
 const syntax=spawnSync(process.execPath,['--check',finalRunnerPath.pathname],{encoding:'utf8'});
 if(syntax.status!==0)throw new Error('V3.10 v27 generated runner syntax check failed: '+(syntax.stderr||syntax.stdout||'unknown syntax error'));
-console.log('V310_FULLRUN_V27_FINAL_RUNNER_PASS '+JSON.stringify({terminalPreparationBatched:true,minimumRealPrepGain:8,worstCaseBoundedStock:true,normalNamedMaterialRoutesOnly:true,existingAuctionRoutesPreserved:true,normalV38PreparationApi:true,normalV39FormationAndAscensionApis:true,actionCapUnchanged:true,materialCostsUnchanged:true,dropRatesUnchanged:true,enemyTablesUnchanged:true,rngUnchanged:true,timeCostsUnchanged:true,noDirectResourceInjection:true,noGameplayMutation:true,generatedRunnerSyntaxChecked:true,finalRunner:finalRunnerPath.pathname}));
+console.log('V310_FULLRUN_V27_FINAL_RUNNER_PASS '+JSON.stringify({terminalPreparationBatched:true,minimumRealPrepGain:8,worstCaseBoundedStock:true,natalMarksForArtifactReadiness:9,normalNamedMaterialRoutesOnly:true,existingAuctionRoutesPreserved:true,normalV38PreparationApi:true,normalV39FormationAndAscensionApis:true,recoverableTribulationRetryPreserved:true,actionCapUnchanged:true,materialCostsUnchanged:true,dropRatesUnchanged:true,enemyTablesUnchanged:true,rngUnchanged:true,timeCostsUnchanged:true,noDirectResourceInjection:true,noGameplayMutation:true,generatedRunnerSyntaxChecked:true,finalRunner:finalRunnerPath.pathname}));
 await import(finalRunnerPath.href+'?v27final='+Date.now());
