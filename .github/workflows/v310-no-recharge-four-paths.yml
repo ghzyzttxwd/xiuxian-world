@@ -12,10 +12,12 @@ on:
       - "tools/audit-v310-balance.mjs"
       - "tools/build-v310-balance.cjs"
       - "tools/build-v310-balance-v2.cjs"
+      - "tools/build-v310-balance-v3.cjs"
       - "tools/build-v310-fullrun-headless.cjs"
       - "tools/fullrun-v310-no-recharge*.mjs"
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
+      - "tests/regression-v310-core-market.mjs"
   pull_request:
     branches: ["main"]
     paths:
@@ -23,10 +25,12 @@ on:
       - "tools/audit-v310-balance.mjs"
       - "tools/build-v310-balance.cjs"
       - "tools/build-v310-balance-v2.cjs"
+      - "tools/build-v310-balance-v3.cjs"
       - "tools/build-v310-fullrun-headless.cjs"
       - "tools/fullrun-v310-no-recharge*.mjs"
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
+      - "tests/regression-v310-core-market.mjs"
 
 permissions:
   contents: read
@@ -71,11 +75,11 @@ jobs:
           set -euo pipefail
           node tools/audit-v310-balance.mjs
           test -s /tmp/V310_AUDIT.json
-          node tools/build-v310-balance-v2.cjs
+          node tools/build-v310-balance-v3.cjs
           node --check src/game-v310.js
           first=$(sha256sum src/game-v310.js | awk '{print $1}')
           cp src/game-v310.js /tmp/game-v310-first.js
-          node tools/build-v310-balance-v2.cjs >/tmp/v310-build-second.log
+          node tools/build-v310-balance-v3.cjs >/tmp/v310-build-second.log
           second=$(sha256sum src/game-v310.js | awk '{print $1}')
           test "$first" = "$second"
           cmp -s /tmp/game-v310-first.js src/game-v310.js
@@ -86,6 +90,7 @@ jobs:
           set -euo pipefail
           node tests/regression-v310.mjs
           node tests/regression-v310-premahayana-auction.mjs
+          node tests/regression-v310-core-market.mjs
       - name: Prepare gameplay-neutral headless copy
         shell: bash
         run: |
@@ -104,7 +109,7 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          node tools/fullrun-v310-no-recharge-v34.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
+          node tools/fullrun-v310-no-recharge-v35.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
           rc=${PIPESTATUS[0]}
           set -e
           if [ "$rc" -ne 0 ]; then
