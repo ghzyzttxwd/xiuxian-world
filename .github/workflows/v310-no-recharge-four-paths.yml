@@ -6,35 +6,43 @@ concurrency:
 
 on:
   push:
-    branches: ["v310-no-recharge-balance-validation"]
+    branches: ["v310-no-recharge-balance-validation","v310-natal-origin-id-fix"]
     paths:
+      - "V310_V59_CANDIDATE.trigger"
       - ".github/workflows/v310-no-recharge-four-paths.yml"
       - "tools/audit-v310-balance.mjs"
       - "tools/build-v310-balance.cjs"
       - "tools/build-v310-balance-v2.cjs"
       - "tools/build-v310-balance-v3.cjs"
       - "tools/build-v310-balance-v4.cjs"
+      - "tools/build-v310-balance-v5.cjs"
       - "tools/build-v310-fullrun-headless.cjs"
       - "tools/fullrun-v310-no-recharge*.mjs"
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
       - "tests/regression-v310-core-market.mjs"
       - "tests/regression-v310-natal-origin-id.mjs"
+      - "tests/regression-v310-tribulation-essence.mjs"
+      - "tests/regression-v310-resource-utility.mjs"
   pull_request:
     branches: ["main"]
     paths:
+      - "V310_V59_CANDIDATE.trigger"
       - ".github/workflows/v310-no-recharge-four-paths.yml"
       - "tools/audit-v310-balance.mjs"
       - "tools/build-v310-balance.cjs"
       - "tools/build-v310-balance-v2.cjs"
       - "tools/build-v310-balance-v3.cjs"
       - "tools/build-v310-balance-v4.cjs"
+      - "tools/build-v310-balance-v5.cjs"
       - "tools/build-v310-fullrun-headless.cjs"
       - "tools/fullrun-v310-no-recharge*.mjs"
       - "tests/regression-v310.mjs"
       - "tests/regression-v310-premahayana-auction.mjs"
       - "tests/regression-v310-core-market.mjs"
       - "tests/regression-v310-natal-origin-id.mjs"
+      - "tests/regression-v310-tribulation-essence.mjs"
+      - "tests/regression-v310-resource-utility.mjs"
 
 permissions:
   contents: read
@@ -79,15 +87,15 @@ jobs:
           set -euo pipefail
           node tools/audit-v310-balance.mjs
           test -s /tmp/V310_AUDIT.json
-          node tools/build-v310-balance-v4.cjs
+          node tools/build-v310-balance-v5.cjs
           node --check src/game-v310.js
           first=$(sha256sum src/game-v310.js | awk '{print $1}')
           cp src/game-v310.js /tmp/game-v310-first.js
-          node tools/build-v310-balance-v4.cjs >/tmp/v310-build-second.log
+          node tools/build-v310-balance-v5.cjs >/tmp/v310-build-second.log
           second=$(sha256sum src/game-v310.js | awk '{print $1}')
           test "$first" = "$second"
           cmp -s /tmp/game-v310-first.js src/game-v310.js
-          node -e "const b=require('./BUILD_V310_BALANCE.json');if(b.status!=='PASS'||b.gameplay_version!=='3.10.0'||b.build!=='31001'||b.save_schema_version!==36||b.content_registry_version!==10||b.source_sha256!==process.argv[1]||!b.changes?.some(x=>String(x).includes('natal-artifact combat scaling')))throw new Error('V3.10 V58 report mismatch')" "$first"
+          node -e "const b=require('./BUILD_V310_BALANCE.json');if(b.status!=='PASS'||b.gameplay_version!=='3.10.0'||b.build!=='31001'||b.save_schema_version!==36||b.content_registry_version!==10||b.source_sha256!==process.argv[1]||!b.changes?.some(x=>String(x).includes('natal-artifact combat scaling'))||!b.changes?.some(x=>String(x).includes('万劫真髓 now has a normal endgame sink')))throw new Error('V3.10 V59 report mismatch')" "$first"
       - name: Run V3.10 regressions
         shell: bash
         run: |
@@ -96,6 +104,8 @@ jobs:
           node tests/regression-v310-premahayana-auction.mjs
           node tests/regression-v310-core-market.mjs
           node tests/regression-v310-natal-origin-id.mjs
+          node tests/regression-v310-tribulation-essence.mjs
+          node tests/regression-v310-resource-utility.mjs
       - name: Prepare gameplay-neutral headless copy
         shell: bash
         run: |
@@ -114,13 +124,14 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          node tools/fullrun-v310-no-recharge-v58.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
+          node tools/fullrun-v310-no-recharge-v59.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
           rc=${PIPESTATUS[0]}
           set -e
           if [ "$rc" -ne 0 ]; then
             echo "V310_FULLRUN_PROCESS_EXIT=$rc"
             exit "$rc"
           fi
+          grep -q 'V310_FULLRUN_V59_RESOURCE_SINK_PRESENT' V310_FULLRUN_LOG.txt
           grep -q 'V310_FULLRUN_V58_NATAL_ID_FIX_PRESENT' V310_FULLRUN_LOG.txt
           grep -q 'V310_FULLRUN_V57_GEAR_CALL' V310_FULLRUN_LOG.txt
           node -e "const r=require('./V310_FULLRUN_RESULT.json');if(r.status!=='PASS'||r.daoPath!==process.argv[1]||r.final.realmIndex!==39||!r.final.ascended||!r.proof?.freshSave||!r.proof?.noRecharge||!r.proof?.legalGameplayCallsOnly||!r.proof?.ascensionComplete||r.forbiddenCalls?.length)throw new Error('four-path legal full-run proof incomplete')" "${{ matrix.dao }}"
