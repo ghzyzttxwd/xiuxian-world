@@ -9,6 +9,7 @@ on:
       - "tools/fullrun-v310-no-recharge-v63.mjs"
       - "tools/build-v310-balance-v6.cjs"
       - "tests/regression-v310-v38-pill-effects.mjs"
+      - "tests/regression-v310-domain-sand-source.mjs"
       - "V310_V64_SWORD.trigger"
 
 permissions:
@@ -56,6 +57,7 @@ jobs:
           node tests/regression-v310-tribulation-essence.mjs
           node tools/build-v310-balance-v6.cjs >/tmp/v64-resource-build.log
           node tests/regression-v310-resource-utility.mjs
+          node tests/regression-v310-domain-sand-source.mjs
           node --check tools/fullrun-v310-no-recharge-v64.mjs
 
       - name: Prepare gameplay-neutral headless copy
