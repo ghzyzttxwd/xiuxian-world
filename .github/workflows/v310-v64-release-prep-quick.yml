@@ -9,6 +9,9 @@ on:
       - "tools/build-v310-balance-v5.cjs"
       - "tools/build-v310-balance-v6.cjs"
       - "tools/verify-v310-v64-evidence.mjs"
+      - "tools/release-v310-assets.cjs"
+      - "tools/verify-v310-public.sh"
+      - "tools/aggregate-v310-fullrun-gate.mjs"
       - "tests/regression-v310-natal-origin-id.mjs"
       - "tests/regression-v310-tribulation-essence.mjs"
       - "tests/regression-v310-resource-utility.mjs"
@@ -43,4 +46,16 @@ jobs:
           node tests/regression-v310-resource-utility.mjs
           node tests/regression-v310-domain-sand-source.mjs
           node --check tools/verify-v310-v64-evidence.mjs
+          node --check tools/aggregate-v310-fullrun-gate.mjs
+          node --check tools/release-v310-assets.cjs
+          bash -n tools/verify-v310-public.sh
+          node tools/release-v310-assets.cjs
+          node --check app.js
+          grep -q "gameplayVersion:'3.10.0'" app.js
+          grep -q 'src/game-v310.js?v=31001' app.js
+          grep -q 'V3.10 · 无充值全流程总平衡篇' index.html
+          grep -q 'taixuan-v3.10.0-no-recharge-full-run-balance-31001' sw.js
+          ! grep -q 'eval' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
           echo 'V310_V64_RELEASE_PREP_QUICK_PASS'
