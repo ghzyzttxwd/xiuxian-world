@@ -93,7 +93,8 @@ if(!runner.includes('const expected=Math.ceil(missing/.28);'))throw new Error('V
 if(!runner.includes('const batch=Math.min(80-attemptsTotal,40,Math.max(12,expected+12));'))throw new Error('V67 expedition batch cap missing');
 if(!runner.includes('if(attemptsTotal>=80)'))throw new Error('V67 80-attempt hard cap missing');
 for(const marker of ['V310_FULLRUN_V66_MID_GUARD','V310_FULLRUN_V65_DWELLING','V310_FULLRUN_V64_PRODUCTIVE_SOURCE','V310_FULLRUN_V62_ESCAPE_GUARD','V310_FULLRUN_V61_LIVE_TRIBULATION_ENTRY','V310_FULLRUN_V57_GEAR_CALL'])if(!runner.includes(marker))throw new Error('V67 lost inherited marker '+marker);
-if(runner.includes('V310_FULLRUN_V63_MAHAYANA_BREW'))throw new Error('V67 must retain V66 no-auto-pill policy');
+if(runner.includes("else if(i===33){ensureV63MahayanaStabilizer();"))throw new Error('V67 active automatic Mahayana pill call survived');
+if(!runner.includes("else if(i===33)result=spendAction('breakthrough-mahayana',()=>invoke('v38AttemptMahayanaBreakthrough'));"))throw new Error('V67 ordinary Mahayana breakthrough path missing');
 if(runner.includes("invoke('v37SetPlayerForTest'")||runner.includes("invoke('v34ActivateBuildForTest'")||runner.includes("v33AddMaterial('mat-v37-unity-seed'"))throw new Error('forbidden progression/resource shortcut leaked into V67 runner');
 
 fs.writeFileSync(finalRunnerPath,runner);
