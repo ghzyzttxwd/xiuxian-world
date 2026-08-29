@@ -1,0 +1,89 @@
+name: Phase8 R11 Late Qi Curve Candidate
+
+on:
+  push:
+    branches: ["phase8-r11-late-qi-curve"]
+    paths: ["PHASE8_R11_CANDIDATE.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-phase8-r11-candidate
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: phase8-r11-late-qi-curve, fetch-depth: 0}
+
+      - name: Verify R8 stable baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          node -e "const s=require('./PUBLIC_UI_STATUS.json');if(s.status!=='PASS'||s.core_build!==3903||s.save_schema_version!==36)process.exit(1)"
+
+      - name: Apply temporary late-Qi candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('src/game-v39.js');s=p.read_text()
+          changes=[('炼气七层',1150,900),('炼气八层',1500,1100),('炼气九层',2000,1200)]
+          for name,old,new in changes:
+            pat=r'((?:name\s*:\s*["\']'+re.escape(name)+r'["\'])[^\n\r]{0,240}?need\s*:\s*)'+str(old)+r'\b'
+            s2,n=re.subn(pat,lambda m:m.group(1)+str(new),s,count=1)
+            if n!=1:
+              raise SystemExit(f'failed patch {name}: {n}')
+            s=s2
+          p.write_text(s)
+          PY
+          grep -q '炼气七层' src/game-v39.js
+          node --check src/game-v39.js
+
+      - name: Run identical six-seed safe-human audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          git fetch origin phase8-round3-safe-audit
+          git show origin/phase8-round3-safe-audit:tests/playtest-phase8-round2.mjs > tests-r11.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests-r11.mjs');s=p.read_text()
+          old="function settleCombat(api){let guard=0;while(api.getCombat?.()&&guard++<40){const c=api.getCombat(),s=api.getState();const ratio=(Number(c.playerHp)||0)/Math.max(1,hpMax(api,s));api.combatAction(ratio<.34?'defend':'attack')}return guard}"
+          new="function settleCombat(api){let guard=0;while(api.getCombat?.()&&guard++<40){const c=api.getCombat(),s=api.getState();const ratio=(Number(c.playerHp)||0)/Math.max(1,hpMax(api,s)),diff=(Number(c.enemy?.realm)||0)-(Number(s.player.realmIndex)||0);if(diff>=1||ratio<.62)api.combatAction('flee');else if(ratio<.42)api.combatAction('defend');else api.combatAction('attack')}return guard}"
+          if old not in s: raise SystemExit('combat baseline missing')
+          s=s.replace(old,new,1).replace("const OUT='PHASE8_ROUND2_REPORT.json';","const OUT='PHASE8_R11_CANDIDATE_REPORT.json';",1).replace('maxActions:560','maxActions:800').replace("phase:'8-round2-human-navigation'","phase:'8-round11-late-qi-candidate'",1).replace("dead:!!end.flags?.dead,milestones","dead:!!end.flags?.dead,deathCause:end.flags?.deathCause||null,milestones",1)
+          p.write_text(s)
+          PY
+          node tests-r11.mjs
+          node - <<'NODE'
+          const fs=require('fs'),crypto=require('crypto');const p='PHASE8_R11_CANDIDATE_REPORT.json',x=JSON.parse(fs.readFileSync(p,'utf8'));x.candidate={lateQiNeeds:{qi7:900,qi8:1100,qi9:1200},breakthroughFormulaChanged:false,enemyStatsChanged:false,schema:36};x.baselineR9={deaths:0,reached:{qi7:6,qi9:2,foundation:0},medianDays:{qi7:491,qi9:787}};x.candidateSourceSha256=crypto.createHash('sha256').update(fs.readFileSync('src/game-v39.js')).digest('hex');x.target={maxDeaths:1,minQi9:4,minFoundation:3};fs.writeFileSync(p,JSON.stringify(x,null,2)+'\n');console.log('R11_CANDIDATE',JSON.stringify({summary:x.summary,flags:x.flags,candidate:x.candidate,target:x.target}));
+          NODE
+
+      - name: Commit candidate report only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -- src/game-v39.js
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R11_CANDIDATE_REPORT.json
+          git commit -m 'test: record phase8 r11 late-Qi candidate audit [skip ci]'
+          git push origin HEAD:phase8-r11-late-qi-curve
+
+      - name: Evaluate candidate target
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const x=require('./PHASE8_R11_CANDIDATE_REPORT.json'),s=x.summary;console.log('TARGET_EVAL',JSON.stringify(s));if(s.deaths>1||s.reached.qi9<4||s.reached.foundation<3)process.exit(1)
+          NODE
