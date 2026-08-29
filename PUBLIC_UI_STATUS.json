@@ -1,8 +1,8 @@
 {
   "status": "PASS",
-  "ui_version": "playable-v3920-phase7",
+  "ui_version": "playable-v3920-phase8",
   "gameplay_version": "3.9.0",
-  "verified_commit": "62f4865447f75887d855542c0a37873d882476f1",
+  "verified_commit": "35c2ad74dbdc7226fc5634e867dc40e4d79e5408",
   "source_sha256": "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37",
   "save_schema_version": 36,
   "reference_device": "vivo X100",
@@ -13,11 +13,6 @@
     "天下",
     "人脉",
     "储物"
-  ],
-  "progressive_disclosure": [
-    "map=current+direct-routes",
-    "npc=8-per-page-default",
-    "unknown-content=hidden"
   ],
   "monetization": {
     "mode": "sandbox",
@@ -31,13 +26,36 @@
     ],
     "real_payment": false
   },
+  "balance": {
+    "phase": 8,
+    "mode": "qol-first",
+    "baselineFinding": "early-game-click-burden",
+    "batchCultivationDays": 7,
+    "stopsOn": [
+      "event",
+      "combat",
+      "full-progress",
+      "death"
+    ],
+    "coreCurveChanged": false,
+    "microAudit": {
+      "runs": 3,
+      "qi1DaysRange": [
+        22,
+        32
+      ],
+      "day240TypicalRealm": "炼气四层",
+      "deaths": 0
+    }
+  },
   "checks": [
     "required DOM contract",
+    "phase8 batch cultivation smoke",
     "sandbox monetization smoke",
     "V2.9-V3.9 headless regression",
     "V6 icon hashes unchanged",
     "actual GitHub Pages HTTP 200",
-    "public phase7 markers",
+    "public phase8 markers",
     "public V3.9 source SHA equality"
   ]
 }
