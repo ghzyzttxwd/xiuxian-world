@@ -1,33 +1,41 @@
 {
   "status": "PASS",
-  "ui_version": "playable-v3920-phase8-r2",
+  "ui_version": "playable-v3920-phase8-r3",
   "gameplay_version": "3.9.0",
-  "verified_commit": "d8266e93e50c9a53e74b399deb18964be867e2ec",
+  "verified_commit": "3075bd892f5f438c6789e19b8db42668f8558940",
   "source_sha256": "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37",
   "save_schema_version": 36,
   "balance": {
     "phase": 8,
-    "round": 2,
+    "round": 3,
     "mode": "qol-first",
     "batchCultivationDaysByRealm": {
       "mortalThroughQi3": 7,
       "qi4Plus": 30
     },
-    "stopsOn": [
-      "event",
-      "combat",
-      "full-progress",
-      "death"
-    ],
     "coreCurveChanged": false
+  },
+  "guidance": {
+    "realmAware": true,
+    "signals": [
+      "realm",
+      "location",
+      "manual"
+    ],
+    "earlyRoute": [
+      "青石村",
+      "青石镇",
+      "临江城"
+    ],
+    "progressiveDisclosure": true
   },
   "monetization": {
     "mode": "sandbox",
     "real_payment": false
   },
   "checks": [
-    "adaptive batch smoke",
-    "shop smoke",
+    "guidance matrix smoke",
+    "adaptive batch retained",
     "V2.9-V3.9 regression",
     "public HTTP",
     "frozen core SHA"
