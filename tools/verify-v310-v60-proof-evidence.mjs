@@ -5,7 +5,7 @@ import {spawnSync} from 'child_process';
 
 const root=process.argv[2]||'V310_FULLRUN_EVIDENCE';
 const expectedSource=(process.argv[3]||'').trim();
-assert(expectedSource,/^[0-9a-f]{64}$/.test(expectedSource)?'':'expected V3.10 source SHA256 argument missing/invalid');
+assert(/^[0-9a-f]{64}$/.test(expectedSource),'expected V3.10 source SHA256 argument missing/invalid');
 const daos=['sword','flame','body','spirit'];
 const seen=new Set();
 function walk(dir){
