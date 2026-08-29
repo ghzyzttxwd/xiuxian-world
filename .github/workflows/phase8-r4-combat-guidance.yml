@@ -42,11 +42,11 @@ jobs:
           if(!q.guideText().includes('踏入炼气'))throw Error('r3 guidance lost');
           a.v39SetPlayerForTest({realmIndex:4});if(q.batchDaysFor()!==30)throw Error('adaptive batch lost');
           a.newGame('高危验收');a.v39SetPlayerForTest({realmIndex:0});a.startCombat('血刀门探子');let advice=q.refreshCombatAdvice();
-          if(advice?.level!=='severe'||!document.getElementById('phase8CombatAdvice')?.textContent.includes('极高风险'))throw Error('severe advice missing '+JSON.stringify(advice));
-          if(!document.querySelector('[data-combat="flee"]')?.classList.contains('phase8-flee-recommended'))throw Error('flee highlight missing');
+          if(advice?.level!=='severe'||!w.document.getElementById('phase8CombatAdvice')?.textContent.includes('极高风险'))throw Error('severe advice missing '+JSON.stringify(advice));
+          if(!w.document.querySelector('[data-combat="flee"]')?.classList.contains('phase8-flee-recommended'))throw Error('flee highlight missing');
           a.closeModal();a.newGame('同境界验收');a.v39SetPlayerForTest({realmIndex:2});a.startCombat('血刀门探子');advice=q.refreshCombatAdvice();
           if(advice?.level!=='normal')throw Error('equal realm false warning '+JSON.stringify(advice));
-          if(document.querySelector('[data-combat="flee"]')?.classList.contains('phase8-flee-recommended'))throw Error('normal fight flee falsely highlighted');
+          if(w.document.querySelector('[data-combat="flee"]')?.classList.contains('phase8-flee-recommended'))throw Error('normal fight flee falsely highlighted');
           console.log('PHASE8_R4_COMBAT_GUIDANCE_OK');process.exit(0)
           NODE
       - name: Full V2.9 through V3.9 regression
