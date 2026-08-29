@@ -1,0 +1,4 @@
+/* TAIXUAN_PHASE8_QOL_V1 */
+.ui-batch-cultivate{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;min-height:44px;padding:7px 10px;border:1px solid #5b5135;border-radius:10px;background:linear-gradient(180deg,#221f15,#171710);color:#e3ce8a;text-align:right;white-space:nowrap}
+.ui-batch-cultivate b{font-size:11px;line-height:1.2}.ui-batch-cultivate small{display:block;max-width:150px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;color:#958b6c;font-size:8px;line-height:1.2}.ui-batch-cultivate:disabled{opacity:.55}
+@media(max-width:370px){.ui-batch-cultivate{padding:6px 8px}.ui-batch-cultivate small{max-width:112px}}
