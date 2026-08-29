@@ -6,7 +6,9 @@ on:
     paths:
       - ".github/workflows/v310-aggregate-gate-selftest.yml"
       - "tests/regression-v310-aggregate-gate.mjs"
+      - "tests/regression-v310-v60-proof-binder.mjs"
       - "tools/aggregate-v310-fullrun-gate.mjs"
+      - "tools/verify-v310-v60-proof-evidence.mjs"
 
 permissions:
   contents: read
@@ -22,5 +24,8 @@ jobs:
         run: |
           set -euo pipefail
           node --check tools/aggregate-v310-fullrun-gate.mjs
+          node --check tools/verify-v310-v60-proof-evidence.mjs
           node --check tests/regression-v310-aggregate-gate.mjs
+          node --check tests/regression-v310-v60-proof-binder.mjs
           node tests/regression-v310-aggregate-gate.mjs
+          node tests/regression-v310-v60-proof-binder.mjs
