@@ -1,0 +1,35 @@
+name: Phase8 Death Diagnostic
+
+on:
+  push:
+    branches: ["phase8-death-diagnostic"]
+    paths: ["PHASE8_DEATH_DIAG.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase8-death-diagnostic
+      - name: Run fixed-seed death diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/phase8-death-diagnostic.mjs
+          test -s PHASE8_DEATH_DIAGNOSTIC.json
+      - name: Commit diagnostic report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_DEATH_DIAGNOSTIC.json
+          git commit -m 'test: record phase8 death diagnostic [skip ci]'
+          git push origin HEAD:phase8-death-diagnostic
