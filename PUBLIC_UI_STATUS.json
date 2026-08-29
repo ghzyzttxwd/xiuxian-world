@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "ui_version": "playable-v3910",
+  "gameplay_version": "3.9.0",
+  "verified_commit": "5e5c73437ab8b47b4bcbdbe4e48b52e2b63601b4",
+  "source_sha256": "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37",
+  "save_schema_version": 36,
+  "checks": [
+    "required DOM contract",
+    "V2.9-V3.9 headless regression",
+    "V6 icon hashes unchanged",
+    "actual GitHub Pages HTTP 200",
+    "public UI marker",
+    "public CSS marker",
+    "public service-worker cache marker",
+    "public V3.9 source SHA equality"
+  ]
+}
