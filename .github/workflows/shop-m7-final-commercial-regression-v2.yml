@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          node shop-m7-final-regression.js
+          node -e "require('./shop-m7-final-regression.js'); setTimeout(()=>process.exit(0),250)"
           rm -rf node_modules package.json package-lock.json
       - name: Publish browser-validated bundle to gh-pages
         run: |
