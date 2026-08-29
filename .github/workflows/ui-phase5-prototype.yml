@@ -31,8 +31,11 @@ jobs:
           test -f ui-prototype-v1.css
           grep -q 'TAIXUAN_UI_PHASE5_PROTO_V1' ui-prototype-v1.html
           grep -q 'TAIXUAN_UI_PHASE5_PROTO_V1' ui-prototype-v1.css
-          for label in '突破 · 筑基' '战斗' '事件 · 见闻' '青云宗' '洞府 · 炼制'; do
+          for label in '突破 · 筑基' '遭遇战' '见闻' '青云宗' '洞府 · 炼制'; do
             grep -q "$label" ui-prototype-v1.html
+          done
+          for view in breakthrough battle events sect craft; do
+            grep -q "data-view=\"$view\"" ui-prototype-v1.html
           done
           test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
           echo 'PHASE5_PROTO_LOCAL_OK'
@@ -69,6 +72,9 @@ jobs:
               && grep -q 'TAIXUAN_UI_PHASE5_PROTO_V1' /tmp/live-phase5.html \
               && grep -q 'TAIXUAN_UI_PHASE5_PROTO_V1' /tmp/live-phase5.css \
               && grep -q '突破 · 筑基' /tmp/live-phase5.html \
+              && grep -q '遭遇战' /tmp/live-phase5.html \
+              && grep -q '见闻' /tmp/live-phase5.html \
+              && grep -q '青云宗' /tmp/live-phase5.html \
               && grep -q '洞府 · 炼制' /tmp/live-phase5.html; then
               success=1
               break
