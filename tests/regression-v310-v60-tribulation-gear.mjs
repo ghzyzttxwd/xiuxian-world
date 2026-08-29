@@ -14,15 +14,22 @@ assert(api,'V60 tribulation gear audit missing test API');
 api.newGame('V60抗劫装备审计');
 const reg=api.contentRegistrySnapshot();
 const items=reg.items||{};
+const artifacts=reg.artifacts||{};
+const realms=reg.realms||{};
 const materials=reg.materials||{};
 const umbrella=items['item-v39-thunder-umbrella'];
 const disc=items['item-v39-tribulation-array-disc'];
 assert(umbrella&&disc,'V60 dedicated tribulation artifacts missing');
 for(const row of [umbrella,disc]){
- assert.equal(row.unlock,37,`${row.itemId}: must unlock before first immortal tribulation`);
+ const realmRow=realms[row.realmRequirement];
+ assert(realmRow,`${row.itemId}: runtime realmRequirement is unresolved`);
+ assert.equal(Number(realmRow.index),37,`${row.itemId}: must unlock at 大乘圆满 before first immortal tribulation`);
  assert.equal(row.path,'none',`${row.itemId}: must remain four-path accessible`);
  assert((row.sources||[]).includes('九霄劫台'),`${row.itemId}: must be craftable at 九霄劫台 before tribulation`);
- assert(row.trueArtifact===true,`${row.itemId}: must remain a true artifact`);
+ const artifact=Object.values(artifacts).find(a=>a?.itemId===row.itemId);
+ assert(artifact,`${row.itemId}: true-artifact registry entry missing`);
+ assert.equal(artifact.realmRequirement,row.realmRequirement,`${row.itemId}: item/artifact realm requirement drifted`);
+ assert.equal(artifact.path,'none',`${row.itemId}: artifact registry lost four-path access`);
 }
 assert.equal(umbrella.artifactSlot,'guard','thunder umbrella slot drifted');
 assert.equal(disc.artifactSlot,'support','tribulation array disc slot drifted');
@@ -44,7 +51,12 @@ for(const [id,n] of Object.entries(requiredNamed)){
 }
 assert((materials['mat-v39-thunder-crystal'].combatKinds||[]).includes('劫雷异灵'),'thunder crystal lost 劫雷异灵 combat source');
 assert((materials['mat-v39-tribulation-gold'].combatKinds||[]).includes('劫雷异灵'),'tribulation gold lost 劫雷异灵 combat source');
-assert(source.includes('"id":"enemy-v39-thunder-spirit"')&&source.includes('"kind":"劫雷异灵"')&&source.includes('"areas":["九霄劫台"]'),'pre-tribulation 劫雷化灵 encounter missing from 九霄劫台');
+const thunderEnemy=Object.values(reg.enemies||{}).find(e=>e?.id==='enemy-v39-thunder-spirit');
+assert(thunderEnemy,'pre-tribulation 劫雷化灵 enemy missing');
+assert.equal(thunderEnemy.kind,'劫雷异灵','pre-tribulation thunder enemy kind drifted');
+const stage37RealmId=Object.values(realms).find(r=>Number(r.index)===37)?.id;
+assert.equal(thunderEnemy.realmId,stage37RealmId,'pre-tribulation thunder enemy realm drifted');
+assert((thunderEnemy.areas||[]).some(id=>reg.regions?.[id]?.name==='九霄劫台'),'pre-tribulation 劫雷化灵 encounter missing from 九霄劫台');
 
 const totalStoneCost=Number(umbrella.cost?.stones||0)+Number(disc.cost?.stones||0);
 assert(totalStoneCost>=18800,'V60 dedicated preparation became trivially cheap');
@@ -52,4 +64,4 @@ const thunderArtifactGuard=Number(umbrella.passive?.tribulationGuard||0)+Number(
 const formationArtifactGuard=Number(umbrella.passive?.tribulationGuard||0)+Number(disc.passive?.tribulationGuard||0)+Number(disc.passive?.formationGuard||0);
 assert(thunderArtifactGuard>=.70,'V60 late-thunder artifact guard insufficient');
 assert(formationArtifactGuard>=.72,'V60 stage-five formation artifact guard insufficient');
-console.log('V310_V60_TRIBULATION_GEAR_REGRESSION_PASS '+JSON.stringify({totalStoneCost,thunderArtifactGuard,formationArtifactGuard,preTribulationNamedCosts:requiredNamed,fourPathAccessible:true,preTribulationThunderEnemy:true}));
+console.log('V310_V60_TRIBULATION_GEAR_REGRESSION_PASS '+JSON.stringify({totalStoneCost,thunderArtifactGuard,formationArtifactGuard,preTribulationNamedCosts:requiredNamed,fourPathAccessible:true,preTribulationThunderEnemy:true,runtimeRealmIndex:37,registryCrossChecked:true}));
