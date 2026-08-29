@@ -1,0 +1,12 @@
+{
+  "phase": "8-round10f-manual-lookup",
+  "functions": {
+    "manual": "function manual(){return MANUALS[state.player.manual]}",
+    "v31CurrentManualMeta": "function v31CurrentManualMeta(){const id=manualIdFromName(state?.player?.manual);return id?v31ManualCatalogRow(id):null}",
+    "v31ManualCatalogRow": "function v31ManualCatalogRow(id){return V31_MANUAL_BY_ID[id]||null}",
+    "v31ScaledEffects": "function v31ScaledEffects(raw={}",
+    "MANUALS": null,
+    "MANUAL_ID_BY_NAME": "const MANUAL_ID_BY_NAME=Object.freeze({'基础吐纳诀':'manual-basic-breathing','青云引气诀':'manual-qingyun-qi','赤炎诀':'manual-red-flame','丹霞金章':'manual-danxia-golden','太虚化神篇':'manual-taixu-deification','青云剑典':'manual-qingyun-sword','赤霞焚天诀':'manual-chixia-heavenfire','万兽锻体经':'manual-beast-body','太虚观神录':'manual-taixu-spirit'});",
+    "V31_MANUAL_ID_BY_NAME": "const V31_MANUAL_ID_BY_NAME=Object.freeze(Object.fromEntries(V31_MANUAL_CATALOG.map(x=>[x.name,x.id])));"
+  }
+}
