@@ -1,9 +1,11 @@
 /* TAIXUAN_SHOP_V2_POWER_ADAPTER_M1 */
 (()=>{
 'use strict';
-const VERSION='m1-1';
+const VERSION='m1-2';
 const GRADES=['normal','fine','superior','perfect'];
+const COMPONENT_ALIASES=Object.freeze({'spell-clear-sword-heart-passive':'spell-clear-sword-heart'});
 const clone=x=>JSON.parse(JSON.stringify(x));
+const resolveSpellId=id=>COMPONENT_ALIASES[id]||id;
 function api(){const a=window.__TAIXUAN_TEST__;if(!a)throw new Error('game_api_not_ready');return a}
 function state(){return api().getState()}
 function player(){const s=state();if(!s?.player)throw new Error('player_not_ready');return s.player}
@@ -12,7 +14,7 @@ function saveRefresh(){document.getElementById('saveBtn')?.click();setTimeout(()
 function gearRecord(id){return player().equipmentInventory?.[id]||null}
 function knownManual(id){return (player().manualLibraryIds||[]).includes(id)}
 function growth(){return api().v31CatalogSnapshot()}
-function spellRow(id){return growth().spells.find(x=>x.id===id)||null}
+function spellRow(id){const actual=resolveSpellId(id);return growth().spells.find(x=>x.id===actual)||null}
 function manualRow(id){return growth().manuals.find(x=>x.id===id)||null}
 function spellKnown(id){const r=spellRow(id);return !!(r&&Object.prototype.hasOwnProperty.call(player().spells||{},r.name))}
 function result(ok,type,id,extra={}){return {ok,type,id,...extra}}
@@ -75,26 +77,26 @@ function grantManual(id,{switchTo=false}={}){
 
 function firstFreeActiveSlot(){const a=player().activeSkillIds||[];const i=a.findIndex(x=>!x);return i>=0?i:0}
 function grantSpell(id,{equip=true,slot=null}={}){
- const row=spellRow(id);if(!row)return result(false,'spell',id,{reason:'missing_spell'});
- const duplicate=spellKnown(id);
- if(!duplicate){const x=api().learnV31Spell(id,true);if(!['learned','known'].includes(x))return result(false,'spell',id,{reason:String(x)})}
+ const requestedId=id,actualId=resolveSpellId(id),row=spellRow(actualId);if(!row)return result(false,'spell',requestedId,{reason:'missing_spell',actualId});
+ const duplicate=spellKnown(actualId);
+ if(!duplicate){const x=api().learnV31Spell(actualId,true);if(!['learned','known'].includes(x))return result(false,'spell',requestedId,{reason:String(x),actualId})}
  let equipped=false;
  if(equip){
-  if(row.category==='passive')equipped=!!api().equipV31Passive(id);
-  else equipped=!!api().equipV31Skill(slot==null?firstFreeActiveSlot():slot,id);
+  if(row.category==='passive')equipped=!!api().equipV31Passive(actualId);
+  else equipped=!!api().equipV31Skill(slot==null?firstFreeActiveSlot():slot,actualId);
  }
  saveRefresh();
- return result(true,row.category==='passive'?'passive':'spell',id,{duplicate,name:row.name,equipped});
+ return result(true,row.category==='passive'?'passive':'spell',requestedId,{actualId,duplicate,name:row.name,equipped});
 }
 
+function currentManualId(p=player(),g=growth()){return g.manuals.find(x=>x.name===p.manual)?.id||null}
 function inspectBuild(id){
  const defs=api().v34BuildRegistry(),b=defs[id];if(!b)return {ok:false,id,reason:'missing_build'};
- const s=api().v34BuildScore(b),p=player(),g=growth();
- const missing={manuals:[],skills:[],passive:null,artifact:!s.parts?.artifact};
- if(!s.parts?.manual)missing.manuals=b.manuals.filter(x=>!(p.manualLibraryIds||[]).includes(x));
- const haveSkills=new Set(s.parts?.skills||[]);missing.skills=b.skills.filter(x=>!haveSkills.has(x));
- if(!s.parts?.passive)missing.passive=b.passive;
- return {ok:true,id,name:b.name,path:b.path,role:b.role,score:s.score||0,active:!!s.active,mastered:!!s.mastered,parts:clone(s.parts||{}),missing,catalog:{manuals:g.manuals.filter(x=>b.manuals.includes(x.id)).map(x=>({id:x.id,name:x.name})),skills:g.spells.filter(x=>b.skills.includes(x.id)||x.id===b.passive).map(x=>({id:x.id,name:x.name,category:x.category}))}};
+ const core=api().v34BuildScore(b),p=player(),g=growth(),manualId=currentManualId(p,g),actualPassive=resolveSpellId(b.passive);
+ const parts={manual:b.manuals.includes(manualId),passive:p.passiveSkillId===actualPassive,artifact:!!core.parts?.artifact,skills:b.skills.filter(x=>(p.activeSkillIds||[]).includes(x))};
+ const score=(parts.manual?1:0)+(parts.passive?1:0)+(parts.artifact?1:0)+parts.skills.length;
+ const missing={manuals:parts.manual?[]:b.manuals.filter(x=>!(p.manualLibraryIds||[]).includes(x)),skills:b.skills.filter(x=>!parts.skills.includes(x)),passive:parts.passive?null:actualPassive,artifact:!parts.artifact};
+ return {ok:true,id,name:b.name,path:b.path,role:b.role,score,active:score>=3,mastered:score>=5,parts:clone(parts),missing,sourcePassiveId:b.passive,actualPassiveId:actualPassive,catalog:{manuals:g.manuals.filter(x=>b.manuals.includes(x.id)).map(x=>({id:x.id,name:x.name})),skills:g.spells.filter(x=>b.skills.includes(x.id)||x.id===actualPassive).map(x=>({id:x.id,name:x.name,category:x.category}))}};
 }
 function buildsForPath(path=player().daoPath){return Object.values(api().v34BuildRegistry()).filter(x=>x.path===path).map(x=>inspectBuild(x.id)).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id))}
 function bestBuild(path=player().daoPath){return buildsForPath(path)[0]||null}
@@ -120,5 +122,5 @@ function grantBundle(spec={}){
  }catch(e){return {ok:false,reason:e?.grant?.reason||e.message||'grant_failed',granted,state:state()}}
 }
 function snapshot(){const p=player();return {version:VERSION,schema:state().saveSchemaVersion,realmIndex:p.realmIndex,daoPath:p.daoPath,equipment:Object.keys(p.equipmentInventory||{}),equipped:clone(p.equippedItemIds||{}),artifacts:clone(p.artifactLoadout||{}),manuals:[...(p.manualLibraryIds||[])],activeSkills:[...(p.activeSkillIds||[])],passive:p.passiveSkillId||null,bestBuild:bestBuild()}}
-window.__TAIXUAN_POWER_SHOP__={version:VERSION,grantEquipment,grantArtifact,grantManual,grantSpell,grantBundle,inspectBuild,buildsForPath,bestBuild,hasEquipment:id=>!!gearRecord(id),hasManual:knownManual,hasSpell:spellKnown,snapshot,refresh};
+window.__TAIXUAN_POWER_SHOP__={version:VERSION,componentAliases:clone(COMPONENT_ALIASES),resolveSpellId,grantEquipment,grantArtifact,grantManual,grantSpell,grantBundle,inspectBuild,buildsForPath,bestBuild,hasEquipment:id=>!!gearRecord(id),hasManual:knownManual,hasSpell:spellKnown,snapshot,refresh};
 })();
