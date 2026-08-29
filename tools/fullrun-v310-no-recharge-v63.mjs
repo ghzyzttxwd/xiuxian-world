@@ -64,11 +64,11 @@ function ensureV63MahayanaRecipe(maxAuctionCycles=8){
    const quoted=invoke('v35Quote',lot.id,'buy',1);if(!quoted||!(quoted.total>0))fail('v63-mahayana-recipe-quote-missing',{lot});
    // Earning the purchase money can itself cross a normal 30-day auction boundary. Keep enough price
    // headroom, return to 苍梧, then re-read the CURRENT lot and quote instead of trading a stale lot id.
-   ensureStones(quoted.total+500);if(!goTo('苍梧郡城'))fail('v63-mahayana-recipe-auction-return-unreachable',{lot:lot.id});
+   earnStones(quoted.total+500);if(!goTo('苍梧郡城'))fail('v63-mahayana-recipe-auction-return-unreachable',{lot:lot.id});
    const liveRows=Object.values(invoke('v35ListingRegistry')||{}),liveLot=liveRows.find(x=>x&&x.kind==='recipe'&&x.refId==='recipe-v38-mahayana-break');
    if(liveLot){
     const q=invoke('v35Quote',liveLot.id,'buy',1);if(!q||!(q.total>0))fail('v63-mahayana-recipe-live-quote-missing',{liveLot});
-    if((state().player.spiritStones||0)<q.total)ensureStones(q.total+100);
+    if((state().player.spiritStones||0)<q.total)earnStones(q.total+100);
     if(!goTo('苍梧郡城'))fail('v63-mahayana-recipe-final-return-unreachable',{lot:liveLot.id});
     const finalRows=Object.values(invoke('v35ListingRegistry')||{}),finalLot=finalRows.find(x=>x&&x.kind==='recipe'&&x.refId==='recipe-v38-mahayana-break');
     if(finalLot){
@@ -78,7 +78,7 @@ function ensureV63MahayanaRecipe(maxAuctionCycles=8){
       const known=state().player.knownRecipeIds?.includes('recipe-v38-mahayana-break');
       console.log('V310_FULLRUN_V63_MAHAYANA_RECIPE',JSON.stringify({lot:finalLot.id,cycle:invoke('v35EconomySnapshot').auctionCycle,price:finalQ.total,result:r,known,auctionWinsBefore:before,auctionWinsAfter:state().player.v35AuctionWins||0,actions}));
       if(r?.ok&&known)return true;
-      if(r?.reason&& !['stock','known','missing'].includes(r.reason))fail('v63-mahayana-recipe-trade-blocked',{lot:finalLot.id,result:r});
+      if(r?.reason&&!['stock','known','missing'].includes(r.reason))fail('v63-mahayana-recipe-trade-blocked',{lot:finalLot.id,result:r});
      }
     }
    }
@@ -138,6 +138,8 @@ if(!runner.includes("invoke('brewV33Alchemy','recipe-v38-mahayana-break')"))thro
 if(!runner.includes("invoke('useV33Pill','recipe-v38-mahayana-break')"))throw new Error('V63 normal Mahayana pill use missing');
 if(!runner.includes("p0.v38MahayanaFailures>0"))throw new Error('V63 first Mahayana attempt was not preserved');
 if(!runner.includes('brewAttempt<=3'))throw new Error('V63 bounded brew retry missing');
+if(!runner.includes('earnStones(quoted.total+500)')||!runner.includes('earnStones(q.total+100)'))throw new Error('V63 must use inherited legal earnStones helper');
+if(runner.includes('ensureStones('))throw new Error('V63 undefined ensureStones helper leaked into final runner');
 if(!runner.includes('ensureMahayanaEssence(6)'))throw new Error('V63 sixth-essence reserve missing');
 if(!runner.includes("if(!site?.dest||!goTo(site.dest))"))throw new Error('V63 Mahayana craft-site selector object was not resolved to site.dest');
 if(!runner.includes("liveRows=Object.values(invoke('v35ListingRegistry')||{})")||!runner.includes("finalRows=Object.values(invoke('v35ListingRegistry')||{})"))throw new Error('V63 auction refresh revalidation missing');
@@ -150,5 +152,5 @@ if(runner.includes("invoke('v37SetPlayerForTest'")||runner.includes("invoke('v34
 fs.writeFileSync(finalRunnerPath,runner);
 const syntax=spawnSync(process.execPath,['--check',finalRunnerPath.pathname],{encoding:'utf8'});
 if(syntax.status!==0)throw new Error('V63 final runner syntax failure: '+(syntax.stderr||syntax.stdout||''));
-console.log('V310_FULLRUN_V63_FINAL_RUNNER_PASS '+JSON.stringify({v6MahayanaPillEffectRequired:true,firstMahayanaAttemptUnchanged:true,postFailureStabilizerOnly:true,normalAuctionRecipeOnly:true,auctionLotRevalidatedAfterEarning:true,normalAlchemyOnly:true,maxBrewAttemptsPerBreakthrough:3,fiveBreakthroughEssencesReserved:true,mahayanaCraftSiteObjectResolvedToDest:true,normalPillToxicityAndQualityScaling:true,v62EscapeGuardPreserved:true,v61LiveTribulationGearPreserved:true,fleeChanceUnchanged:true,enemyStatsUnchanged:true,alchemyOddsUnchanged:true,pillMagnitudeUnchanged:true,seedUnchanged:true,actionCapUnchanged:true,noDirectResourceInjection:true,noDirectStateMutation:true}));
+console.log('V310_FULLRUN_V63_FINAL_RUNNER_PASS '+JSON.stringify({v6MahayanaPillEffectRequired:true,firstMahayanaAttemptUnchanged:true,postFailureStabilizerOnly:true,normalAuctionRecipeOnly:true,auctionLotRevalidatedAfterEarning:true,inheritedEarnStonesHelperOnly:true,normalAlchemyOnly:true,maxBrewAttemptsPerBreakthrough:3,fiveBreakthroughEssencesReserved:true,mahayanaCraftSiteObjectResolvedToDest:true,normalPillToxicityAndQualityScaling:true,v62EscapeGuardPreserved:true,v61LiveTribulationGearPreserved:true,fleeChanceUnchanged:true,enemyStatsUnchanged:true,alchemyOddsUnchanged:true,pillMagnitudeUnchanged:true,seedUnchanged:true,actionCapUnchanged:true,noDirectResourceInjection:true,noDirectStateMutation:true}));
 await import(finalRunnerPath.href+'?v63final='+Date.now());
