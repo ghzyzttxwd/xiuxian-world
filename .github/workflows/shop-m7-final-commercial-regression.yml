@@ -1,0 +1,148 @@
+name: Shop M7 Final Commercial Regression
+on:
+  push:
+    paths:
+      - '.github/workflows/shop-m7-final-commercial-regression.yml'
+      - 'SHOP_M7_TRIGGER.txt'
+concurrency:
+  group: shop-m7-final-commercial-regression
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  final-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen release wiring M1 through M6
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          grep -q "shopPower:'m1'" app.js
+          grep -q "shopVip8:'m2'" app.js
+          grep -q "shopVip12:'m3'" app.js
+          grep -q "shopVip15:'m4'" app.js
+          grep -q "shopDynamicPower:'m5'" app.js
+          grep -q "shopJadeSinks:'m6'" app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-4' app.js
+          grep -q 'ui-shop-v2-jade-sinks.js?v=m6-1' app.js
+          python - <<'PY'
+          import json
+          d=json.load(open('PUBLIC_UI_STATUS.json',encoding='utf-8'))
+          s=d['shop']
+          assert d['coreBuild']==3903 and d['schema']==36 and d['realPayment'] is False
+          for k,v in [('powerRewardAdapter','M1-PASS'),('vip8PowerNode','M2-PASS'),('vip12PowerNode','M3-PASS'),('vip15PowerNode','M4-PASS'),('dynamicPowerOffers','M5-PASS'),('jadeSinks','M6-PASS')]: assert s.get(k)==v,(k,s.get(k))
+          PY
+      - name: Syntax check final commerce bundle
+        run: |
+          set -euo pipefail
+          for f in ui-shop-v2.js ui-shop-v2-sync.js ui-shop-v2-power-adapter.js ui-shop-v2-vip8.js ui-shop-v2-vip12.js ui-shop-v2-vip15.js ui-shop-v2-dynamic-power.js ui-shop-v2-jade-sinks.js app.js sw.js; do node --check "$f"; done
+      - name: Browser final regression - new save, legacy save, VIP chain, combat, dynamic offers, jade and readiness
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g,'');
+          const GAME='xiuxian_world_v02',WALLET='taixuan-premium-wallet-v1';
+          const files=['src/game-v39.js','ui-shop-v2-power-adapter.js','ui-shop-v2.js','ui-shop-v2-vip8.js','ui-shop-v2-vip12.js','ui-shop-v2-vip15.js','ui-shop-v2-dynamic-power.js','ui-shop-v2-jade-sinks.js'];
+          function shell(){const d=new JSDOM(html,{url:'https://m7.test/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.confirm=()=>true;w.console=console;return w}
+          function boot(gameSave=null,walletSave=null){const w=shell();if(gameSave)w.localStorage.setItem(GAME,gameSave);if(walletSave)w.localStorage.setItem(WALLET,walletSave);for(const f of files)w.eval(fs.readFileSync(f,'utf8'));w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));return w}
+          function bootCore(){const w=shell();w.eval(fs.readFileSync('src/game-v39.js','utf8'));w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));return w}
+          function saveNow(w){w.document.getElementById('saveBtn').click();w.document.querySelector('[data-close-modal]')?.click();const x=w.localStorage.getItem(GAME);if(!x)throw Error('game save not created');return x}
+          function wallet(w){return JSON.parse(w.localStorage.getItem(WALLET)||'{}')}
+          function recharge(w,id,n=1){w.__TAIXUAN_SHOP__.open('jade');for(let i=0;i<n;i++){const b=w.document.querySelector(`[data-recharge="${id}"]`);if(!b)throw Error('recharge button missing '+id);b.click()}}
+          function toVip8(w){recharge(w,'jade-648');recharge(w,'jade-128');recharge(w,'jade-30');if(w.__TAIXUAN_SHOP__.vipLevel()!==8)throw Error('VIP0->8 failed '+w.__TAIXUAN_SHOP__.vipLevel())}
+          function toVip12(w){recharge(w,'jade-648',2);recharge(w,'jade-128');if(w.__TAIXUAN_SHOP__.vipLevel()!==12)throw Error('VIP8->12 failed '+w.__TAIXUAN_SHOP__.vipLevel())}
+          function toVip15(w){recharge(w,'jade-648',6);recharge(w,'jade-328');recharge(w,'jade-68');if(w.__TAIXUAN_SHOP__.vipLevel()!==15)throw Error('VIP12->15 failed '+w.__TAIXUAN_SHOP__.vipLevel())}
+          function finishWeakCombat(w){for(let i=0;i<5&&w.__TAIXUAN_TEST__.getCombat();i++)w.__TAIXUAN_TEST__.combatAction('attack')}
+          // 1. NEW SAVE + VIP0 -> VIP8. Claim the real artifact and exercise it in the real combat loop.
+          const w=boot();w.__TAIXUAN_TEST__.newGame('M7主链');let s=w.__TAIXUAN_TEST__.getState();if(s.saveSchemaVersion!==36||w.__TAIXUAN_SHOP__.vipLevel()!==0)throw Error('new-save baseline invalid');if(w.document.querySelectorAll('.nav-btn').length<5)throw Error('main navigation missing');
+          toVip8(w);const v8=w.__TAIXUAN_VIP8__.claimFull();if(!v8.ok)throw Error('VIP8 claim failed '+JSON.stringify(v8));const a8=v8.artifact,item8=a8.itemId||a8.id;s=w.__TAIXUAN_TEST__.getState();let rec=s.player.equipmentInventory[item8];if(!rec||rec.grade!=='perfect'||!rec.bound||rec.refinement<3||rec.warmth<30)throw Error('VIP8 artifact invalid');w.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:10});w.__TAIXUAN_TEST__.startCombat('灰背野狼');const ac0=w.__TAIXUAN_TEST__.getCombat();if(!ac0)throw Error('artifact combat did not start');w.__TAIXUAN_TEST__.combatAction('artifact:'+item8);const ac1=w.__TAIXUAN_TEST__.getCombat();if(ac1&&ac1.enemyHp>=ac0.enemyHp&&!ac1.artifactCooldowns?.[item8]&&ac1.playerHp===ac0.playerHp&&ac1.playerQi===ac0.playerQi)throw Error('VIP8 artifact did not participate in combat');finishWeakCombat(w);
+          // 2. VIP8 -> VIP12. Choose a real dao path, claim full Build, and use one rewarded core skill in combat.
+          w.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:19});w.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-sword-burst');toVip12(w);const v12=w.__TAIXUAN_VIP12__.claimFull();if(!v12.ok||v12.pending||!v12.build?.id)throw Error('VIP12 claim failed '+JSON.stringify(v12));const built=w.__TAIXUAN_POWER_SHOP__.inspectBuild(v12.build.id);if(!built.mastered)throw Error('VIP12 build not mastered '+JSON.stringify(built));const skillId=v12.build.skills[0],skillRow=w.__TAIXUAN_TEST__.v31CatalogSnapshot().spells.find(x=>x.id===skillId);if(!skillRow)throw Error('rewarded build skill missing');const prof0=Number(w.__TAIXUAN_TEST__.getState().player.spells[skillRow.name])||0;w.__TAIXUAN_TEST__.startCombat('灰背野狼');w.__TAIXUAN_TEST__.combatAction('skill:'+skillId);const prof1=Number(w.__TAIXUAN_TEST__.getState().player.spells[skillRow.name])||0;if(prof1<=prof0)throw Error('VIP12 Build skill did not execute in combat');finishWeakCombat(w);
+          // 3. VIP12 -> VIP15 at terminal realm. Preserve player choice, create a natal artifact, then verify all staged rights and readiness without auto-tribulation.
+          w.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:37,location:'九霄劫台'});if(!w.__TAIXUAN_TEST__.v37ChooseLaw('law-severing',true).ok)throw Error('law setup failed');const natal=w.__TAIXUAN_POWER_SHOP__.grantArtifact(item8,{grade:'perfect',refinement:6,warmth:60,bind:true,natal:true});if(!natal.ok)throw Error('natal setup failed '+JSON.stringify(natal));toVip15(w);const v15=w.__TAIXUAN_VIP15__.claimFull();if(!v15.ok)throw Error('VIP15 claim failed '+JSON.stringify(v15));const ledger=w.__TAIXUAN_VIP15__.getLedger();for(const id of ['void','unity','mahayana','tribulation'])if(ledger[id]?.status!=='claimed')throw Error('VIP15 stage not fully claimed '+id+' '+JSON.stringify(ledger[id]));const ready=w.__TAIXUAN_TEST__.v39TribulationReadiness(),finale=w.__TAIXUAN_TEST__.v39StateSnapshot();if(!ready.ready)throw Error('VIP15 readiness not ready '+JSON.stringify(ready));if(finale.status!=='idle'||finale.ascensionComplete)throw Error('VIP15 improperly auto-started/ascended '+JSON.stringify(finale));
+          // 4. M6 jade outlet participates in the final integrated wallet without any RMB event.
+          const jo=w.__TAIXUAN_JADE_SINKS__.getOffers().find(x=>x.type==='materials');if(!jo)throw Error('M6 jade outlet missing');const jw0=wallet(w),mat0=w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence'),jb=w.__TAIXUAN_JADE_SINKS__.buy(jo.id);if(!jb.ok)throw Error('M6 integrated purchase failed');const jw1=wallet(w);if(jw1.jade!==jw0.jade-jo.price||jw1.totalCny!==jw0.totalCny||w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence')<=mat0)throw Error('M6 jade/RMB/material integration invalid');
+          // 5. Save/reload the complete main chain.
+          const mainSave=w.localStorage.getItem(GAME),mainWallet=w.localStorage.getItem(WALLET);if(!mainSave||!mainWallet)throw Error('main chain persistence payload missing');const wr=boot(mainSave,mainWallet);wr.document.getElementById('continueBtn').click();const rs=wr.__TAIXUAN_TEST__.getState(),rr=wr.__TAIXUAN_TEST__.v39TribulationReadiness();if(rs.saveSchemaVersion!==36||!rs.player.equipmentInventory[item8]||!rr.ready||!wr.__TAIXUAN_VIP12__.getReward()||!wr.__TAIXUAN_VIP15__.getEntitlement())throw Error('main chain reload regression');
+          // 6. LOW-REALM EARLY VIP15: base node can be claimed, but terminal stage rewards stay locked until the actual realms are reached.
+          const e=boot();e.__TAIXUAN_TEST__.newGame('早充VIP15');toVip8(e);toVip12(e);toVip15(e);const early=e.__TAIXUAN_VIP15__.claimFull();if(!early.ok)throw Error('early VIP15 base claim failed');let ep=e.__TAIXUAN_VIP15__.stagePreview();if(ep.some(x=>x.status==='claimed'||x.eligible))throw Error('early VIP15 leaked staged endgame rewards '+JSON.stringify(ep));if(e.__TAIXUAN_TEST__.getState().player.equipmentInventory['item-v39-thunder-umbrella'])throw Error('early VIP15 leaked tribulation artifact');
+          // Later reach each threshold and redeem only then.
+          e.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:26});let er=e.__TAIXUAN_VIP15__.redeemEligibleStages();if(e.__TAIXUAN_VIP15__.getLedger().void.status!=='claimed'||e.__TAIXUAN_VIP15__.getLedger().unity.status==='claimed')throw Error('void staged supplement invalid');e.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-body-bastion');e.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:30});e.__TAIXUAN_TEST__.v37ChooseLaw('law-immovable',true);e.__TAIXUAN_VIP15__.redeemEligibleStages();if(e.__TAIXUAN_VIP15__.getLedger().unity.status!=='claimed')throw Error('unity staged supplement invalid');e.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:34});e.__TAIXUAN_VIP15__.redeemEligibleStages();if(e.__TAIXUAN_VIP15__.getLedger().mahayana.status!=='partial')throw Error('mahayana should wait for natal artifact');const epv=e.__TAIXUAN_POWER_SHOP__.previewVip8Artifact();if(!epv.ok)throw Error('early path artifact setup missing');const ena=e.__TAIXUAN_POWER_SHOP__.grantArtifact(epv.itemId,{grade:'perfect',refinement:5,warmth:60,bind:true,natal:true});if(!ena.ok)throw Error('early path natal setup failed');e.__TAIXUAN_VIP15__.redeemEligibleStages();if(e.__TAIXUAN_VIP15__.getLedger().mahayana.status!=='claimed')throw Error('mahayana natal supplement invalid');e.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:37,location:'九霄劫台',progressFull:true});e.__TAIXUAN_VIP15__.redeemEligibleStages();if(e.__TAIXUAN_VIP15__.getLedger().tribulation.status!=='claimed'||!e.__TAIXUAN_TEST__.v39TribulationReadiness().ready)throw Error('tribulation staged supplement invalid');if(e.__TAIXUAN_TEST__.v39StateSnapshot().status!=='idle')throw Error('early VIP15 later redeem auto-started tribulation');
+          // 7. DYNAMIC PACKAGE trigger still works in final bundle and completes an actual missing Build.
+          const d=boot();d.__TAIXUAN_TEST__.newGame('动态礼包');d.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-flame-dot');const offer=d.__TAIXUAN_DYNAMIC_POWER__.getOffers({includeBought:false}).find(x=>x.type==='build');if(!offer)throw Error('M5 final dynamic build offer missing');const db=d.__TAIXUAN_DYNAMIC_POWER__.buy(offer.id);if(!db.ok||!d.__TAIXUAN_POWER_SHOP__.inspectBuild(db.granted.id).mastered)throw Error('M5 final dynamic build purchase failed');
+          // 8. LEGACY SCHEMA36 SAVE + old wallet claims: retrofit M2/M3/M4 without duplicating old currency.
+          const oc=bootCore();oc.__TAIXUAN_TEST__.newGame('旧schema36');oc.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-body-bastion');oc.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:37,location:'九霄劫台',progressFull:true});oc.__TAIXUAN_TEST__.v37ChooseLaw('law-immovable',true);const oldSave=saveNow(oc);if(JSON.parse(oldSave).saveSchemaVersion!==36)throw Error('legacy fixture schema not 36');const oldWallet=JSON.stringify({version:2,jade:777,vipExp:65000,totalCny:6500,monthlyUntil:0,monthlyClaimDate:'',growthOwned:false,growthClaimed:[],vipClaimDate:'',vipMilestoneClaimed:[8,12,15],firstBonusUsed:{},packBuys:{},receipts:[],titles:['八荒至尊','太玄道君','诸天仙尊']});const o=boot(oldSave,oldWallet);o.document.getElementById('continueBtn').click();const o8=o.__TAIXUAN_VIP8__.claimArtifactOnly();if(!o8.ok||!o8.retroactive)throw Error('legacy VIP8 retrofit failed '+JSON.stringify(o8));const on=o.__TAIXUAN_POWER_SHOP__.grantArtifact(o8.artifact.itemId||o8.artifact.id,{grade:'perfect',refinement:6,warmth:60,bind:true,natal:true});if(!on.ok)throw Error('legacy natal setup failed');const o12=o.__TAIXUAN_VIP12__.claimBuildOnly();if(!o12.ok||!o12.retroactive)throw Error('legacy VIP12 retrofit failed '+JSON.stringify(o12));const o15=o.__TAIXUAN_VIP15__.retrofit();if(!o15.ok)throw Error('legacy VIP15 retrofit failed '+JSON.stringify(o15));const ow=wallet(o);if(ow.jade!==777||!ow.vip8ArtifactReward||!ow.vip12BuildReward||!ow.vip15Entitlement)throw Error('legacy retrofit duplicated wallet or missed entitlements '+JSON.stringify(ow));if(o.__TAIXUAN_TEST__.getState().saveSchemaVersion!==36||!o.__TAIXUAN_TEST__.v39TribulationReadiness().ready)throw Error('legacy schema/readiness regression');
+          console.log('SHOP_M7_FINAL_REGRESSION_OK',JSON.stringify({newSchema:rs.saveSchemaVersion,vip:wr.__TAIXUAN_SHOP__.vipLevel(),vip8:a8.name,vip12:v12.build.name,vip15Stages:Object.fromEntries(Object.entries(ledger).map(([k,v])=>[k,v.status])),readiness:rr.ready,earlyStages:Object.fromEntries(Object.entries(e.__TAIXUAN_VIP15__.getLedger()).map(([k,v])=>[k,v.status])),dynamic:offer.name,legacyJade:ow.jade}));
+          NODE
+          rm -rf node_modules package.json package-lock.json
+      - name: Publish browser-validated bundle to gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin main gh-pages
+          git checkout -B gh-pages origin/gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          git checkout origin/main -- .
+          rm -rf node_modules
+          git add -A
+          git commit -m 'publish: M7 final commercial regression candidate' || true
+          git push origin gh-pages
+      - name: Public Pages HTTP bundle acceptance
+        run: |
+          set -euo pipefail
+          base='https://ghzyzttxwd.github.io/xiuxian-world'
+          ok=0
+          for i in $(seq 1 30); do
+            app="$(curl -fsSL "$base/app.js?m7=${GITHUB_SHA}-$i" 2>/dev/null || true)"
+            status="$(curl -fsSL "$base/PUBLIC_UI_STATUS.json?m7=${GITHUB_SHA}-$i" 2>/dev/null || true)"
+            if printf '%s' "$app" | grep -q "shopJadeSinks:'m6'" && printf '%s' "$status" | grep -q '"jadeSinks":"M6-PASS"' && printf '%s' "$status" | grep -q '"coreBuild":3903'; then ok=1; break; fi
+            sleep 3
+          done
+          test "$ok" = 1
+          curl -fsSL "$base/ui-shop-v2-jade-sinks.js?m7=${GITHUB_SHA}" | grep -q 'TAIXUAN_SHOP_V2_JADE_SINKS_M6'
+      - name: Mark M7 PASS on main after public bundle acceptance
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git checkout main
+          git pull --ff-only origin main
+          python - <<'PY'
+          import json
+          p='PUBLIC_UI_STATUS.json'
+          d=json.load(open(p,encoding='utf-8'))
+          d['status']='PASS';d['phase']='final-ui-shop-v2-commercial-complete';d['coreBuild']=3903;d['schema']=36;d['realPayment']=False
+          s=d.setdefault('shop',{});s['finalCommercialRegression']='M7-PASS';s['m7Cases']=['new-save','legacy-schema36','vip0-8','vip8-12','vip12-15','early-vip15','staged-retrofit','dynamic-offer','artifact-combat','build-combat','tribulation-readiness','save-reload','jade-sinks','github-pages-http'];s['publicBundleHttpAccepted']=True
+          open(p,'w',encoding='utf-8').write(json.dumps(d,ensure_ascii=False,separators=(',',':'))+'\n')
+          PY
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'status: M7 final commercial regression PASS'
+          git push origin main
+      - name: Sync final M7 status to gh-pages
+        run: |
+          set -euo pipefail
+          git fetch origin main gh-pages
+          git checkout -B gh-pages origin/gh-pages
+          git checkout origin/main -- PUBLIC_UI_STATUS.json
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'publish: M7 final PASS status' || true
+          git push origin gh-pages
+      - name: Public Pages final M7 status acceptance
+        run: |
+          set -euo pipefail
+          base='https://ghzyzttxwd.github.io/xiuxian-world'
+          ok=0
+          for i in $(seq 1 30); do
+            status="$(curl -fsSL "$base/PUBLIC_UI_STATUS.json?m7final=${GITHUB_SHA}-$i" 2>/dev/null || true)"
+            if printf '%s' "$status" | grep -q '"finalCommercialRegression":"M7-PASS"' && printf '%s' "$status" | grep -q '"publicBundleHttpAccepted":true' && printf '%s' "$status" | grep -q '"schema":36'; then ok=1; break; fi
+            sleep 3
+          done
+          test "$ok" = 1
