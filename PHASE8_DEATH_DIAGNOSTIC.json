@@ -1,0 +1,69 @@
+{
+  "phase": "8-death-diagnostic",
+  "gameplay": "3.9.0",
+  "schema": 36,
+  "results": [
+    {
+      "seed": 9202,
+      "profile": "balanced",
+      "steps": 352,
+      "days": 369,
+      "dead": true,
+      "finalRealm": 5,
+      "finalProgress": 270,
+      "lastAction": "explore",
+      "deathContext": {
+        "kind": "combat",
+        "source": "action:explore",
+        "enemy": "青云试剑傀",
+        "enemyRealm": 12,
+        "playerRealm": 5,
+        "playerHp": 25,
+        "maxHp": 126,
+        "hpRatio": 0.198,
+        "round": 2,
+        "choice": "flee",
+        "fleeAttempts": 2,
+        "location": "青云山",
+        "day": 370,
+        "totalFleeAttempts": 2,
+        "combatStillExists": false
+      },
+      "finalLocation": "青云山",
+      "finalManual": "玄水纳灵篇",
+      "stones": 10,
+      "herbs": 34
+    },
+    {
+      "seed": 9206,
+      "profile": "resource-aware",
+      "steps": 280,
+      "days": 295,
+      "dead": true,
+      "finalRealm": 4,
+      "finalProgress": 402,
+      "lastAction": "explore",
+      "deathContext": {
+        "kind": "combat",
+        "source": "action:explore",
+        "enemy": "青云试剑傀",
+        "enemyRealm": 12,
+        "playerRealm": 4,
+        "playerHp": 114,
+        "maxHp": 114,
+        "hpRatio": 1,
+        "round": 1,
+        "choice": "flee",
+        "fleeAttempts": 1,
+        "location": "青云山",
+        "day": 296,
+        "totalFleeAttempts": 1,
+        "combatStillExists": false
+      },
+      "finalLocation": "青云山",
+      "finalManual": "玄水纳灵篇",
+      "stones": 22,
+      "herbs": 57
+    }
+  ]
+}
