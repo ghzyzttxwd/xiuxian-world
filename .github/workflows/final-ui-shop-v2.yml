@@ -24,6 +24,7 @@ jobs:
         run: |
           node --check ui-final-v1.js
           node --check ui-shop-v2.js
+          node --check ui-shop-v2-sync.js
           node --check app.js
           grep -q 'TAIXUAN_FINAL_PLAYABLE_UI_V1' ui-final-v1.js
           grep -q 'VIP8 至尊冲刺礼包' ui-shop-v2.js
@@ -43,6 +44,7 @@ jobs:
           w.eval(fs.readFileSync('ui-v3920.js','utf8'));
           w.eval(fs.readFileSync('ui-final-v1.js','utf8'));
           w.eval(fs.readFileSync('ui-shop-v2.js','utf8'));
+          w.eval(fs.readFileSync('ui-shop-v2-sync.js','utf8'));
           w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));
           w.__TAIXUAN_TEST__.newGame('正式试玩');
           setTimeout(()=>{
@@ -55,15 +57,18 @@ jobs:
             const sprint=q('[data-pack="vip8-sprint"]');if(!sprint)throw Error('VIP8 sprint offer missing at VIP7');sprint.click();
             w.__TAIXUAN_SHOP__.open('vip');
             const claim=q('[data-vip-milestone="8"]');if(!claim||claim.disabled)throw Error('VIP8 milestone not claimable');claim.click();
-            const wallet=w.__TAIXUAN_SHOP__.getWallet(),s=w.__TAIXUAN_TEST__.getState();
-            if(w.__TAIXUAN_SHOP__.vipLevel()<8)throw Error('VIP8 not reached');
-            if(!wallet.titles.includes('八荒至尊'))throw Error('VIP8 title missing');
-            if((s.player.spiritStones||0)<1800)throw Error('VIP8 game reward not applied');
-            if(!/120\s*\/\s*120/.test(w.document.getElementById('cultivationText').textContent))throw Error('VIP8 full cultivation reward not applied');
-            console.log('FINAL_UI_SHOP_V2_SMOKE_OK',JSON.stringify({vip:w.__TAIXUAN_SHOP__.vipLevel(),jade:wallet.jade,stones:s.player.spiritStones,title:wallet.titles.at(-1)}));
-            process.exit(0);
+            setTimeout(()=>{
+              const wallet=w.__TAIXUAN_SHOP__.getWallet(),s=w.__TAIXUAN_TEST__.getState();
+              if(w.__TAIXUAN_SHOP__.vipLevel()<8)throw Error('VIP8 not reached');
+              if(!wallet.titles.includes('八荒至尊'))throw Error('VIP8 title missing');
+              if((s.player.spiritStones||0)<1800)throw Error('VIP8 game reward not applied');
+              if((s.player.progress||0)!==120)throw Error('VIP8 full cultivation state not applied');
+              if(!/120\s*\/\s*120/.test(w.document.getElementById('cultivationText').textContent))throw Error('VIP8 full cultivation UI not synced');
+              console.log('FINAL_UI_SHOP_V2_SMOKE_OK',JSON.stringify({vip:w.__TAIXUAN_SHOP__.vipLevel(),jade:wallet.jade,stones:s.player.spiritStones,title:wallet.titles.at(-1)}));
+              process.exit(0);
+            },260);
           },250);
-          setTimeout(()=>{throw Error('smoke timeout')},3000);
+          setTimeout(()=>{throw Error('smoke timeout')},4000);
           NODE
           rm -rf node_modules package.json package-lock.json
       - name: Publish to gh-pages
