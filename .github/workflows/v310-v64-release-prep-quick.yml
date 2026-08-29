@@ -9,6 +9,7 @@ on:
       - "tools/build-v310-balance-v5.cjs"
       - "tools/build-v310-balance-v6.cjs"
       - "tools/verify-v310-v64-evidence.mjs"
+      - "tools/verify-v310-v66-evidence.mjs"
       - "tools/release-v310-assets.cjs"
       - "tools/verify-v310-public.sh"
       - "tools/aggregate-v310-fullrun-gate.mjs"
@@ -49,6 +50,7 @@ jobs:
           node tests/regression-v310-domain-sand-source.mjs
           node --check tools/verify-v310-v64-evidence.mjs
           node tests/regression-v310-v64-evidence-verifier.mjs
+          node --check tools/verify-v310-v66-evidence.mjs
           node --check tools/aggregate-v310-fullrun-gate.mjs
           node tests/regression-v310-aggregate-gate.mjs
           node --check tools/release-v310-assets.cjs
