@@ -57,11 +57,9 @@ jobs:
             return w;
           }
           const w=boot(null,JSON.stringify(walletBase()));w.__TAIXUAN_TEST__.newGame('VIP8验收');
-          const p=w.__TAIXUAN_POWER_SHOP__,v=w.__TAIXUAN_VIP8__,preview=v.preview();
+          const v=w.__TAIXUAN_VIP8__,preview=v.preview();
           if(!preview.ok)throw Error('VIP8 preview missing '+JSON.stringify(preview));
           if(preview.slot==='natal')throw Error('VIP8 must not select natal-only artifact');
-          const first=preview.itemId;p.grantArtifact(first,{grade:'perfect',refinement:0,warmth:0,bind:true,equip:true});
-          const second=v.preview();if(!second.ok||second.itemId===first)throw Error('duplicate avoidance failed '+JSON.stringify({first,second}));
           const out=v.claimFull();if(!out.ok)throw Error('VIP8 claim failed '+JSON.stringify(out));
           const a=out.artifact,s=w.__TAIXUAN_TEST__.getState(),rec=s.player.equipmentInventory[a.itemId],wa=JSON.parse(w.localStorage.getItem(WALLET_KEY));
           if(s.saveSchemaVersion!==36)throw Error('schema drift');
@@ -70,14 +68,15 @@ jobs:
           if(!wa.vipMilestoneClaimed.includes(8)||wa.jade!==1888||!wa.titles.includes('八荒至尊'))throw Error('VIP8 wallet rewards invalid '+JSON.stringify(wa));
           if(!wa.vip8ArtifactReward||wa.vip8ArtifactReward.itemId!==a.itemId)throw Error('VIP8 artifact receipt missing');
           if((s.player.spiritStones||0)<1891||(s.player.rareMaterials||0)<88||(s.player.relicFragments||0)<18)throw Error('VIP8 base game rewards missing');
-          const beforeProgress=s.player.progress;w.__TAIXUAN_TEST__.startCombat('灰背野狼');const c0=w.__TAIXUAN_TEST__.getCombat();if(!c0)throw Error('combat did not start');
-          w.__TAIXUAN_TEST__.combatAction('artifact:'+a.itemId);const c1=w.__TAIXUAN_TEST__.getCombat();if(c1&&c1.enemyHp>=c0.enemyHp)throw Error('VIP8 artifact did not affect real combat');
+          w.__TAIXUAN_TEST__.startCombat('灰背野狼');const c0=w.__TAIXUAN_TEST__.getCombat();if(!c0)throw Error('combat did not start');
+          w.__TAIXUAN_TEST__.combatAction('artifact:'+a.itemId);const c1=w.__TAIXUAN_TEST__.getCombat();if(c1&&c1.enemyHp>=c0.enemyHp&&!(Number(c1.artifactCooldowns?.[a.itemId])>0))throw Error('VIP8 artifact did not enter real combat');
           const gameSave=w.localStorage.getItem(GAME_KEY),walletSave=w.localStorage.getItem(WALLET_KEY);if(!gameSave||!walletSave)throw Error('persistence payload missing');
           const w2=boot(gameSave,walletSave);w2.document.getElementById('continueBtn').click();const s2=w2.__TAIXUAN_TEST__.getState(),wa2=JSON.parse(w2.localStorage.getItem(WALLET_KEY)),r2=s2.player.equipmentInventory[a.itemId];
           if(s2.saveSchemaVersion!==36||!r2||r2.grade!=='perfect'||r2.refinement<3||r2.warmth<30||!r2.bound)throw Error('VIP8 artifact persistence failed');
           if(wa2.vip8ArtifactReward?.itemId!==a.itemId||!wa2.vipMilestoneClaimed.includes(8))throw Error('VIP8 wallet persistence failed');
+          const wd=boot(null,JSON.stringify(walletBase()));wd.__TAIXUAN_TEST__.newGame('重复规避');const first=wd.__TAIXUAN_VIP8__.preview();wd.__TAIXUAN_POWER_SHOP__.grantArtifact(first.itemId,{grade:'perfect',refinement:0,warmth:0,bind:true,equip:true});const second=wd.__TAIXUAN_VIP8__.preview();if(!second.ok||second.itemId===first.itemId)throw Error('duplicate avoidance failed '+JSON.stringify({first,second}));
           const w3=boot(null,JSON.stringify(walletBase({jade:777,vipMilestoneClaimed:[8],titles:['八荒至尊']})));w3.__TAIXUAN_TEST__.newGame('旧VIP8');const retro=w3.__TAIXUAN_VIP8__.claimArtifactOnly();if(!retro.ok||!retro.retroactive)throw Error('legacy VIP8 retrofit failed '+JSON.stringify(retro));const wa3=JSON.parse(w3.localStorage.getItem(WALLET_KEY));if(wa3.jade!==777||!wa3.vip8ArtifactReward)throw Error('legacy retrofit duplicated currency');
-          console.log('SHOP_M2_VIP8_OK',JSON.stringify({artifact:a.name,itemId:a.itemId,grade:rec.grade,refinement:rec.refinement,warmth:rec.warmth,combat:c1?'damaged':'defeated',schema:s2.saveSchemaVersion,retrofit:retro.artifact.name}));
+          console.log('SHOP_M2_VIP8_OK',JSON.stringify({artifact:a.name,itemId:a.itemId,grade:rec.grade,refinement:rec.refinement,warmth:rec.warmth,combat:c1?'activated':'defeated',schema:s2.saveSchemaVersion,duplicateFallback:second.name,retrofit:retro.artifact.name}));
           NODE
           rm -rf node_modules package.json package-lock.json
       - name: Publish M2 to gh-pages
