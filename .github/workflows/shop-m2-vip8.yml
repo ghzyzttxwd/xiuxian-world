@@ -1,0 +1,111 @@
+name: Shop M2 VIP8 Supreme Artifact
+on:
+  push:
+    paths:
+      - 'ui-shop-v2-vip8.js'
+      - 'ui-shop-v2-power-adapter.js'
+      - 'app.js'
+      - 'sw.js'
+      - '.github/workflows/shop-m2-vip8.yml'
+      - 'SHOP_M2_TRIGGER.txt'
+concurrency:
+  group: shop-m2-vip8
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  validate-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen core and M2 wiring
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          grep -q "shopVip8:'m2'" app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-3' app.js
+          grep -q 'ui-shop-v2-vip8.js?v=m2-1' app.js
+          grep -q 'ui-shop-v2-vip8.js?v=m2-1' sw.js
+      - name: Syntax check
+        run: |
+          set -euo pipefail
+          node --check ui-shop-v2-power-adapter.js
+          node --check ui-shop-v2-vip8.js
+          node --check app.js
+          node --check sw.js
+      - name: Browser smoke - VIP8 full node, combat and persistence
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g,'');
+          const GAME_KEY='xiuxian_world_v02',WALLET_KEY='taixuan-premium-wallet-v1';
+          function walletBase(extra={}){return {version:2,jade:0,vipExp:8000,totalCny:800,monthlyUntil:0,monthlyClaimDate:'',growthOwned:false,growthClaimed:[],vipClaimDate:'',vipMilestoneClaimed:[],firstBonusUsed:{},packBuys:{},receipts:[],titles:[],offerWindowEnd:Date.now()+1800000,...extra}}
+          function boot(gameSave=null,walletSave=null){
+            const d=new JSDOM(html,{url:'https://m2.test/',runScripts:'outside-only',pretendToBeVisual:true});
+            const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.confirm=()=>true;w.console=console;
+            if(gameSave)w.localStorage.setItem(GAME_KEY,gameSave);if(walletSave)w.localStorage.setItem(WALLET_KEY,walletSave);
+            w.eval(fs.readFileSync('src/game-v39.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-power-adapter.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-vip8.js','utf8'));
+            w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));
+            return w;
+          }
+          const w=boot(null,JSON.stringify(walletBase()));w.__TAIXUAN_TEST__.newGame('VIP8验收');
+          const p=w.__TAIXUAN_POWER_SHOP__,v=w.__TAIXUAN_VIP8__,preview=v.preview();
+          if(!preview.ok)throw Error('VIP8 preview missing '+JSON.stringify(preview));
+          if(preview.slot==='natal')throw Error('VIP8 must not select natal-only artifact');
+          const first=preview.itemId;p.grantArtifact(first,{grade:'perfect',refinement:0,warmth:0,bind:true,equip:true});
+          const second=v.preview();if(!second.ok||second.itemId===first)throw Error('duplicate avoidance failed '+JSON.stringify({first,second}));
+          const out=v.claimFull();if(!out.ok)throw Error('VIP8 claim failed '+JSON.stringify(out));
+          const a=out.artifact,s=w.__TAIXUAN_TEST__.getState(),rec=s.player.equipmentInventory[a.itemId],wa=JSON.parse(w.localStorage.getItem(WALLET_KEY));
+          if(s.saveSchemaVersion!==36)throw Error('schema drift');
+          if(!rec||rec.grade!=='perfect'||!rec.bound||rec.refinement<3||rec.warmth<30)throw Error('VIP8 artifact state invalid '+JSON.stringify(rec));
+          if(!Object.values(s.player.artifactLoadout||{}).includes(a.itemId))throw Error('VIP8 artifact not equipped');
+          if(!wa.vipMilestoneClaimed.includes(8)||wa.jade!==1888||!wa.titles.includes('八荒至尊'))throw Error('VIP8 wallet rewards invalid '+JSON.stringify(wa));
+          if(!wa.vip8ArtifactReward||wa.vip8ArtifactReward.itemId!==a.itemId)throw Error('VIP8 artifact receipt missing');
+          if((s.player.spiritStones||0)<1891||(s.player.rareMaterials||0)<88||(s.player.relicFragments||0)<18)throw Error('VIP8 base game rewards missing');
+          const beforeProgress=s.player.progress;w.__TAIXUAN_TEST__.startCombat('灰背野狼');const c0=w.__TAIXUAN_TEST__.getCombat();if(!c0)throw Error('combat did not start');
+          w.__TAIXUAN_TEST__.combatAction('artifact:'+a.itemId);const c1=w.__TAIXUAN_TEST__.getCombat();if(c1&&c1.enemyHp>=c0.enemyHp)throw Error('VIP8 artifact did not affect real combat');
+          const gameSave=w.localStorage.getItem(GAME_KEY),walletSave=w.localStorage.getItem(WALLET_KEY);if(!gameSave||!walletSave)throw Error('persistence payload missing');
+          const w2=boot(gameSave,walletSave);w2.document.getElementById('continueBtn').click();const s2=w2.__TAIXUAN_TEST__.getState(),wa2=JSON.parse(w2.localStorage.getItem(WALLET_KEY)),r2=s2.player.equipmentInventory[a.itemId];
+          if(s2.saveSchemaVersion!==36||!r2||r2.grade!=='perfect'||r2.refinement<3||r2.warmth<30||!r2.bound)throw Error('VIP8 artifact persistence failed');
+          if(wa2.vip8ArtifactReward?.itemId!==a.itemId||!wa2.vipMilestoneClaimed.includes(8))throw Error('VIP8 wallet persistence failed');
+          const w3=boot(null,JSON.stringify(walletBase({jade:777,vipMilestoneClaimed:[8],titles:['八荒至尊']})));w3.__TAIXUAN_TEST__.newGame('旧VIP8');const retro=w3.__TAIXUAN_VIP8__.claimArtifactOnly();if(!retro.ok||!retro.retroactive)throw Error('legacy VIP8 retrofit failed '+JSON.stringify(retro));const wa3=JSON.parse(w3.localStorage.getItem(WALLET_KEY));if(wa3.jade!==777||!wa3.vip8ArtifactReward)throw Error('legacy retrofit duplicated currency');
+          console.log('SHOP_M2_VIP8_OK',JSON.stringify({artifact:a.name,itemId:a.itemId,grade:rec.grade,refinement:rec.refinement,warmth:rec.warmth,combat:c1?'damaged':'defeated',schema:s2.saveSchemaVersion,retrofit:retro.artifact.name}));
+          NODE
+          rm -rf node_modules package.json package-lock.json
+      - name: Publish M2 to gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin gh-pages:gh-pages || true
+          git checkout gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          git checkout origin/main -- .
+          rm -rf node_modules
+          git add -A
+          git commit -m 'publish: shop M2 VIP8 supreme artifact' || true
+          git push origin gh-pages
+      - name: Mark M2 PASS on main
+        run: |
+          set -euo pipefail
+          git checkout main
+          git pull --ff-only origin main
+          python - <<'PY'
+          import json
+          p='PUBLIC_UI_STATUS.json'
+          d=json.load(open(p,encoding='utf-8'))
+          d['status']='PASS';d['phase']='final-ui-shop-v2';d['coreBuild']=3903;d['schema']=36;d['realPayment']=False
+          s=d.setdefault('shop',{});s['powerRewardAdapter']='M1-PASS';s['vip8PowerNode']='M2-PASS';s['vip8ArtifactBox']=True;s['vip8ArtifactGrade']='perfect';s['vip8ArtifactRefinement']=3;s['vip8ArtifactWarmth']=30;s['vip8LegacyRetrofit']=True
+          open(p,'w',encoding='utf-8').write(json.dumps(d,ensure_ascii=False,separators=(',',':'))+'\n')
+          PY
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'status: shop M2 VIP8 PASS' || true
+          git push origin main
