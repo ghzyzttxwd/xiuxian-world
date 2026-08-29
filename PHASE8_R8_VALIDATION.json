@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "phase": "8-round8",
+  "hotfix": "empty-eligible-random-enemy-pool-means-no-combat",
+  "core_build": 3903,
+  "source_sha256": "1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c",
+  "previous_source_sha256": "d933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8",
+  "save_schema_version": 36,
+  "rules": {
+    "maxRandomMinorGap": 2,
+    "crossMajorRealmRandomEncounter": false,
+    "emptyEligiblePool": "no-combat",
+    "identityOfLockedEnemyHidden": true,
+    "explicitBossAndScriptedCombatUnchanged": true
+  },
+  "evidence": {
+    "r7": {
+      "enemy": "青云试剑傀",
+      "enemyRealm": 12,
+      "playerRealms": [
+        5,
+        7,
+        6
+      ]
+    },
+    "seed9206AfterFix": {
+      "dead": false,
+      "days": 379,
+      "finalRealm": 5,
+      "deathEnemy": null
+    }
+  }
+}
