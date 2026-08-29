@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/v310-v59-release-prep.yml"
       - "tools/aggregate-v310-fullrun-gate.mjs"
+      - "tools/release-v310-assets.cjs"
+      - "tools/verify-v310-public.sh"
 
 permissions:
   contents: read
@@ -81,9 +83,30 @@ jobs:
           set -euo pipefail
           node --check tools/aggregate-v310-fullrun-gate.mjs
           grep -q 'uniqueFastestByRealm' tools/aggregate-v310-fullrun-gate.mjs
+          grep -q 'dominanceHardLimit=6' tools/aggregate-v310-fullrun-gate.mjs
           grep -q 'route dominance detected' tools/aggregate-v310-fullrun-gate.mjs
           grep -q 'Named-material utility is independently fail-closed' tools/aggregate-v310-fullrun-gate.mjs
           grep -q 'actionSpreadRatio>3' tools/aggregate-v310-fullrun-gate.mjs
+
+      - name: Validate release transform against exact V59 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/release-v310-assets.cjs
+          bash -n tools/verify-v310-public.sh
+          mkdir -p src
+          cp /tmp/v310-v59/src/game-v310.js src/game-v310.js
+          cp /tmp/v310-v59/BUILD_V310_BALANCE.json BUILD_V310_BALANCE.json
+          test "$(sha256sum src/game-v310.js | awk '{print $1}')" = "$V59_SOURCE_SHA"
+          node tools/release-v310-assets.cjs
+          node --check app.js
+          grep -q "gameplayVersion:'3.10.0'" app.js
+          grep -q 'src/game-v310.js?v=31001' app.js
+          grep -q 'V3.10 · 无充值全流程总平衡篇' index.html
+          grep -q 'taixuan-v3.10.0-no-recharge-full-run-balance-31001' sw.js
+          ! grep -q 'eval' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
 
       - name: Upload non-publishing V59 prep evidence
         shell: bash
@@ -93,6 +116,7 @@ jobs:
           cp /tmp/v310-v59/BUILD_V310_BALANCE.json V310_V59_PREP/
           cp /tmp/v310-v59/V310_RESOURCE_UTILITY_AUDIT.json V310_V59_PREP/
           cp /tmp/V310_V59_SOURCE_SHA V310_V59_PREP/SOURCE_SHA.txt
+          cp app.js index.html sw.js V310_V59_PREP/
 
       - uses: actions/upload-artifact@v4
         with:
