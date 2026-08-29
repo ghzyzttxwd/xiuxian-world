@@ -90,11 +90,11 @@ function ensureV63MahayanaStabilizer(){
   ensureMahayanaEssence(6);
   ensureNamed('mat-v38-origin-crystal',2);
   ensureNamed('mat-v38-world-essence-dew',1);
-  const site=chooseMahayanaCraftSite();if(!site||!goTo(site))fail('v63-mahayana-pill-site-unreachable',{site,brewAttempt});
+  const site=chooseMahayanaCraftSite();if(!site?.dest||!goTo(site.dest))fail('v63-mahayana-pill-site-unreachable',{site,brewAttempt});
   const beforePills=v63MahayanaPillCount(),beforeEssence=materialCount('mat-v38-mahayana-essence'),beforeOrigin=materialCount('mat-v38-origin-crystal'),beforeDew=materialCount('mat-v38-world-essence-dew');
   const brew=spendAction('v63-brew-mahayana-pill:'+brewAttempt,()=>invoke('brewV33Alchemy','recipe-v38-mahayana-break'));
   const afterPills=v63MahayanaPillCount();
-  console.log('V310_FULLRUN_V63_MAHAYANA_BREW',JSON.stringify({brewAttempt,site,result:brew,pillsBefore:beforePills,pillsAfter:afterPills,essenceBefore:beforeEssence,essenceAfter:materialCount('mat-v38-mahayana-essence'),originBefore:beforeOrigin,originAfter:materialCount('mat-v38-origin-crystal'),dewBefore:beforeDew,dewAfter:materialCount('mat-v38-world-essence-dew'),alchemyProf:state().player.alchemyProf||0,actions}));
+  console.log('V310_FULLRUN_V63_MAHAYANA_BREW',JSON.stringify({brewAttempt,site:site.dest,siteScore:site.score,result:brew,pillsBefore:beforePills,pillsAfter:afterPills,essenceBefore:beforeEssence,essenceAfter:materialCount('mat-v38-mahayana-essence'),originBefore:beforeOrigin,originAfter:materialCount('mat-v38-origin-crystal'),dewBefore:beforeDew,dewAfter:materialCount('mat-v38-world-essence-dew'),alchemyProf:state().player.alchemyProf||0,actions}));
   if(afterPills<=beforePills)continue;
   if(materialCount('mat-v38-mahayana-essence')<5)fail('v63-mahayana-pill-stole-breakthrough-essence',{brewAttempt,essence:materialCount('mat-v38-mahayana-essence')});
   const use=spendAction('v63-use-mahayana-pill',()=>invoke('useV33Pill','recipe-v38-mahayana-break'));
@@ -125,6 +125,7 @@ if(!runner.includes("invoke('useV33Pill','recipe-v38-mahayana-break')"))throw ne
 if(!runner.includes("p0.v38MahayanaFailures>0"))throw new Error('V63 first Mahayana attempt was not preserved');
 if(!runner.includes('brewAttempt<=3'))throw new Error('V63 bounded brew retry missing');
 if(!runner.includes('ensureMahayanaEssence(6)'))throw new Error('V63 sixth-essence reserve missing');
+if(!runner.includes("if(!site?.dest||!goTo(site.dest))"))throw new Error('V63 Mahayana craft-site selector object was not resolved to site.dest');
 if(!runner.includes("materialCount('mat-v38-mahayana-essence')<5"))throw new Error('V63 five-essence breakthrough reserve gate missing');
 if(!runner.includes('V310_FULLRUN_V63_MAHAYANA_RECIPE')||!runner.includes('V310_FULLRUN_V63_MAHAYANA_BREW')||!runner.includes('V310_FULLRUN_V63_MAHAYANA_PILL'))throw new Error('V63 Mahayana evidence markers incomplete');
 if(!runner.includes('V310_FULLRUN_V62_ESCAPE_GUARD')||!runner.includes('V310_FULLRUN_V61_LIVE_TRIBULATION_ENTRY')||!runner.includes('V310_FULLRUN_V57_GEAR_CALL'))throw new Error('V63 lost inherited live survival markers');
@@ -134,5 +135,5 @@ if(runner.includes("invoke('v37SetPlayerForTest'")||runner.includes("invoke('v34
 fs.writeFileSync(finalRunnerPath,runner);
 const syntax=spawnSync(process.execPath,['--check',finalRunnerPath.pathname],{encoding:'utf8'});
 if(syntax.status!==0)throw new Error('V63 final runner syntax failure: '+(syntax.stderr||syntax.stdout||''));
-console.log('V310_FULLRUN_V63_FINAL_RUNNER_PASS '+JSON.stringify({v6MahayanaPillEffectRequired:true,firstMahayanaAttemptUnchanged:true,postFailureStabilizerOnly:true,normalAuctionRecipeOnly:true,normalAlchemyOnly:true,maxBrewAttemptsPerBreakthrough:3,fiveBreakthroughEssencesReserved:true,normalPillToxicityAndQualityScaling:true,v62EscapeGuardPreserved:true,v61LiveTribulationGearPreserved:true,fleeChanceUnchanged:true,enemyStatsUnchanged:true,alchemyOddsUnchanged:true,pillMagnitudeUnchanged:true,seedUnchanged:true,actionCapUnchanged:true,noDirectResourceInjection:true,noDirectStateMutation:true}));
+console.log('V310_FULLRUN_V63_FINAL_RUNNER_PASS '+JSON.stringify({v6MahayanaPillEffectRequired:true,firstMahayanaAttemptUnchanged:true,postFailureStabilizerOnly:true,normalAuctionRecipeOnly:true,normalAlchemyOnly:true,maxBrewAttemptsPerBreakthrough:3,fiveBreakthroughEssencesReserved:true,mahayanaCraftSiteObjectResolvedToDest:true,normalPillToxicityAndQualityScaling:true,v62EscapeGuardPreserved:true,v61LiveTribulationGearPreserved:true,fleeChanceUnchanged:true,enemyStatsUnchanged:true,alchemyOddsUnchanged:true,pillMagnitudeUnchanged:true,seedUnchanged:true,actionCapUnchanged:true,noDirectResourceInjection:true,noDirectStateMutation:true}));
 await import(finalRunnerPath.href+'?v63final='+Date.now());
