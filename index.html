@@ -3,49 +3,155 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#10150f" />
+  <meta name="theme-color" content="#0d120e" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="太玄界" />
   <link rel="manifest" href="./manifest-v6.webmanifest?v=6" />
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css?v=3910" />
   <title>太玄界 · 修仙大世界 V3.9</title>
 </head>
-<body>
+<body data-ui-shell="playable-v3910">
 <div id="startScreen" class="start">
-  <section class="panel start-box">
+  <section class="start-box">
+    <div class="start-seal">太</div>
+    <div class="start-kicker">一介凡修 · 逆天争命</div>
     <h1>太玄界</h1>
-    <p style="color:#aab3a3;font-size:13px">修仙大世界 · V3.9</p>
+    <p class="start-lead">从山野凡人起步，在寿元耗尽之前寻功法、夺机缘、炼法宝，走到渡劫飞升。</p>
+    <div class="realm-road"><span>凡人</span><i></i><span>筑基</span><i></i><span>金丹</span><i></i><span>元婴</span><i></i><span>化神</span><i></i><span>真仙</span></div>
+    <label class="name-label" for="nameInput">你的姓名 / 道号</label>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
-    <div class="start-actions"><button id="newGameBtn" class="primary">穿越此界</button><button id="continueBtn" class="hidden">继续上次存档</button><button id="installStartBtn" class="ghost">安装应用</button></div>
-    <div id="installStatus" class="install-note"></div><div class="version">V3.9 · 渡劫飞升与真仙终局篇</div>
+    <div class="start-actions">
+      <button id="newGameBtn" class="primary start-main">踏入此界</button>
+      <button id="continueBtn" class="hidden">继续上次存档</button>
+      <button id="installStartBtn" class="ghost">安装到桌面</button>
+    </div>
+    <div id="installStatus" class="install-note"></div>
+    <div class="version">V3.9 · 渡劫飞升与真仙终局篇 · Playable UI</div>
   </section>
 </div>
+
 <div id="gameApp" class="app hidden">
-  <header class="topbar"><div class="brand"><b>太玄界</b><span id="dateTop"></span></div><div class="top-actions"><button id="installBtn" class="mini-btn ghost">安装</button><button id="saveBtn" class="mini-btn">存档</button></div></header>
-  <section id="page-home" class="page active">
-    <div class="hero-card"><div class="hero-row"><div><div class="hero-name" id="heroName">陆尘</div><div class="hero-sub" id="heroSub"></div></div><div class="realm-box"><b id="realmName">凡人</b><span id="cultivationText"></span></div></div><div class="bar"><i id="cultivationBar"></i></div><div class="quick-stats"><div class="quick-stat"><b id="spiritStoneQuick">0</b><span>灵石</span></div><div class="quick-stat"><b id="herbQuick">0</b><span>灵草</span></div><div class="quick-stat"><b id="hpQuick">0</b><span>气血</span></div><div class="quick-stat"><b id="repQuick">0</b><span>声望</span></div><div class="quick-stat"><b id="diligenceQuick">0</b><span>历练</span></div><div class="quick-stat"><b id="insightQuick">0</b><span>悟道点</span></div></div></div>
-    <div id="urgentBox"></div><div id="breakthroughBox"></div><div id="legacyBox"></div>
-    <section class="panel"><h2>今日可做</h2><p class="section-tip">V3.9 正式进入人界终局：大乘圆满后不能再靠普通突破直达下一境，必须把 V3.8 的肉身、元神、法则、本命法宝与阵法五维准备真正带入六重雷劫，随后面对心魔劫与三段仙凡蜕变。失败会造成重伤、寿元巨损、本命法宝受损，后段劫难甚至可能直接身死；只有完成全部终局阶段，飞升天门才会开启并生成真仙通关档案。</p><div class="actions-grid"><button class="action-btn primary" data-action="cultivate"><b>吐纳修炼</b><small>1日 · 提升修为与功法熟练度</small></button><button class="action-btn" data-action="gather"><b>采集灵草</b><small>1日 · 获取灵草，可能遇到机缘</small></button><button class="action-btn" data-action="work"><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></button><button class="action-btn" data-action="explore"><b>附近逛一逛</b><small>1日 · 随机事件、战斗或发现</small></button><button class="action-btn" data-action="rumor"><b>打听消息</b><small>1日 · 更容易获知天下大事</small></button><button class="action-btn" data-action="rest"><b>闭门休整</b><small>1日 · 恢复气血，不冒风险</small></button></div></section>
-    <section class="panel"><h2>最近经历</h2><div id="homeLog" class="log-list"></div></section>
-  </section>
-  <section id="page-character" class="page">
-    <section class="panel cheat"><h2>修行参悟</h2><div class="cheat-name">【凡修之路】</div><div class="cheat-desc">本世没有额外修炼外挂。灵根、功法、洞府、丹药、机缘与时间共同决定修炼速度；越往高境需求越大。修行历练只记录你真正投入过的行动，不会自动赠送悟道点。悟道点需要通过论道、遗迹、秘境、丹药或特殊机缘获得。</div><div class="cheat-points"><span class="pill" id="diligencePill"></span><span class="pill" id="insightPill"></span></div><div class="cheat-buttons"><button id="insightCultivate">顿悟修为</button><button id="insightManual">顿悟功法</button><button id="insightSpell">顿悟法术</button></div></section>
-    <div class="desktop-grid"><section class="panel"><h2>人物</h2><div id="characterStats"></div></section><section class="panel"><h2>灵根</h2><div id="rootInfo"></div></section></div>
-    <section class="panel"><h2>轮回传承</h2><p class="section-tip">身死或寿尽后，本世会被永久锁死并凝成传承点；不能继续用这一世行动。只有进入轮回才能开启新的角色，世界和修真界人物仍会继续前行。</p><div id="legacyInfo"></div><div id="legacyActions"></div></section>
-    <section class="panel"><h2>宗门</h2><p class="section-tip">青云宗不再只有身份和任务：四位师父拥有年龄、境界、闭关、突破与寿元；主要同门会自行修炼晋升。内门以后还会形成长期竞争对手，参与论剑、秘库配额与诸峰讲法等内部事件。</p><div id="sectInfo"></div><div id="sectActions"></div></section>
-    <section class="panel"><h2>洞府</h2><p class="section-tip">可在青石镇、临江城或青云山择地筑府。洞府提升在家修炼效率；闭关与药圃都会真实推进世界时间。</p><div id="dwellingInfo"></div><div id="dwellingActions"></div></section>
-    <section class="panel"><h2>炼丹</h2><p class="section-tip">低阶丹药继续保留；金丹后可炼金元丹，元婴后可炼养魂丹。高阶丹药会消耗高阶灵材和对应境界资源，失败同样真实损失材料。</p><div id="alchemyInfo"></div><div id="alchemyActions"></div></section>
-    <section class="panel"><h2>法器与锻造</h2><p class="section-tip">法器体系已扩展到金丹、元婴、化神。高阶法宝需要兽材、高阶灵材与境界资源；武器与佩饰的法术增幅会直接进入攻伐法术伤害公式。</p><div id="gearInfo"></div><div id="gearActions"></div></section>
-    <section class="panel"><h2>功法</h2><div id="manualList"></div><h3>法术与技艺</h3><div id="spellList"></div></section>
-  </section>
-  <section id="page-map" class="page"><section class="panel"><h2>天下行旅</h2><p class="section-tip">十二片地域继续存在；部分目的地已有多条路线可选，天数、路费、地区危险、伤势与势力关系会共同决定途中风险，赶路可能遭遇战斗或见闻。</p><div id="mapList"></div></section><section class="panel"><h2>临江坊市</h2><p class="section-tip">坊市行情会随世界经济与大战余波波动。买价始终高于卖价，不能靠原地倒卖刷灵石。</p><div id="marketInfo"></div><div id="marketActions"></div></section></section>
-  <section id="page-events" class="page"><section class="panel"><h2>天下大事 <span id="eventBadge" class="badge">0</span></h2><div id="majorEvents"></div></section><section class="panel"><h2>修真界传闻</h2><div id="worldLog" class="log-list"></div></section></section>
-  <section id="page-relations" class="page"><section class="panel"><h2>人物关系</h2><p class="section-tip">见面后仍可赠礼、论道、切磋或求助。V2.9 起，上一世关系达到深交的故人会进入“前尘旧缘”；转世不会直接继承旧关系，真正重逢后才会产生少量熟悉感。上一世欠你的人情和未处理求援会在轮回时结清，不会错绑到新身份。</p><div id="npcList"></div></section></section>
-  <nav class="bottom-nav"><button class="nav-btn active" data-page="home"><b>☯</b>修炼</button><button class="nav-btn" data-page="character"><b>人</b>角色</button><button class="nav-btn" data-page="map"><b>图</b>地图</button><button class="nav-btn" data-page="events"><b>令</b>大事 <span id="navBadge" class="badge hidden">0</span></button><button class="nav-btn" data-page="relations"><b>缘</b>关系</button></nav>
+  <header class="topbar">
+    <div class="brand"><b>太玄界</b><span id="dateTop"></span></div>
+    <div class="top-actions"><button id="installBtn" class="mini-btn ghost">安装</button><button id="saveBtn" class="mini-btn">存档</button></div>
+  </header>
+
+  <main>
+    <section id="page-home" class="page active">
+      <div class="page-eyebrow">修行总览</div>
+      <div class="hero-card">
+        <div class="hero-row">
+          <div><div class="hero-name" id="heroName">陆尘</div><div class="hero-sub" id="heroSub"></div></div>
+          <div class="realm-box"><small>当前境界</small><b id="realmName">凡人</b><span id="cultivationText"></span></div>
+        </div>
+        <div class="bar"><i id="cultivationBar"></i></div>
+        <div class="quick-stats">
+          <div class="quick-stat"><b id="spiritStoneQuick">0</b><span>灵石</span></div>
+          <div class="quick-stat"><b id="herbQuick">0</b><span>灵草</span></div>
+          <div class="quick-stat vital"><b id="hpQuick">0</b><span>气血</span></div>
+          <div class="quick-stat"><b id="repQuick">0</b><span>声望</span></div>
+          <div class="quick-stat"><b id="diligenceQuick">0</b><span>历练</span></div>
+          <div class="quick-stat"><b id="insightQuick">0</b><span>悟道点</span></div>
+        </div>
+      </div>
+
+      <div id="urgentBox"></div>
+      <div id="breakthroughBox"></div>
+      <div id="legacyBox"></div>
+
+      <section class="panel action-panel">
+        <div class="panel-title-row"><div><div class="panel-kicker">安排这一日</div><h2>今日行程</h2></div><span class="day-cost">行动会推进时间</span></div>
+        <p class="section-tip">先活下去，再求长生。修炼提升修为；探索找机缘也可能遇险；缺资源时先采集或谋生。</p>
+        <div class="actions-grid">
+          <button class="action-btn primary action-main" data-action="cultivate"><span class="action-icon">修</span><div><b>吐纳修炼</b><small>1日 · 修为与功法熟练度</small></div></button>
+          <button class="action-btn action-main" data-action="explore"><span class="action-icon">游</span><div><b>外出探索</b><small>1日 · 事件、战斗与发现</small></div></button>
+          <button class="action-btn" data-action="gather"><span class="action-icon">采</span><div><b>采集灵草</b><small>1日 · 获取灵草与材料</small></div></button>
+          <button class="action-btn" data-action="work"><span class="action-icon">业</span><div><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></div></button>
+          <button class="action-btn" data-action="rumor"><span class="action-icon">闻</span><div><b>打听消息</b><small>1日 · 获知天下大事</small></div></button>
+          <button class="action-btn" data-action="rest"><span class="action-icon">息</span><div><b>闭门休整</b><small>1日 · 恢复气血，规避风险</small></div></button>
+        </div>
+      </section>
+
+      <section class="panel log-panel"><div class="panel-title-row"><div><div class="panel-kicker">你的足迹</div><h2>最近经历</h2></div></div><div id="homeLog" class="log-list"></div></section>
+    </section>
+
+    <section id="page-character" class="page">
+      <div class="page-heading"><div><div class="page-eyebrow">修行体系</div><h1>我的修行</h1></div><p>常用内容默认展开，其余系统按需打开，不再一次把所有信息堆满屏幕。</p></div>
+
+      <section class="panel cheat cultivation-card">
+        <div class="panel-kicker">悟道</div><h2>修行参悟</h2>
+        <div class="cheat-name">【凡修之路】</div>
+        <div class="cheat-desc">没有额外修炼外挂。灵根、功法、洞府、丹药、机缘与时间共同决定修炼速度；悟道点来自论道、遗迹、秘境、丹药或特殊机缘。</div>
+        <div class="cheat-points"><span class="pill" id="diligencePill"></span><span class="pill" id="insightPill"></span></div>
+        <div class="cheat-buttons"><button id="insightCultivate">顿悟修为</button><button id="insightManual">顿悟功法</button><button id="insightSpell">顿悟法术</button></div>
+      </section>
+
+      <details class="panel system-panel" open>
+        <summary><div><b>人物与灵根</b><small>境界、寿元、属性与根骨</small></div><span>展开</span></summary>
+        <div class="system-body desktop-grid"><section><h2>人物</h2><div id="characterStats"></div></section><section><h2>灵根</h2><div id="rootInfo"></div></section></div>
+      </details>
+
+      <details class="panel system-panel" open>
+        <summary><div><b>功法与法术</b><small>查看当前修行路线与熟练度</small></div><span>展开</span></summary>
+        <div class="system-body"><h2>功法</h2><div id="manualList"></div><h3>法术与技艺</h3><div id="spellList"></div></div>
+      </details>
+
+      <details class="panel system-panel">
+        <summary><div><b>法器与锻造</b><small>装备、法宝、本命法宝与炼器</small></div><span>展开</span></summary>
+        <div class="system-body"><p class="section-tip">武器、佩饰和真正法宝会直接影响战斗与高阶突破。</p><div id="gearInfo"></div><div id="gearActions"></div></div>
+      </details>
+
+      <details class="panel system-panel">
+        <summary><div><b>炼丹</b><small>丹方、材料与炼制</small></div><span>展开</span></summary>
+        <div class="system-body"><p class="section-tip">炼丹会真实消耗材料；高境界丹药需要对应高阶资源。</p><div id="alchemyInfo"></div><div id="alchemyActions"></div></div>
+      </details>
+
+      <details class="panel system-panel">
+        <summary><div><b>宗门</b><small>身份、师门、任务与宗门关系</small></div><span>展开</span></summary>
+        <div class="system-body"><p class="section-tip">宗门人物会自行修炼、闭关、突破和老去，你在门中的身份也会改变可获得的资源。</p><div id="sectInfo"></div><div id="sectActions"></div></div>
+      </details>
+
+      <details class="panel system-panel">
+        <summary><div><b>洞府</b><small>居所、闭关与药圃</small></div><span>展开</span></summary>
+        <div class="system-body"><p class="section-tip">洞府提升在家修炼效率；闭关与药圃都会真实推进世界时间。</p><div id="dwellingInfo"></div><div id="dwellingActions"></div></div>
+      </details>
+
+      <details class="panel system-panel danger-system">
+        <summary><div><b>轮回传承</b><small>身死或寿尽后的下一世</small></div><span>展开</span></summary>
+        <div class="system-body"><p class="section-tip">本世死亡后会永久锁死并凝成传承点；只有进入轮回才能开启新角色，世界仍会继续前行。</p><div id="legacyInfo"></div><div id="legacyActions"></div></div>
+      </details>
+    </section>
+
+    <section id="page-map" class="page">
+      <div class="page-heading"><div><div class="page-eyebrow">山河万里</div><h1>天下行旅</h1></div><p>27 片区域与多条路线已接入真实危险、路费、势力关系和随机事件。</p></div>
+      <section class="panel"><div class="panel-kicker">当前位置与去处</div><h2>地图</h2><p class="section-tip">路线天数、地区危险、伤势与势力关系会共同决定途中风险。高危区域不要只看路程。</p><div id="mapList"></div></section>
+      <section class="panel market-panel"><div class="panel-kicker">交易</div><h2>坊市与市场</h2><p class="section-tip">行情会随世界经济和大战余波波动，买价始终高于卖价，无法原地倒卖刷灵石。</p><div id="marketInfo"></div><div id="marketActions"></div></section>
+    </section>
+
+    <section id="page-events" class="page">
+      <div class="page-heading"><div><div class="page-eyebrow">世界在变化</div><h1>天下大事</h1></div><p>你闭关时，宗门、势力和修真界人物也在继续行动。</p></div>
+      <section class="panel"><h2>重大事件 <span id="eventBadge" class="badge">0</span></h2><div id="majorEvents"></div></section>
+      <section class="panel"><h2>修真界传闻</h2><div id="worldLog" class="log-list"></div></section>
+    </section>
+
+    <section id="page-relations" class="page">
+      <div class="page-heading"><div><div class="page-eyebrow">人情因果</div><h1>人物关系</h1></div><p>赠礼、论道、切磋、求助、恩怨和前尘旧缘都会留下后果。</p></div>
+      <section class="panel"><p class="section-tip">深交故人会进入“前尘旧缘”。转世不会直接继承旧关系，真正重逢后才会产生少量熟悉感。</p><div id="npcList"></div></section>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <button class="nav-btn active" data-page="home"><b>☯</b><span>修炼</span></button>
+    <button class="nav-btn" data-page="character"><b>卷</b><span>修行</span></button>
+    <button class="nav-btn" data-page="map"><b>山</b><span>地图</span></button>
+    <button class="nav-btn" data-page="events"><b>令</b><span>天下</span><em id="navBadge" class="badge hidden">0</em></button>
+    <button class="nav-btn" data-page="relations"><b>缘</b><span>关系</span></button>
+  </nav>
 </div>
+
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
 <script src="./app.js?v=3901"></script>
 </body>
