@@ -72,12 +72,30 @@ function makeApi(){
 {
  const api=makeApi();
  const body=api.useV33Pill('recipe-v38-worldbody','common',true);
- const soul=api.useV33Pill('recipe-v38-worldsoul','common',true);
  assert(body?.notes?.some(x=>String(x).startsWith('气血 +')),'界脉锻体丹 hp recovery consumer did not run');
+}
+{
+ const api=makeApi();
+ const soul=api.useV33Pill('recipe-v38-worldsoul','common',true);
  assert(soul?.notes?.some(x=>String(x).startsWith('灵力 +')),'天心养神丹 qi recovery consumer did not run');
+}
+{
+ const api=makeApi();
  const authority=api.useV33Pill('recipe-v38-authority','common',true);
  assert.equal(api.v33BuffValue('breakthrough'),0.035,'镇世归元丹 breakthrough buff did not run');
  assert(authority&&typeof authority==='object');
+}
+{
+ const api=makeApi();
+ const body=api.useV33Pill('recipe-v38-tribulation-body','common',true);
+ assert.equal(api.v33BuffValue('breakthrough'),0.04,'抗劫炼体丹 breakthrough buff did not run');
+ assert(body?.notes?.some(x=>String(x).startsWith('气血 +')),'抗劫炼体丹 hp effect did not run');
+}
+{
+ const api=makeApi();
+ const soul=api.useV33Pill('recipe-v38-tribulation-soul','common',true);
+ assert.equal(api.v33BuffValue('breakthrough'),0.04,'定神抗劫丹 breakthrough buff did not run');
+ assert(soul?.notes?.some(x=>String(x).startsWith('灵力 +')),'定神抗劫丹 qi effect did not run');
 }
 
 // 本命融源丹 must warm the current natal artifact rather than silently discarding artifactWarmth.
@@ -95,4 +113,15 @@ function makeApi(){
  assert(used?.notes?.some(x=>String(x).startsWith('本命温养 +')),'本命融源丹 runtime warmth note missing');
 }
 
-console.log('V310_V38_PILL_EFFECT_REGRESSION_PASS '+JSON.stringify({singleGameplayPatch:true,worldbodyHp:true,worldsoulQi:true,breakthroughBuffs:[0.035,0.04,0.07],buffDays:25,natalArtifactWarmth:true,warmthCap:100,ingredientsAndAlchemyOddsUnchanged:true}));
+// Every recipe top-level effect key must have a runtime consumer. V39 guard keys are consumed by
+// v39ArmTribulationPill rather than directly inside useV33Pill, so they are explicitly included.
+{
+ const api=makeApi();
+ const recipes=Object.values(api.contentRegistrySnapshot().recipes||{});
+ const supported=new Set(['hp','qi','injury','toxicity','progress','insight','manualProf','lifespan','buff','buffDays','path','maxUses','artifactWarmth','v39Guard','v39Value']);
+ const unknown=[];
+ for(const r of recipes)for(const key of Object.keys(r.effect||{}))if(!supported.has(key))unknown.push(`${r.id}:${key}`);
+ assert.deepEqual(unknown,[],'recipe effect keys exist without a runtime consumer');
+}
+
+console.log('V310_V38_PILL_EFFECT_REGRESSION_PASS '+JSON.stringify({singleGameplayPatch:true,worldbodyHp:true,worldsoulQi:true,breakthroughBuffs:[0.035,0.04,0.07],buffDays:25,natalArtifactWarmth:true,warmthCap:100,allRecipeEffectKeysConsumed:true,ingredientsAndAlchemyOddsUnchanged:true}));
