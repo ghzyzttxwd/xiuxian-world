@@ -1,18 +1,30 @@
 {
   "status": "PASS",
-  "ui_version": "playable-v3910",
+  "ui_version": "playable-v3920",
   "gameplay_version": "3.9.0",
-  "verified_commit": "5e5c73437ab8b47b4bcbdbe4e48b52e2b63601b4",
+  "verified_commit": "ff1cf1c72690ba942da5e639e540bd1891775618",
   "source_sha256": "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37",
   "save_schema_version": 36,
+  "reference_device": "vivo X100",
+  "reference_viewport": "420x933",
+  "primary_navigation": [
+    "修炼",
+    "洞府",
+    "天下",
+    "人脉",
+    "储物"
+  ],
+  "progressive_disclosure": [
+    "map=current+direct-routes",
+    "npc=8-per-page-default",
+    "unknown-content=hidden"
+  ],
   "checks": [
     "required DOM contract",
     "V2.9-V3.9 headless regression",
     "V6 icon hashes unchanged",
     "actual GitHub Pages HTTP 200",
-    "public UI marker",
-    "public CSS marker",
-    "public service-worker cache marker",
+    "public v3920 markers",
     "public V3.9 source SHA equality"
   ]
 }
