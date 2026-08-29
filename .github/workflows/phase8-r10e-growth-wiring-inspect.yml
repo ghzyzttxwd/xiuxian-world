@@ -1,0 +1,55 @@
+name: Phase8 R10E Growth Wiring Inspect
+
+on:
+  push:
+    branches: ["phase8-r10-growth-diagnostic"]
+    paths: ["PHASE8_R10E_WIRING.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: phase8-r10-growth-diagnostic, fetch-depth: 0}
+      - name: Extract growth/manual wiring functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,json
+          s=Path('src/game-v39.js').read_text()
+          names=['cultivationGainForDays','manualMultiplier','manualIdFromName','v31CurrentManualEffects','v31BreakthroughBonus','v31ManualStageFromProf','v31StageScale']
+          out={}
+          for name in names:
+            m=re.search(r'function\s+'+re.escape(name)+r'\s*\([^)]*\)\s*\{',s)
+            if not m:
+              out[name]=None;continue
+            i=m.start();brace=s.find('{',m.start());depth=0;j=brace
+            while j<len(s):
+              if s[j]=='{': depth+=1
+              elif s[j]=='}':
+                depth-=1
+                if depth==0:
+                  j+=1;break
+              j+=1
+            out[name]=s[i:j]
+          # Also capture the exact legacy MANUALS declaration header/body prefix and V31 rows for two early manuals.
+          for pattern,key in [(r'const MANUALS\s*=\s*\[[\s\S]{0,8000}?\];','legacyManuals'),(r'\{"id":"manual-five-elements-return"[\s\S]{0,700}?\}','fiveElementsRow'),(r'\{"id":"manual-mystic-water"[\s\S]{0,700}?\}','mysticWaterRow')]:
+            m=re.search(pattern,s);out[key]=m.group(0) if m else None
+          Path('PHASE8_R10E_GROWTH_WIRING.json').write_text(json.dumps({'phase':'8-round10e-growth-wiring','coreBuild':3903,'sourceSha256':'1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c','functions':out},ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k in names},ensure_ascii=False))
+          PY
+          test -s PHASE8_R10E_GROWTH_WIRING.json
+      - name: Commit wiring inspect
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R10E_GROWTH_WIRING.json
+          git commit -m 'test: record phase8 r10e growth wiring inspect [skip ci]'
+          git push origin HEAD:phase8-r10-growth-diagnostic
