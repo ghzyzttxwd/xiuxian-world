@@ -1,0 +1,110 @@
+name: Shop M7 V2 Final Commercial Acceptance
+on:
+  push:
+    paths:
+      - 'shop-m7-final-regression.js'
+      - '.github/workflows/shop-m7-final-commercial-regression-v2.yml'
+      - 'SHOP_M7_V2_TRIGGER.txt'
+concurrency:
+  group: shop-m7-v2-final-commercial-acceptance
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  final-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen release wiring M1 through M6-2
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          for flag in "shopPower:'m1'" "shopVip8:'m2'" "shopVip12:'m3'" "shopVip15:'m4'" "shopDynamicPower:'m5'" "shopJadeSinks:'m6'"; do grep -q "$flag" app.js; done
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-4' app.js
+          grep -q 'ui-shop-v2-jade-sinks.js?v=m6-2' app.js
+          grep -q 'ui-shop-v2-jade-sinks.js?v=m6-2' sw.js
+          python - <<'PY'
+          import json
+          d=json.load(open('PUBLIC_UI_STATUS.json',encoding='utf-8')); s=d['shop']
+          assert d['coreBuild']==3903 and d['schema']==36 and d['realPayment'] is False
+          for k,v in [('powerRewardAdapter','M1-PASS'),('vip8PowerNode','M2-PASS'),('vip12PowerNode','M3-PASS'),('vip15PowerNode','M4-PASS'),('dynamicPowerOffers','M5-PASS'),('jadeSinks','M6-PASS'),('jadeSinksVersion','m6-2')]: assert s.get(k)==v,(k,s.get(k))
+          assert s.get('jadeTribulationEssence') is True
+          PY
+      - name: Syntax check final commerce bundle and regression harness
+        run: |
+          set -euo pipefail
+          for f in ui-shop-v2.js ui-shop-v2-sync.js ui-shop-v2-power-adapter.js ui-shop-v2-vip8.js ui-shop-v2-vip12.js ui-shop-v2-vip15.js ui-shop-v2-dynamic-power.js ui-shop-v2-jade-sinks.js app.js sw.js shop-m7-final-regression.js; do node --check "$f"; done
+      - name: Browser final regression
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node shop-m7-final-regression.js
+          rm -rf node_modules package.json package-lock.json
+      - name: Publish browser-validated bundle to gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin main gh-pages
+          git checkout -B gh-pages origin/gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          git checkout origin/main -- .
+          rm -rf node_modules
+          git add -A
+          git commit -m 'publish: M7 v2 final commercial candidate' || true
+          git push origin gh-pages
+      - name: Public Pages HTTP bundle acceptance
+        run: |
+          set -euo pipefail
+          base='https://ghzyzttxwd.github.io/xiuxian-world'
+          ok=0
+          for i in $(seq 1 40); do
+            app="$(curl -fsSL "$base/app.js?m7v2=${GITHUB_SHA}-$i" 2>/dev/null || true)"
+            sink="$(curl -fsSL "$base/ui-shop-v2-jade-sinks.js?m7v2=${GITHUB_SHA}-$i" 2>/dev/null || true)"
+            status="$(curl -fsSL "$base/PUBLIC_UI_STATUS.json?m7v2=${GITHUB_SHA}-$i" 2>/dev/null || true)"
+            if printf '%s' "$app" | grep -q 'ui-shop-v2-jade-sinks.js?v=m6-2' && printf '%s' "$sink" | grep -q "VERSION='m6-2'" && printf '%s' "$status" | grep -q '"jadeSinksVersion":"m6-2"' && printf '%s' "$status" | grep -q '"coreBuild":3903'; then ok=1; break; fi
+            sleep 3
+          done
+          test "$ok" = 1
+      - name: Mark M7 PASS on main only after public bundle acceptance
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git checkout main
+          git pull --ff-only origin main
+          python - <<'PY'
+          import json
+          p='PUBLIC_UI_STATUS.json'; d=json.load(open(p,encoding='utf-8'))
+          d['status']='PASS';d['phase']='final-ui-shop-v2-commercial-complete';d['coreBuild']=3903;d['schema']=36;d['realPayment']=False
+          s=d.setdefault('shop',{});s['finalCommercialRegression']='M7-PASS';s['publicBundleHttpAccepted']=True
+          s['m7Cases']=['new-save','legacy-schema36','vip0-8','vip8-12','vip12-15','early-vip15','staged-retrofit','dynamic-offer','artifact-combat','build-combat','tribulation-readiness','save-reload','jade-sinks-m6-2','github-pages-http']
+          open(p,'w',encoding='utf-8').write(json.dumps(d,ensure_ascii=False,separators=(',',':'))+'\n')
+          PY
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'status: M7 v2 final commercial regression PASS'
+          git push origin main
+      - name: Sync final M7 status to gh-pages
+        run: |
+          set -euo pipefail
+          git fetch origin main gh-pages
+          git checkout -B gh-pages origin/gh-pages
+          git checkout origin/main -- PUBLIC_UI_STATUS.json
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'publish: M7 v2 final PASS status' || true
+          git push origin gh-pages
+      - name: Public Pages final M7 status acceptance
+        run: |
+          set -euo pipefail
+          base='https://ghzyzttxwd.github.io/xiuxian-world'
+          ok=0
+          for i in $(seq 1 40); do
+            status="$(curl -fsSL "$base/PUBLIC_UI_STATUS.json?m7v2final=${GITHUB_SHA}-$i" 2>/dev/null || true)"
+            if printf '%s' "$status" | grep -q '"finalCommercialRegression":"M7-PASS"' && printf '%s' "$status" | grep -q '"publicBundleHttpAccepted":true' && printf '%s' "$status" | grep -q '"schema":36' && printf '%s' "$status" | grep -q '"jadeSinksVersion":"m6-2"'; then ok=1; break; fi
+            sleep 3
+          done
+          test "$ok" = 1
