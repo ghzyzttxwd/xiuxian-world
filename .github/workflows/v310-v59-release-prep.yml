@@ -8,6 +8,7 @@ on:
       - "tools/aggregate-v310-fullrun-gate.mjs"
       - "tools/release-v310-assets.cjs"
       - "tools/verify-v310-public.sh"
+      - "tests/regression-v310-v60-tribulation-gear.mjs"
 
 permissions:
   contents: read
@@ -76,6 +77,9 @@ jobs:
           node tools/build-v310-balance-v5.cjs >/tmp/v310-v59-resource-build.log
           node tests/regression-v310-resource-utility.mjs
           node -e "const a=require('./V310_RESOURCE_UTILITY_AUDIT.json');if(a.status!=='PASS'||a.unused?.length||a.highUnused?.length||a.namedMaterials!==86||a.highTierMaterials!==46)throw new Error('V59 resource utility gate mismatch')"
+          cp "$GITHUB_WORKSPACE/tests/regression-v310-v60-tribulation-gear.mjs" tests/regression-v310-v60-tribulation-gear.mjs
+          node --check tests/regression-v310-v60-tribulation-gear.mjs
+          node tests/regression-v310-v60-tribulation-gear.mjs
 
       - name: Verify hardened release aggregate gate
         shell: bash
