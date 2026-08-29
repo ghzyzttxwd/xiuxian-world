@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/v310-v59-release-prep.yml"
       - "tools/aggregate-v310-fullrun-gate.mjs"
+      - "tools/verify-v310-v60-evidence.mjs"
       - "tools/release-v310-assets.cjs"
       - "tools/verify-v310-public.sh"
       - "tests/regression-v310-v60-tribulation-gear.mjs"
@@ -86,11 +87,15 @@ jobs:
         run: |
           set -euo pipefail
           node --check tools/aggregate-v310-fullrun-gate.mjs
+          node --check tools/verify-v310-v60-evidence.mjs
           grep -q 'uniqueFastestByRealm' tools/aggregate-v310-fullrun-gate.mjs
           grep -q 'dominanceHardLimit=6' tools/aggregate-v310-fullrun-gate.mjs
           grep -q 'route dominance detected' tools/aggregate-v310-fullrun-gate.mjs
           grep -q 'Named-material utility is independently fail-closed' tools/aggregate-v310-fullrun-gate.mjs
           grep -q 'actionSpreadRatio>3' tools/aggregate-v310-fullrun-gate.mjs
+          grep -q 'V310_FULLRUN_V60_TRIBULATION_GEAR' tools/verify-v310-v60-evidence.mjs
+          grep -q 'item-v39-thunder-umbrella' tools/verify-v310-v60-evidence.mjs
+          grep -q 'item-v39-tribulation-array-disc' tools/verify-v310-v60-evidence.mjs
 
       - name: Validate release transform against exact V59 source
         shell: bash
