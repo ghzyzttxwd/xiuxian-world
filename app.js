@@ -7,7 +7,7 @@
     const shopStyle=document.createElement('link');shopStyle.rel='stylesheet';shopStyle.href='./ui-shop-v1.css?v=1';document.head.appendChild(shopStyle);
     const qolStyle=document.createElement('link');qolStyle.rel='stylesheet';qolStyle.href='./ui-phase8-qol.css?v=1';document.head.appendChild(qolStyle);
     const shopScript=document.createElement('script');shopScript.src='./ui-shop-v1.js?v=1';shopScript.async=false;document.head.appendChild(shopScript);
-    const qolScript=document.createElement('script');qolScript.src='./ui-phase8-qol.js?v=1';qolScript.async=false;document.head.appendChild(qolScript);
+    const qolScript=document.createElement('script');qolScript.src='./ui-phase8-qol.js?v=2';qolScript.async=false;document.head.appendChild(qolScript);
     const script=document.createElement('script');script.src='./src/game-v39.js?v=3901';script.async=false;script.onload=()=>{if(!window.__TAIXUAN_TEST__)fail(new Error('V3.9 直接源码运行时未完成初始化'))};script.onerror=()=>fail(new Error('V3.9 游戏核心加载失败：src/game-v39.js'));document.head.appendChild(script)
   }catch(e){fail(e)}
 })();
