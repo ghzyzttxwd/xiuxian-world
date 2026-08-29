@@ -1,0 +1,4032 @@
+{
+  "phase": "8-round10-growth-diagnostic",
+  "gameplay": "3.9.0",
+  "coreBuild": 3903,
+  "sourceSha256": "1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c",
+  "schema": 36,
+  "apiKeys": [
+    "attemptBreakthrough",
+    "breakthroughChance",
+    "claimSecretRealmCore",
+    "cultivationGainForDays",
+    "learnV31Manual",
+    "majorRealmStage",
+    "realmBalance",
+    "realmSuppression",
+    "remainingLifespanYears",
+    "simulateNpcSecretRealmById",
+    "switchV31Manual",
+    "v31BreakthroughBonus",
+    "v31CurrentManualEffects",
+    "v35SecretRealmTradeReward",
+    "v36AttemptRefiningBreakthrough",
+    "v36BreakthroughBonus",
+    "v37AttemptUnityBreakthrough",
+    "v38AttemptMahayanaBreakthrough"
+  ],
+  "scenarios": [
+    {
+      "label": "基础吐纳诀",
+      "id": null,
+      "location": "青石村",
+      "setup": {
+        "learn": "default",
+        "switch": "default"
+      },
+      "rows": [
+        {
+          "index": 0,
+          "name": "凡人",
+          "need": 120,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 42,
+          "gain30": 241,
+          "theoreticalPureCultivationDays": 17.1,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 1,
+          "name": "炼气一层",
+          "need": 220,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 47,
+          "gain30": 181,
+          "theoreticalPureCultivationDays": 27.5,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 2,
+          "name": "炼气二层",
+          "need": 300,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 59,
+          "gain30": 264,
+          "theoreticalPureCultivationDays": 37.5,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 3,
+          "name": "炼气三层",
+          "need": 400,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 6,
+          "gain7": 63,
+          "gain30": 261,
+          "theoreticalPureCultivationDays": 66.7,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 4,
+          "name": "炼气四层",
+          "need": 520,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 10,
+          "gain7": 67,
+          "gain30": 190,
+          "theoreticalPureCultivationDays": 52,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 5,
+          "name": "炼气五层",
+          "need": 680,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 9,
+          "gain7": 46,
+          "gain30": 254,
+          "theoreticalPureCultivationDays": 75.6,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 6,
+          "name": "炼气六层",
+          "need": 880,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 9,
+          "gain7": 65,
+          "gain30": 235,
+          "theoreticalPureCultivationDays": 97.8,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 7,
+          "name": "炼气七层",
+          "need": 1150,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 9,
+          "gain7": 57,
+          "gain30": 211,
+          "theoreticalPureCultivationDays": 127.8,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 8,
+          "name": "炼气八层",
+          "need": 1500,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 45,
+          "gain30": 190,
+          "theoreticalPureCultivationDays": 187.5,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 9,
+          "name": "炼气九层",
+          "need": 2000,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 52,
+          "gain30": 250,
+          "theoreticalPureCultivationDays": 250,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 10,
+          "name": "筑基初期",
+          "need": 3500,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 61,
+          "gain30": 242,
+          "theoreticalPureCultivationDays": 437.5,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 11,
+          "name": "筑基中期",
+          "need": 5000,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 6,
+          "gain7": 67,
+          "gain30": 181,
+          "theoreticalPureCultivationDays": 833.3,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 12,
+          "name": "筑基后期",
+          "need": 7200,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 55,
+          "gain30": 247,
+          "theoreticalPureCultivationDays": 1028.6,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 13,
+          "name": "筑基圆满",
+          "need": 10000,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 55,
+          "gain30": 288,
+          "theoreticalPureCultivationDays": 1428.6,
+          "remainingLifespanYears": 66
+        }
+      ]
+    },
+    {
+      "label": "五元归息功",
+      "id": "manual-five-elements-return",
+      "location": "青石镇",
+      "setup": {
+        "learn": "realm",
+        "sw": false
+      },
+      "rows": [
+        {
+          "index": 0,
+          "name": "凡人",
+          "need": 120,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 6,
+          "gain7": 54,
+          "gain30": 265,
+          "theoreticalPureCultivationDays": 20,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 1,
+          "name": "炼气一层",
+          "need": 220,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 67,
+          "gain30": 226,
+          "theoreticalPureCultivationDays": 31.4,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 2,
+          "name": "炼气二层",
+          "need": 300,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 69,
+          "gain30": 240,
+          "theoreticalPureCultivationDays": 42.9,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 3,
+          "name": "炼气三层",
+          "need": 400,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 59,
+          "gain30": 225,
+          "theoreticalPureCultivationDays": 50,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 4,
+          "name": "炼气四层",
+          "need": 520,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 10,
+          "gain7": 59,
+          "gain30": 193,
+          "theoreticalPureCultivationDays": 52,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 5,
+          "name": "炼气五层",
+          "need": 680,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 9,
+          "gain7": 53,
+          "gain30": 287,
+          "theoreticalPureCultivationDays": 75.6,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 6,
+          "name": "炼气六层",
+          "need": 880,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 9,
+          "gain7": 43,
+          "gain30": 264,
+          "theoreticalPureCultivationDays": 97.8,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 7,
+          "name": "炼气七层",
+          "need": 1150,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 64,
+          "gain30": 300,
+          "theoreticalPureCultivationDays": 164.3,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 8,
+          "name": "炼气八层",
+          "need": 1500,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 10,
+          "gain7": 68,
+          "gain30": 233,
+          "theoreticalPureCultivationDays": 150,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 9,
+          "name": "炼气九层",
+          "need": 2000,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 6,
+          "gain7": 56,
+          "gain30": 181,
+          "theoreticalPureCultivationDays": 333.3,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 10,
+          "name": "筑基初期",
+          "need": 3500,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 9,
+          "gain7": 65,
+          "gain30": 219,
+          "theoreticalPureCultivationDays": 388.9,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 11,
+          "name": "筑基中期",
+          "need": 5000,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 46,
+          "gain30": 189,
+          "theoreticalPureCultivationDays": 714.3,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 12,
+          "name": "筑基后期",
+          "need": 7200,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 64,
+          "gain30": 199,
+          "theoreticalPureCultivationDays": 900,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 13,
+          "name": "筑基圆满",
+          "need": 10000,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 10,
+          "gain7": 54,
+          "gain30": 216,
+          "theoreticalPureCultivationDays": 1000,
+          "remainingLifespanYears": 66
+        }
+      ]
+    },
+    {
+      "label": "玄水纳灵篇",
+      "id": "manual-mystic-water",
+      "location": "临江城",
+      "setup": {
+        "learn": "realm",
+        "sw": false
+      },
+      "rows": [
+        {
+          "index": 0,
+          "name": "凡人",
+          "need": 120,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 41,
+          "gain30": 186,
+          "theoreticalPureCultivationDays": 15,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 1,
+          "name": "炼气一层",
+          "need": 220,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 45,
+          "gain30": 186,
+          "theoreticalPureCultivationDays": 31.4,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 2,
+          "name": "炼气二层",
+          "need": 300,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 45,
+          "gain30": 265,
+          "theoreticalPureCultivationDays": 37.5,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 3,
+          "name": "炼气三层",
+          "need": 400,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 6,
+          "gain7": 56,
+          "gain30": 216,
+          "theoreticalPureCultivationDays": 66.7,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 4,
+          "name": "炼气四层",
+          "need": 520,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 5,
+          "gain7": 61,
+          "gain30": 234,
+          "theoreticalPureCultivationDays": 104,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 5,
+          "name": "炼气五层",
+          "need": 680,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 5,
+          "gain7": 59,
+          "gain30": 177,
+          "theoreticalPureCultivationDays": 136,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 6,
+          "name": "炼气六层",
+          "need": 880,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 60,
+          "gain30": 199,
+          "theoreticalPureCultivationDays": 125.7,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 7,
+          "name": "炼气七层",
+          "need": 1150,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 9,
+          "gain7": 63,
+          "gain30": 221,
+          "theoreticalPureCultivationDays": 127.8,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 8,
+          "name": "炼气八层",
+          "need": 1500,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 7,
+          "gain7": 47,
+          "gain30": 190,
+          "theoreticalPureCultivationDays": 214.3,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 9,
+          "name": "炼气九层",
+          "need": 2000,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 6,
+          "gain7": 55,
+          "gain30": 199,
+          "theoreticalPureCultivationDays": 333.3,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 10,
+          "name": "筑基初期",
+          "need": 3500,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 8,
+          "gain7": 49,
+          "gain30": 195,
+          "theoreticalPureCultivationDays": 437.5,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 11,
+          "name": "筑基中期",
+          "need": 5000,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 9,
+          "gain7": 63,
+          "gain30": 178,
+          "theoreticalPureCultivationDays": 555.6,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 12,
+          "name": "筑基后期",
+          "need": 7200,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 6,
+          "gain7": 59,
+          "gain30": 195,
+          "theoreticalPureCultivationDays": 1200,
+          "remainingLifespanYears": 66
+        },
+        {
+          "index": 13,
+          "name": "筑基圆满",
+          "need": 10000,
+          "manual": "基础吐纳诀",
+          "manualProf": 0,
+          "gain1": 5,
+          "gain7": 37,
+          "gain30": 211,
+          "theoreticalPureCultivationDays": 2000,
+          "remainingLifespanYears": 66
+        }
+      ]
+    }
+  ],
+  "catalog": {
+    "manuals": [
+      {
+        "id": "manual-basic-breathing",
+        "name": "基础吐纳诀",
+        "legacy": true,
+        "quality": "凡阶下品",
+        "unlock": 0,
+        "path": "none",
+        "sources": [
+          "青石村",
+          "青石镇"
+        ],
+        "effects": {},
+        "desc": "最粗浅的吐纳法门。胜在门槛低，凡人也能照着练。"
+      },
+      {
+        "id": "manual-qingyun-qi",
+        "name": "青云引气诀",
+        "legacy": true,
+        "quality": "凡阶上品",
+        "unlock": 1,
+        "path": "none",
+        "sources": [
+          "青云山"
+        ],
+        "effects": {
+          "qi": 0.05,
+          "breakthrough": 0.01
+        },
+        "desc": "青云宗外门功法，行气平稳，适合炼气期长期修习。"
+      },
+      {
+        "id": "manual-red-flame",
+        "name": "赤炎诀",
+        "legacy": true,
+        "quality": "黄阶下品",
+        "unlock": 4,
+        "path": "flame",
+        "sources": [
+          "青云山",
+          "赤霞谷"
+        ],
+        "effects": {
+          "pathDamage": 0.05,
+          "incoming": 0.03
+        },
+        "desc": "火行功法，修炼迅猛，但行功时更易燥热伤身。"
+      },
+      {
+        "id": "manual-danxia-golden",
+        "name": "丹霞金章",
+        "legacy": true,
+        "quality": "玄阶上品",
+        "unlock": 15,
+        "path": "flame",
+        "sources": [
+          "青云山",
+          "古河遗迹"
+        ],
+        "effects": {
+          "breakthrough": 0.02,
+          "categoryDamage": {
+            "burst": 0.08
+          },
+          "pathDamage": 0.06
+        },
+        "desc": "金丹修士方能真正驾驭的高阶功法，运转丹火淬炼全身灵力。"
+      },
+      {
+        "id": "manual-taixu-deification",
+        "name": "太虚化神篇",
+        "legacy": true,
+        "quality": "地阶下品",
+        "unlock": 23,
+        "path": "spirit",
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "effects": {
+          "qi": 0.1,
+          "pathDamage": 0.1,
+          "breakthrough": 0.02
+        },
+        "desc": "化神修士以神识反照自身、牵引天地灵机的法门，修炼效率远超金丹功法。"
+      },
+      {
+        "id": "manual-qingyun-sword",
+        "name": "青云剑典",
+        "legacy": true,
+        "quality": "玄阶上品",
+        "unlock": 10,
+        "path": "sword",
+        "sources": [
+          "青云山"
+        ],
+        "effects": {
+          "pathDamage": 0.12,
+          "artifactDamage": 0.05
+        },
+        "desc": "青云宗剑脉传承，以剑意统御周身灵力，重攻伐与一瞬爆发。"
+      },
+      {
+        "id": "manual-chixia-heavenfire",
+        "name": "赤霞焚天诀",
+        "legacy": true,
+        "quality": "玄阶上品",
+        "unlock": 10,
+        "path": "flame",
+        "sources": [
+          "赤霞谷"
+        ],
+        "effects": {
+          "pathDamage": 0.14,
+          "incoming": 0.06
+        },
+        "desc": "借赤霞地火淬炼真元，修行迅猛，斗法时火势更烈，但护身稍弱。"
+      },
+      {
+        "id": "manual-beast-body",
+        "name": "万兽锻体经",
+        "legacy": true,
+        "quality": "玄阶上品",
+        "unlock": 10,
+        "path": "body",
+        "sources": [
+          "万兽山脉"
+        ],
+        "effects": {
+          "hp": 0.15,
+          "incoming": -0.08,
+          "pathDamage": 0.08
+        },
+        "desc": "模仿大妖搬运气血、锤炼筋骨，修炼速度略慢，却能把肉身炼成法器。"
+      },
+      {
+        "id": "manual-taixu-spirit",
+        "name": "太虚观神录",
+        "legacy": true,
+        "quality": "地阶下品",
+        "unlock": 10,
+        "path": "spirit",
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "effects": {
+          "qi": 0.16,
+          "pathDamage": 0.15,
+          "hp": -0.05
+        },
+        "desc": "观照识海、分化神念的元神法门，长于灵力与神魂控制。"
+      },
+      {
+        "id": "manual-five-elements-return",
+        "name": "五元归息功",
+        "quality": "黄阶下品",
+        "mult": 1.18,
+        "unlock": 1,
+        "path": "none",
+        "sources": [
+          "青石镇",
+          "临江城"
+        ],
+        "effects": {
+          "qi": 0.06,
+          "breakthrough": 0.01
+        },
+        "desc": "五行灵气轮转归一，速度不算突出，却能让根基更稳，适合普通散修长期打底。"
+      },
+      {
+        "id": "manual-evergreen-qi",
+        "name": "长春养气诀",
+        "quality": "黄阶中品",
+        "mult": 1.2,
+        "unlock": 2,
+        "path": "none",
+        "sources": [
+          "青石镇",
+          "云梦泽"
+        ],
+        "effects": {
+          "hp": 0.08,
+          "healing": 0.12
+        },
+        "desc": "以绵长生机养护经脉，修炼温和，疗伤与恢复效果更好。"
+      },
+      {
+        "id": "manual-mystic-water",
+        "name": "玄水纳灵篇",
+        "quality": "黄阶中品",
+        "mult": 1.23,
+        "unlock": 3,
+        "path": "none",
+        "sources": [
+          "临江城",
+          "云梦泽"
+        ],
+        "effects": {
+          "qi": 0.12,
+          "categoryDamage": {
+            "control": 0.04
+          }
+        },
+        "desc": "借水势绵延之意纳灵入体，灵力储量更厚，适合持久斗法。"
+      },
+      {
+        "id": "manual-blood-fiend",
+        "name": "血煞燃元功",
+        "quality": "黄阶上品",
+        "mult": 1.42,
+        "unlock": 6,
+        "path": "none",
+        "sources": [
+          "黑风岭",
+          "赤霞谷"
+        ],
+        "effects": {
+          "categoryDamage": {
+            "burst": 0.1
+          },
+          "incoming": 0.08,
+          "cultivationHpCost": 0.03,
+          "injuryChance": 0.025
+        },
+        "desc": "燃动气血强催真元，修炼与爆发都很快，但长期运转会侵蚀身体。"
+      },
+      {
+        "id": "manual-small-circuit-sword",
+        "name": "小周天剑息",
+        "quality": "玄阶下品",
+        "mult": 1.48,
+        "unlock": 10,
+        "path": "sword",
+        "sources": [
+          "青云山",
+          "落星矿脉"
+        ],
+        "effects": {
+          "pathDamage": 0.09,
+          "qi": 0.05
+        },
+        "desc": "以周天吐纳养一口剑息，剑招与御剑术衔接更顺畅。"
+      },
+      {
+        "id": "manual-wood-longevity",
+        "name": "乙木长生经",
+        "quality": "玄阶下品",
+        "mult": 1.44,
+        "unlock": 10,
+        "path": "none",
+        "sources": [
+          "云梦泽",
+          "青云山"
+        ],
+        "effects": {
+          "hp": 0.16,
+          "healing": 0.18,
+          "breakthrough": 0.01
+        },
+        "desc": "取乙木生生不息之理温养肉身，经脉韧性与恢复能力远胜寻常筑基功法。"
+      },
+      {
+        "id": "manual-mountain-body",
+        "name": "玄岩镇岳功",
+        "quality": "玄阶中品",
+        "mult": 1.46,
+        "unlock": 11,
+        "path": "body",
+        "sources": [
+          "落星矿脉",
+          "万兽山脉"
+        ],
+        "effects": {
+          "hp": 0.18,
+          "incoming": -0.1,
+          "pathDamage": 0.06
+        },
+        "desc": "以山岳沉重之势镇住筋骨与丹田，行动稍显迟缓，但护体极强。"
+      },
+      {
+        "id": "manual-darkwater-spirit",
+        "name": "幽水凝神诀",
+        "quality": "玄阶中品",
+        "mult": 1.5,
+        "unlock": 11,
+        "path": "spirit",
+        "sources": [
+          "云梦泽",
+          "古河遗迹"
+        ],
+        "effects": {
+          "qi": 0.14,
+          "pathDamage": 0.08,
+          "categoryDamage": {
+            "control": 0.08
+          }
+        },
+        "desc": "神念如深潭沉静，适合神识操控、封印与持续斗法。"
+      },
+      {
+        "id": "manual-scarlet-meridian",
+        "name": "赤阳焚脉经",
+        "quality": "玄阶中品",
+        "mult": 1.56,
+        "unlock": 12,
+        "path": "flame",
+        "sources": [
+          "赤霞谷",
+          "黑风岭"
+        ],
+        "effects": {
+          "pathDamage": 0.11,
+          "categoryDamage": {
+            "damage-over-time": 0.1
+          },
+          "incoming": 0.03
+        },
+        "desc": "以赤阳真火淬炼经脉，火法更烈，尤其擅长让真火持续侵蚀敌体。"
+      },
+      {
+        "id": "manual-taibai-sword",
+        "name": "太白御剑真诀",
+        "quality": "玄阶上品",
+        "mult": 1.84,
+        "unlock": 15,
+        "path": "sword",
+        "sources": [
+          "青云山",
+          "古河遗迹"
+        ],
+        "effects": {
+          "pathDamage": 0.16,
+          "artifactDamage": 0.08,
+          "categoryDamage": {
+            "multi-hit": 0.08
+          }
+        },
+        "desc": "金丹剑修御剑正典，剑意、飞剑与神识三者并用，攻伐极强。"
+      },
+      {
+        "id": "manual-ninefold-sun",
+        "name": "九转炎阳经",
+        "quality": "玄阶上品",
+        "mult": 1.88,
+        "unlock": 15,
+        "path": "flame",
+        "sources": [
+          "赤霞谷",
+          "古河遗迹"
+        ],
+        "effects": {
+          "pathDamage": 0.18,
+          "categoryDamage": {
+            "burst": 0.08
+          },
+          "incoming": 0.05
+        },
+        "desc": "丹火九转，每转一次都更暴烈，能换来极强火法爆发，也更考验肉身承受力。"
+      },
+      {
+        "id": "manual-vajra-body",
+        "name": "金刚伏魔身",
+        "quality": "玄阶上品",
+        "mult": 1.68,
+        "unlock": 15,
+        "path": "body",
+        "sources": [
+          "万兽山脉",
+          "苍梧郡城"
+        ],
+        "effects": {
+          "hp": 0.22,
+          "incoming": -0.12,
+          "pathDamage": 0.1
+        },
+        "desc": "以金刚不坏之意锻骨炼血，肉身坚韧，适合正面承受高阶斗法。"
+      },
+      {
+        "id": "manual-nether-soul",
+        "name": "幽冥观魂经",
+        "quality": "地阶下品",
+        "mult": 1.82,
+        "unlock": 15,
+        "path": "spirit",
+        "sources": [
+          "玄阴禁地",
+          "古河遗迹"
+        ],
+        "effects": {
+          "qi": 0.2,
+          "pathDamage": 0.18,
+          "categoryDamage": {
+            "control": 0.1
+          },
+          "hp": -0.06
+        },
+        "desc": "以阴神之法观照魂魄，神识攻伐与封印极强，但肉身养护较弱。"
+      },
+      {
+        "id": "manual-northsea-devour",
+        "name": "北冥吞灵法",
+        "quality": "玄阶上品",
+        "mult": 1.78,
+        "unlock": 16,
+        "path": "none",
+        "sources": [
+          "云梦泽",
+          "古河遗迹"
+        ],
+        "effects": {
+          "qi": 0.24,
+          "categoryDamage": {
+            "drain": 0.12
+          },
+          "incoming": 0.04
+        },
+        "desc": "吐纳如海眼吞吸灵机，灵力雄厚，还能强化夺灵回气类秘术。"
+      },
+      {
+        "id": "manual-green-emperor",
+        "name": "青帝化生诀",
+        "quality": "地阶下品",
+        "mult": 1.96,
+        "unlock": 19,
+        "path": "none",
+        "sources": [
+          "青云山",
+          "云梦泽"
+        ],
+        "effects": {
+          "hp": 0.24,
+          "healing": 0.28,
+          "breakthrough": 0.02
+        },
+        "desc": "元婴层次的生机大道雏形，擅长养身、续命与恢复重创。"
+      },
+      {
+        "id": "manual-celestial-river",
+        "name": "天河御虚经",
+        "quality": "地阶下品",
+        "mult": 2,
+        "unlock": 19,
+        "path": "none",
+        "sources": [
+          "云梦泽",
+          "古河遗迹"
+        ],
+        "effects": {
+          "qi": 0.24,
+          "categoryDamage": {
+            "movement": 0.08
+          },
+          "breakthrough": 0.01
+        },
+        "desc": "借天河流转体悟虚实变化，灵力绵长，对遁法与身法有额外加持。"
+      },
+      {
+        "id": "manual-undying-body",
+        "name": "不灭玄躯典",
+        "quality": "地阶中品",
+        "mult": 1.88,
+        "unlock": 19,
+        "path": "body",
+        "sources": [
+          "万兽山脉",
+          "玄阴禁地"
+        ],
+        "effects": {
+          "hp": 0.32,
+          "incoming": -0.16,
+          "healing": 0.1,
+          "pathDamage": 0.12
+        },
+        "desc": "元婴炼体大法，气血近乎自成循环，重伤后仍能维持极强战力。"
+      },
+      {
+        "id": "manual-purple-thunder-spirit",
+        "name": "紫霄炼神章",
+        "quality": "地阶中品",
+        "mult": 2.04,
+        "unlock": 20,
+        "path": "spirit",
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "effects": {
+          "qi": 0.28,
+          "pathDamage": 0.22,
+          "categoryDamage": {
+            "soul-attack": 0.1
+          },
+          "incoming": 0.02
+        },
+        "desc": "以雷意淬炼元神，神识锋锐如电，专擅神魂攻伐与破妄。"
+      },
+      {
+        "id": "manual-myriad-deification",
+        "name": "万象化神录",
+        "quality": "地阶上品",
+        "mult": 2.28,
+        "unlock": 23,
+        "path": "none",
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "effects": {
+          "hp": 0.12,
+          "qi": 0.18,
+          "breakthrough": 0.04,
+          "categoryDamage": {
+            "domain": 0.12
+          },
+          "artifactDamage": 0.08
+        },
+        "desc": "化神修士观万象而返照元神的总纲，修行全面，尤其擅长法域与高阶法宝协同。"
+      },
+      {
+        "id": "manual-v36-taixu-crossing",
+        "name": "太虚渡空经",
+        "quality": "地阶上品",
+        "mult": 2.62,
+        "unlock": 26,
+        "path": "spirit",
+        "sources": [
+          "天渊城",
+          "虚空裂隙"
+        ],
+        "effects": {
+          "qi": 0.24,
+          "pathDamage": 0.18,
+          "breakthrough": 0.035,
+          "categoryDamage": {
+            "movement": 0.12,
+            "domain": 0.12
+          }
+        },
+        "desc": "以元神感知空间褶皱，在虚实交错间运转灵力。炼虚后可显著强化移形、封锁与法域。"
+      },
+      {
+        "id": "manual-v36-heavenvoid-sword",
+        "name": "天渊虚剑典",
+        "quality": "地阶上品",
+        "mult": 2.66,
+        "unlock": 26,
+        "path": "sword",
+        "sources": [
+          "天渊城",
+          "上古断界台"
+        ],
+        "effects": {
+          "pathDamage": 0.22,
+          "artifactDamage": 0.14,
+          "categoryDamage": {
+            "multi-hit": 0.1,
+            "movement": 0.08
+          }
+        },
+        "desc": "将剑意压入空间缝隙，飞剑不再只沿直线而行，适合炼虚剑修的高阶攻伐。"
+      },
+      {
+        "id": "manual-v36-riftflame",
+        "name": "裂界虚焰经",
+        "quality": "地阶上品",
+        "mult": 2.7,
+        "unlock": 27,
+        "path": "flame",
+        "sources": [
+          "空冥裂谷",
+          "虚空裂隙"
+        ],
+        "effects": {
+          "pathDamage": 0.24,
+          "categoryDamage": {
+            "damage-over-time": 0.12,
+            "area": 0.1
+          },
+          "incoming": 0.05
+        },
+        "desc": "真火沿空间裂纹蔓延，杀伤极烈，但对经脉和元神的负担同样沉重。"
+      },
+      {
+        "id": "manual-v36-boundary-body",
+        "name": "虚空锻界身",
+        "quality": "地阶上品",
+        "mult": 2.54,
+        "unlock": 27,
+        "path": "body",
+        "sources": [
+          "空冥裂谷",
+          "上古断界台"
+        ],
+        "effects": {
+          "hp": 0.38,
+          "incoming": -0.18,
+          "pathDamage": 0.16,
+          "artifactDamage": 0.08
+        },
+        "desc": "以界膜受压不破之理锤炼肉身，让骨血能承受空间错位带来的撕扯。"
+      },
+      {
+        "id": "manual-v37-severing-heaven",
+        "name": "斩天合道经",
+        "quality": "天阶下品",
+        "mult": 3.1,
+        "unlock": 30,
+        "path": "sword",
+        "sources": [
+          "法则古原",
+          "万象法坛"
+        ],
+        "effects": {
+          "pathDamage": 0.28,
+          "artifactDamage": 0.18,
+          "breakthrough": 0.04,
+          "categoryDamage": {
+            "execute": 0.14,
+            "domain": 0.12
+          }
+        },
+        "desc": "剑意、元神与肉身同归一线，以斩界法则统摄飞剑和领域。"
+      },
+      {
+        "id": "manual-v37-annihilation-sun",
+        "name": "大日焚灭典",
+        "quality": "天阶下品",
+        "mult": 3.14,
+        "unlock": 30,
+        "path": "flame",
+        "sources": [
+          "天衡战城",
+          "万象法坛"
+        ],
+        "effects": {
+          "pathDamage": 0.3,
+          "categoryDamage": {
+            "area": 0.14,
+            "damage-over-time": 0.16
+          },
+          "incoming": 0.05
+        },
+        "desc": "把真火提升为焚灭倾向，领域所及之处万物持续走向崩解。"
+      },
+      {
+        "id": "manual-v37-immovable-world",
+        "name": "不动界身经",
+        "quality": "天阶下品",
+        "mult": 2.98,
+        "unlock": 30,
+        "path": "body",
+        "sources": [
+          "天衡战城",
+          "归一圣墟"
+        ],
+        "effects": {
+          "hp": 0.48,
+          "incoming": -0.22,
+          "pathDamage": 0.2,
+          "artifactDamage": 0.1
+        },
+        "desc": "肉身、元神与镇界法则合一，立身之处便是自身小天地。"
+      },
+      {
+        "id": "manual-v37-soul-order",
+        "name": "太虚神禁天章",
+        "quality": "天阶下品",
+        "mult": 3.12,
+        "unlock": 30,
+        "path": "spirit",
+        "sources": [
+          "万象法坛",
+          "归一圣墟"
+        ],
+        "effects": {
+          "qi": 0.34,
+          "pathDamage": 0.26,
+          "breakthrough": 0.04,
+          "categoryDamage": {
+            "control": 0.16,
+            "domain": 0.18
+          }
+        },
+        "desc": "以神禁法则统摄识海和领域，使神魂控制真正进入规则层面。"
+      },
+      {
+        "id": "manual-v38-sword-origin",
+        "name": "一剑开天经",
+        "quality": "天阶上品",
+        "mult": 3.55,
+        "unlock": 34,
+        "path": "sword",
+        "sources": [
+          "界源海",
+          "九霄劫台"
+        ],
+        "effects": {
+          "pathDamage": 0.34,
+          "artifactDamage": 0.24,
+          "breakthrough": 0.04,
+          "categoryDamage": {
+            "execute": 0.18,
+            "burst": 0.14
+          }
+        },
+        "desc": "剑道直指世界结构，以界源为锋，在法则之上再斩天地根本。"
+      },
+      {
+        "id": "manual-v38-flame-origin",
+        "name": "焚世大乘典",
+        "quality": "天阶上品",
+        "mult": 3.6,
+        "unlock": 34,
+        "path": "flame",
+        "sources": [
+          "天穹祖脉",
+          "九霄劫台"
+        ],
+        "effects": {
+          "pathDamage": 0.35,
+          "categoryDamage": {
+            "area": 0.18,
+            "damage-over-time": 0.2
+          },
+          "incoming": 0.05
+        },
+        "desc": "将焚灭法则推进至世界本源层，火势可沿祖脉与界源持续扩散。"
+      },
+      {
+        "id": "manual-v38-body-origin",
+        "name": "人界不灭身",
+        "quality": "天阶上品",
+        "mult": 3.42,
+        "unlock": 34,
+        "path": "body",
+        "sources": [
+          "天穹祖脉",
+          "界源海"
+        ],
+        "effects": {
+          "hp": 0.62,
+          "incoming": -0.26,
+          "pathDamage": 0.24,
+          "artifactDamage": 0.14
+        },
+        "desc": "以天地祖脉反复淬体，使肉身成为能承受世界规则冲刷的真正大乘道体。"
+      },
+      {
+        "id": "manual-v38-spirit-origin",
+        "name": "万界元神章",
+        "quality": "天阶上品",
+        "mult": 3.58,
+        "unlock": 34,
+        "path": "spirit",
+        "sources": [
+          "人界议庭",
+          "九霄劫台"
+        ],
+        "effects": {
+          "qi": 0.46,
+          "pathDamage": 0.32,
+          "breakthrough": 0.04,
+          "categoryDamage": {
+            "control": 0.18,
+            "soul-attack": 0.2
+          }
+        },
+        "desc": "神念不再局限于领域内部，而是与整片人界的规则脉络建立共鸣。"
+      },
+      {
+        "id": "manual-v39-sword-tribulation",
+        "name": "斩劫飞仙经",
+        "quality": "半仙阶",
+        "mult": 3.95,
+        "unlock": 37,
+        "path": "sword",
+        "sources": [
+          "九霄劫台"
+        ],
+        "effects": {
+          "pathDamage": 0.38,
+          "artifactDamage": 0.28,
+          "breakthrough": 0.05,
+          "categoryDamage": {
+            "execute": 0.22,
+            "burst": 0.18
+          }
+        },
+        "desc": "将剑意用于劈开雷劫、心障与仙凡界膜，最后一剑只为斩断凡躯束缚。"
+      },
+      {
+        "id": "manual-v39-flame-tribulation",
+        "name": "涅槃渡劫典",
+        "quality": "半仙阶",
+        "mult": 4,
+        "unlock": 37,
+        "path": "flame",
+        "sources": [
+          "九霄劫台"
+        ],
+        "effects": {
+          "pathDamage": 0.38,
+          "categoryDamage": {
+            "area": 0.2,
+            "damage-over-time": 0.23
+          },
+          "healing": 0.12
+        },
+        "desc": "以劫火反炼自身，在毁灭与重生之间维持道基。"
+      },
+      {
+        "id": "manual-v39-body-tribulation",
+        "name": "万劫不灭仙身",
+        "quality": "半仙阶",
+        "mult": 3.82,
+        "unlock": 37,
+        "path": "body",
+        "sources": [
+          "九霄劫台"
+        ],
+        "effects": {
+          "hp": 0.78,
+          "incoming": -0.3,
+          "pathDamage": 0.26,
+          "artifactDamage": 0.16
+        },
+        "desc": "专为雷劫锻体而生，把每一重天雷都视作仙体铸炼的一锤。"
+      },
+      {
+        "id": "manual-v39-spirit-tribulation",
+        "name": "太上明心飞仙章",
+        "quality": "半仙阶",
+        "mult": 3.98,
+        "unlock": 37,
+        "path": "spirit",
+        "sources": [
+          "九霄劫台"
+        ],
+        "effects": {
+          "qi": 0.56,
+          "pathDamage": 0.34,
+          "breakthrough": 0.05,
+          "categoryDamage": {
+            "control": 0.2,
+            "soul-attack": 0.24
+          }
+        },
+        "desc": "先斩心魔，再渡天雷；元神在仙凡界隙中保持唯一真我。"
+      }
+    ],
+    "spells": [
+      {
+        "id": "spell-basic-melee",
+        "name": "基础拳脚",
+        "legacy": true,
+        "quality": "凡俗",
+        "qi": 0,
+        "power": 8,
+        "unlock": 0,
+        "path": "none",
+        "category": "melee",
+        "cooldown": 0,
+        "sources": [
+          "青石村"
+        ],
+        "statusIds": [],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1
+        },
+        "desc": "没有法术时，拳脚就是最后的依仗。"
+      },
+      {
+        "id": "spell-firebolt",
+        "name": "火弹术",
+        "legacy": true,
+        "quality": "凡阶法术",
+        "qi": 8,
+        "power": 21,
+        "unlock": 1,
+        "path": "none",
+        "category": "single-target",
+        "cooldown": 0,
+        "sources": [
+          "青石镇",
+          "临江城"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1
+        },
+        "desc": "凝聚一团火灵力射向敌人，炼气修士最常见的攻伐法术。"
+      },
+      {
+        "id": "spell-windstep",
+        "name": "御风步",
+        "legacy": true,
+        "quality": "凡阶法术",
+        "qi": 6,
+        "power": 0,
+        "unlock": 1,
+        "path": "none",
+        "category": "movement",
+        "cooldown": 2,
+        "sources": [
+          "青石镇",
+          "临江城"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "evade": 2
+        },
+        "desc": "轻身提速，战斗中可提高逃跑和闪避机会。"
+      },
+      {
+        "id": "spell-golden-flame-sword",
+        "name": "金焰剑诀",
+        "legacy": true,
+        "quality": "玄阶攻伐",
+        "qi": 42,
+        "power": 118,
+        "unlock": 15,
+        "path": "none",
+        "category": "burst",
+        "cooldown": 1,
+        "sources": [
+          "青云山",
+          "古河遗迹"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1
+        },
+        "desc": "以金丹真火凝作剑罡，专为高阶斗法而生。"
+      },
+      {
+        "id": "spell-spirit-guard",
+        "name": "护体灵罡",
+        "legacy": true,
+        "quality": "玄阶护身",
+        "qi": 32,
+        "power": 0,
+        "unlock": 15,
+        "path": "none",
+        "category": "defense",
+        "cooldown": 3,
+        "sources": [
+          "青云山",
+          "古河遗迹"
+        ],
+        "statusIds": [
+          "status-guard"
+        ],
+        "effect": {
+          "guard": 3
+        },
+        "desc": "以丹气结罡护体，连续数回合大幅削弱来袭伤害。"
+      },
+      {
+        "id": "spell-divine-thought-slash",
+        "name": "神念斩",
+        "legacy": true,
+        "quality": "地阶神通",
+        "qi": 110,
+        "power": 340,
+        "unlock": 23,
+        "path": "spirit",
+        "category": "soul-attack",
+        "cooldown": 2,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "damageScale": 1,
+          "weaken": 2
+        },
+        "desc": "凝聚化神神识斩入敌人识海，造成重创并短暂削弱其反击。"
+      },
+      {
+        "id": "spell-primordial-domain",
+        "name": "元神法域",
+        "legacy": true,
+        "quality": "地阶护身",
+        "qi": 90,
+        "power": 0,
+        "unlock": 23,
+        "path": "spirit",
+        "category": "domain",
+        "cooldown": 4,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-domain"
+        ],
+        "effect": {
+          "domain": 3
+        },
+        "desc": "展开元神法域，以神识扭曲周身灵机，连续数次大幅削弱来袭伤害。"
+      },
+      {
+        "id": "spell-sword-flurry",
+        "name": "御剑连斩",
+        "legacy": true,
+        "quality": "玄阶剑道",
+        "qi": 58,
+        "power": 96,
+        "unlock": 10,
+        "path": "sword",
+        "category": "multi-hit",
+        "cooldown": 1,
+        "sources": [
+          "青云山"
+        ],
+        "statusIds": [],
+        "effect": {
+          "hits": 2,
+          "damageScale": 0.72
+        },
+        "desc": "青云剑道绝学，神识御剑连续斩击，尤其依赖武器与剑道熟练。"
+      },
+      {
+        "id": "spell-meridian-flame",
+        "name": "焚脉真火",
+        "legacy": true,
+        "quality": "玄阶火法",
+        "qi": 64,
+        "power": 168,
+        "unlock": 10,
+        "path": "flame",
+        "category": "damage-over-time",
+        "cooldown": 2,
+        "sources": [
+          "赤霞谷"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 0.82,
+          "burn": 3
+        },
+        "desc": "赤霞火道绝学，真火入体后会持续灼烧敌人经脉。"
+      },
+      {
+        "id": "spell-mountain-breaker",
+        "name": "崩山式",
+        "legacy": true,
+        "quality": "玄阶体术",
+        "qi": 28,
+        "power": 92,
+        "unlock": 10,
+        "path": "body",
+        "category": "body-attack",
+        "cooldown": 1,
+        "sources": [
+          "万兽山脉"
+        ],
+        "statusIds": [
+          "status-body-guard"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1,
+          "bodyGuard": 2
+        },
+        "desc": "万兽炼体一脉重招，以肉身与护甲硬撼对手，出手后仍保持护体架势。"
+      },
+      {
+        "id": "spell-soul-seal",
+        "name": "摄魂印",
+        "legacy": true,
+        "quality": "地阶神魂",
+        "qi": 82,
+        "power": 178,
+        "unlock": 10,
+        "path": "spirit",
+        "category": "control",
+        "cooldown": 3,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-soul-seal"
+        ],
+        "effect": {
+          "damageScale": 0.86,
+          "soulSeal": 2
+        },
+        "desc": "太虚神道秘印，直接震荡识海并连续压制敌人的反击。"
+      },
+      {
+        "id": "spell-spirit-needle",
+        "name": "灵针术",
+        "quality": "凡阶法术",
+        "qi": 5,
+        "power": 18,
+        "unlock": 1,
+        "path": "none",
+        "category": "single-target",
+        "cooldown": 0,
+        "sources": [
+          "青石镇",
+          "临江城"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1
+        },
+        "desc": "把灵力压成细针，消耗很低，适合炼气初期持续斗法。"
+      },
+      {
+        "id": "spell-water-arrow",
+        "name": "水箭术",
+        "quality": "凡阶法术",
+        "qi": 7,
+        "power": 24,
+        "unlock": 2,
+        "path": "none",
+        "category": "single-target",
+        "cooldown": 0,
+        "sources": [
+          "临江城",
+          "云梦泽"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1
+        },
+        "desc": "凝水成箭，威力平稳，在水泽附近最常见。"
+      },
+      {
+        "id": "spell-wind-blade",
+        "name": "风刃术",
+        "quality": "凡阶上品",
+        "qi": 9,
+        "power": 31,
+        "unlock": 3,
+        "path": "none",
+        "category": "single-target",
+        "cooldown": 1,
+        "sources": [
+          "青石镇",
+          "苍梧郡城"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1.08
+        },
+        "desc": "压缩气流化作锋刃，射程和穿透都胜过普通火弹。"
+      },
+      {
+        "id": "spell-earth-armor",
+        "name": "土甲术",
+        "quality": "黄阶法术",
+        "qi": 12,
+        "power": 0,
+        "unlock": 4,
+        "path": "none",
+        "category": "shield",
+        "cooldown": 3,
+        "sources": [
+          "青石镇",
+          "落星矿脉"
+        ],
+        "statusIds": [
+          "status-shield"
+        ],
+        "effect": {
+          "shieldPct": 0.18
+        },
+        "desc": "引土灵力覆体成甲，先用护盾抵消一部分伤害。"
+      },
+      {
+        "id": "spell-spring-heal",
+        "name": "回春术",
+        "quality": "黄阶法术",
+        "qi": 14,
+        "power": 0,
+        "unlock": 4,
+        "path": "none",
+        "category": "healing",
+        "cooldown": 3,
+        "sources": [
+          "青云山",
+          "云梦泽"
+        ],
+        "statusIds": [
+          "status-regen"
+        ],
+        "effect": {
+          "healPct": 0.18,
+          "regen": 2
+        },
+        "desc": "以生机灵力止血养脉，能在斗法中快速恢复部分气血。"
+      },
+      {
+        "id": "spell-gather-spirit",
+        "name": "聚灵诀",
+        "quality": "黄阶秘术",
+        "qi": 0,
+        "power": 0,
+        "unlock": 5,
+        "path": "none",
+        "category": "restore",
+        "cooldown": 4,
+        "sources": [
+          "临江城",
+          "青云山"
+        ],
+        "statusIds": [
+          "status-qi-flow"
+        ],
+        "effect": {
+          "qiPct": 0.22
+        },
+        "desc": "短暂收束周围灵气回补丹田，以行动机会换取灵力。"
+      },
+      {
+        "id": "spell-light-body",
+        "name": "轻身诀",
+        "quality": "黄阶身法",
+        "qi": 10,
+        "power": 0,
+        "unlock": 5,
+        "path": "none",
+        "category": "movement",
+        "cooldown": 2,
+        "sources": [
+          "青石镇",
+          "临江城"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "evade": 2
+        },
+        "desc": "比御风步更重视短距离腾挪，连续两回合提高闪避。"
+      },
+      {
+        "id": "spell-conceal-breath",
+        "name": "敛息术",
+        "quality": "黄阶秘术",
+        "qi": 12,
+        "power": 0,
+        "unlock": 7,
+        "path": "none",
+        "category": "escape",
+        "cooldown": 4,
+        "sources": [
+          "临江城",
+          "黑风岭"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "evade": 3
+        },
+        "desc": "收束气息并错开敌人感知，适合脱身与拖过危险回合。"
+      },
+      {
+        "id": "spell-spirit-binding-rope",
+        "name": "缚灵索",
+        "quality": "黄阶上品",
+        "qi": 18,
+        "power": 0,
+        "unlock": 8,
+        "path": "none",
+        "category": "control",
+        "cooldown": 4,
+        "sources": [
+          "苍梧郡城",
+          "青云山"
+        ],
+        "statusIds": [
+          "status-bind"
+        ],
+        "effect": {
+          "control": 1
+        },
+        "desc": "以灵力凝索束缚对手，使其短暂失去一次反击机会。"
+      },
+      {
+        "id": "spell-dispel-seal",
+        "name": "破法印",
+        "quality": "玄阶下品",
+        "qi": 24,
+        "power": 48,
+        "unlock": 10,
+        "path": "none",
+        "category": "debuff",
+        "cooldown": 2,
+        "sources": [
+          "苍梧郡城",
+          "古河遗迹"
+        ],
+        "statusIds": [
+          "status-weaken",
+          "status-vulnerable"
+        ],
+        "effect": {
+          "damageScale": 0.72,
+          "weaken": 2,
+          "vulnerable": 2
+        },
+        "desc": "震散对方护体灵机，使其攻势与防护同时出现破绽。"
+      },
+      {
+        "id": "spell-golden-bell",
+        "name": "金钟罩",
+        "quality": "玄阶下品",
+        "qi": 28,
+        "power": 0,
+        "unlock": 10,
+        "path": "none",
+        "category": "shield",
+        "cooldown": 4,
+        "sources": [
+          "苍梧郡城",
+          "落星矿脉"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-guard"
+        ],
+        "effect": {
+          "shieldPct": 0.3,
+          "guard": 2
+        },
+        "desc": "灵力凝成钟形屏障，先吃护盾，再以灵罡卸力。"
+      },
+      {
+        "id": "spell-spirit-burst",
+        "name": "灵爆术",
+        "quality": "玄阶中品",
+        "qi": 34,
+        "power": 96,
+        "unlock": 12,
+        "path": "none",
+        "category": "burst",
+        "cooldown": 2,
+        "sources": [
+          "苍梧郡城",
+          "古河遗迹"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1.22,
+          "selfHpPct": 0.04
+        },
+        "desc": "强行压缩丹田灵力后瞬间爆开，威力高，但会震伤自身经脉。"
+      },
+      {
+        "id": "spell-five-cycle-passive",
+        "name": "五行轮转",
+        "quality": "玄阶秘传",
+        "qi": 0,
+        "power": 0,
+        "unlock": 13,
+        "path": "none",
+        "category": "passive",
+        "cooldown": 0,
+        "sources": [
+          "苍梧郡城",
+          "古河遗迹"
+        ],
+        "statusIds": [],
+        "effect": {
+          "passive": {
+            "damageAll": 0.05,
+            "qi": 0.08,
+            "incoming": -0.02
+          }
+        },
+        "desc": "让五行灵力彼此循环，略增所有术法威力、灵力上限与护身稳定性。"
+      },
+      {
+        "id": "spell-sword-qi-slash",
+        "name": "剑气斩",
+        "quality": "玄阶剑术",
+        "qi": 22,
+        "power": 68,
+        "unlock": 10,
+        "path": "sword",
+        "category": "sword-attack",
+        "cooldown": 1,
+        "sources": [
+          "青云山",
+          "落星矿脉"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1.05
+        },
+        "desc": "把剑意压入一道锋锐剑气，简单直接，是筑基剑修的主力招式。"
+      },
+      {
+        "id": "spell-green-edge-triple",
+        "name": "青锋三叠",
+        "quality": "玄阶剑术",
+        "qi": 30,
+        "power": 44,
+        "unlock": 11,
+        "path": "sword",
+        "category": "multi-hit",
+        "cooldown": 2,
+        "sources": [
+          "青云山"
+        ],
+        "statusIds": [],
+        "effect": {
+          "hits": 3,
+          "damageScale": 0.72
+        },
+        "desc": "一息三剑，单击不重，却能连续撕开护体灵光。"
+      },
+      {
+        "id": "spell-sword-guard",
+        "name": "御剑护身",
+        "quality": "玄阶剑术",
+        "qi": 32,
+        "power": 0,
+        "unlock": 12,
+        "path": "sword",
+        "category": "counter",
+        "cooldown": 3,
+        "sources": [
+          "青云山",
+          "落星矿脉"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-counter"
+        ],
+        "effect": {
+          "shieldPct": 0.22,
+          "counter": 0.18
+        },
+        "desc": "飞剑环身游走，先挡伤害，再借来势反削敌人。"
+      },
+      {
+        "id": "spell-sword-escape",
+        "name": "剑遁",
+        "quality": "玄阶遁术",
+        "qi": 38,
+        "power": 0,
+        "unlock": 13,
+        "path": "sword",
+        "category": "movement",
+        "cooldown": 3,
+        "sources": [
+          "青云山",
+          "古河遗迹"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "evade": 3
+        },
+        "desc": "人剑相合化作遁光，短时极难锁定。"
+      },
+      {
+        "id": "spell-armorbreak-sword-intent",
+        "name": "破甲剑意",
+        "quality": "玄阶剑意",
+        "qi": 44,
+        "power": 84,
+        "unlock": 14,
+        "path": "sword",
+        "category": "debuff",
+        "cooldown": 2,
+        "sources": [
+          "青云山",
+          "古河遗迹"
+        ],
+        "statusIds": [
+          "status-vulnerable"
+        ],
+        "effect": {
+          "damageScale": 0.9,
+          "vulnerable": 3
+        },
+        "desc": "剑意专破护体气机，命中后会让后续攻势更容易造成重创。"
+      },
+      {
+        "id": "spell-myriad-sword-return",
+        "name": "万剑归流",
+        "quality": "玄阶上品",
+        "qi": 58,
+        "power": 58,
+        "unlock": 15,
+        "path": "sword",
+        "category": "multi-hit",
+        "cooldown": 3,
+        "sources": [
+          "青云山",
+          "古河遗迹"
+        ],
+        "statusIds": [],
+        "effect": {
+          "hits": 5,
+          "damageScale": 0.58
+        },
+        "desc": "分化剑光后同时归流斩落，依赖飞剑、神识和熟练度。"
+      },
+      {
+        "id": "spell-one-sword-mountain",
+        "name": "一剑断岳",
+        "quality": "地阶剑道",
+        "qi": 70,
+        "power": 172,
+        "unlock": 17,
+        "path": "sword",
+        "category": "execute",
+        "cooldown": 4,
+        "sources": [
+          "青云山",
+          "古河遗迹"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1.12,
+          "executeBelow": 0.35,
+          "executeMult": 1.45
+        },
+        "desc": "蓄势一剑斩尽余力，对已经露出败象的敌人尤其致命。"
+      },
+      {
+        "id": "spell-sword-array-lock",
+        "name": "剑阵锁域",
+        "quality": "地阶剑阵",
+        "qi": 95,
+        "power": 122,
+        "unlock": 19,
+        "path": "sword",
+        "category": "control",
+        "cooldown": 5,
+        "sources": [
+          "青云山",
+          "古河遗迹"
+        ],
+        "statusIds": [
+          "status-bind",
+          "status-vulnerable"
+        ],
+        "effect": {
+          "damageScale": 0.72,
+          "control": 1,
+          "vulnerable": 2
+        },
+        "desc": "多柄剑光封锁四周，把对手困在剑阵中心并暴露破绽。"
+      },
+      {
+        "id": "spell-clear-sword-heart",
+        "name": "剑心通明",
+        "quality": "地阶秘传",
+        "qi": 0,
+        "power": 0,
+        "unlock": 15,
+        "path": "sword",
+        "category": "passive",
+        "cooldown": 0,
+        "sources": [
+          "青云山"
+        ],
+        "statusIds": [],
+        "effect": {
+          "passive": {
+            "path": "sword",
+            "pathDamage": 0.12,
+            "artifactDamage": 0.06
+          }
+        },
+        "desc": "剑心澄澈，所有剑道技能与剑类法宝的协同进一步增强。"
+      },
+      {
+        "id": "spell-flame-serpent",
+        "name": "炎蛇术",
+        "quality": "玄阶火法",
+        "qi": 24,
+        "power": 76,
+        "unlock": 10,
+        "path": "flame",
+        "category": "damage-over-time",
+        "cooldown": 1,
+        "sources": [
+          "赤霞谷",
+          "黑风岭"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 0.82,
+          "burn": 2
+        },
+        "desc": "火焰化蛇缠咬敌身，命中后留下持续灼烧。"
+      },
+      {
+        "id": "spell-fire-wall",
+        "name": "火墙术",
+        "quality": "玄阶火法",
+        "qi": 32,
+        "power": 62,
+        "unlock": 11,
+        "path": "flame",
+        "category": "damage-over-time",
+        "cooldown": 3,
+        "sources": [
+          "赤霞谷"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 0.62,
+          "burn": 4
+        },
+        "desc": "竖起持续燃烧的火墙，以较低直接伤害换取更久灼烧。"
+      },
+      {
+        "id": "spell-explosion-ring",
+        "name": "爆炎环",
+        "quality": "玄阶火法",
+        "qi": 40,
+        "power": 112,
+        "unlock": 12,
+        "path": "flame",
+        "category": "area",
+        "cooldown": 2,
+        "sources": [
+          "赤霞谷",
+          "黑风岭"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1.12
+        },
+        "desc": "火环向四周爆开，在单挑中也能以冲击波震伤对手。"
+      },
+      {
+        "id": "spell-scarlet-flame-guard",
+        "name": "赤焰护体",
+        "quality": "玄阶火法",
+        "qi": 42,
+        "power": 0,
+        "unlock": 13,
+        "path": "flame",
+        "category": "counter",
+        "cooldown": 4,
+        "sources": [
+          "赤霞谷"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-counter"
+        ],
+        "effect": {
+          "shieldPct": 0.2,
+          "counter": 0.2
+        },
+        "desc": "真火贴体而燃，挡住部分来袭威力，并灼伤近身攻击者。"
+      },
+      {
+        "id": "spell-fire-escape",
+        "name": "火遁",
+        "quality": "玄阶遁术",
+        "qi": 48,
+        "power": 0,
+        "unlock": 14,
+        "path": "flame",
+        "category": "movement",
+        "cooldown": 3,
+        "sources": [
+          "赤霞谷",
+          "古河遗迹"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "evade": 3
+        },
+        "desc": "借火光爆散挪移身形，短时难以捕捉。"
+      },
+      {
+        "id": "spell-inferno-sea",
+        "name": "炼狱火海",
+        "quality": "玄阶上品",
+        "qi": 70,
+        "power": 148,
+        "unlock": 15,
+        "path": "flame",
+        "category": "area",
+        "cooldown": 4,
+        "sources": [
+          "赤霞谷",
+          "古河遗迹"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 1.02,
+          "burn": 4,
+          "selfHpPct": 0.05
+        },
+        "desc": "以大量真元铺开火海，范围与持续伤害都极强，但对自身经脉压力很大。"
+      },
+      {
+        "id": "spell-karma-soulfire",
+        "name": "焚魂业火",
+        "quality": "地阶火法",
+        "qi": 95,
+        "power": 224,
+        "unlock": 18,
+        "path": "flame",
+        "category": "soul-attack",
+        "cooldown": 4,
+        "sources": [
+          "赤霞谷",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-burn",
+          "status-weaken"
+        ],
+        "effect": {
+          "damageScale": 0.98,
+          "burn": 3,
+          "weaken": 2
+        },
+        "desc": "真火不只烧肉身，也灼伤神魂，使对手攻势持续衰弱。"
+      },
+      {
+        "id": "spell-nirvana-ember",
+        "name": "涅槃余烬",
+        "quality": "地阶保命术",
+        "qi": 120,
+        "power": 0,
+        "unlock": 19,
+        "path": "flame",
+        "category": "laststand",
+        "cooldown": 7,
+        "sources": [
+          "赤霞谷",
+          "古河遗迹"
+        ],
+        "statusIds": [
+          "status-regen",
+          "status-guard"
+        ],
+        "effect": {
+          "requiresHpBelow": 0.45,
+          "healPct": 0.35,
+          "guard": 3,
+          "regen": 2
+        },
+        "desc": "只有濒危时才能点燃体内余烬，强行续回一口命并撑起护体真火。"
+      },
+      {
+        "id": "spell-flame-meridian-passive",
+        "name": "火脉燃元",
+        "quality": "地阶秘传",
+        "qi": 0,
+        "power": 0,
+        "unlock": 15,
+        "path": "flame",
+        "category": "passive",
+        "cooldown": 0,
+        "sources": [
+          "赤霞谷"
+        ],
+        "statusIds": [],
+        "effect": {
+          "passive": {
+            "path": "flame",
+            "pathDamage": 0.14,
+            "incoming": 0.05
+          }
+        },
+        "desc": "让经脉长期保持燃元状态，火法威力大增，但承受伤害也略高。"
+      },
+      {
+        "id": "spell-iron-mountain-crash",
+        "name": "铁山靠",
+        "quality": "玄阶体术",
+        "qi": 12,
+        "power": 72,
+        "unlock": 10,
+        "path": "body",
+        "category": "body-attack",
+        "cooldown": 1,
+        "sources": [
+          "万兽山脉",
+          "黑风岭"
+        ],
+        "statusIds": [
+          "status-body-guard"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1.02,
+          "bodyGuard": 1
+        },
+        "desc": "以肩背硬撞对手，出手后借势收紧筋骨。"
+      },
+      {
+        "id": "spell-earthshaking-fist",
+        "name": "震地拳",
+        "quality": "玄阶体术",
+        "qi": 18,
+        "power": 98,
+        "unlock": 11,
+        "path": "body",
+        "category": "body-attack",
+        "cooldown": 2,
+        "sources": [
+          "万兽山脉",
+          "落星矿脉"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1.08,
+          "weaken": 1
+        },
+        "desc": "重拳震动地面与敌身气血，命中后会短暂打乱对方发力。"
+      },
+      {
+        "id": "spell-vajra-guard",
+        "name": "金刚护体",
+        "quality": "玄阶体术",
+        "qi": 20,
+        "power": 0,
+        "unlock": 12,
+        "path": "body",
+        "category": "shield",
+        "cooldown": 4,
+        "sources": [
+          "万兽山脉",
+          "苍梧郡城"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-body-guard"
+        ],
+        "effect": {
+          "shieldPct": 0.15,
+          "bodyGuard": 3
+        },
+        "desc": "气血凝作护身劲力，不靠大量灵力也能稳住正面防御。"
+      },
+      {
+        "id": "spell-bloodflow-return",
+        "name": "血气回潮",
+        "quality": "玄阶体术",
+        "qi": 12,
+        "power": 0,
+        "unlock": 13,
+        "path": "body",
+        "category": "healing",
+        "cooldown": 4,
+        "sources": [
+          "万兽山脉"
+        ],
+        "statusIds": [
+          "status-regen"
+        ],
+        "effect": {
+          "healPct": 0.22,
+          "regen": 2
+        },
+        "desc": "催动旺盛气血封住伤口，在战斗中恢复部分气血。"
+      },
+      {
+        "id": "spell-war-stomp",
+        "name": "狂战踏",
+        "quality": "玄阶体术",
+        "qi": 18,
+        "power": 108,
+        "unlock": 14,
+        "path": "body",
+        "category": "buff",
+        "cooldown": 3,
+        "sources": [
+          "万兽山脉",
+          "黑风岭"
+        ],
+        "statusIds": [
+          "status-rage"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 0.95,
+          "rage": 3,
+          "selfHpPct": 0.03
+        },
+        "desc": "以痛感和冲击催起战意，短时提高后续输出，但会消耗少量气血。"
+      },
+      {
+        "id": "spell-heavenshake-triple",
+        "name": "撼天三击",
+        "quality": "玄阶上品",
+        "qi": 26,
+        "power": 72,
+        "unlock": 15,
+        "path": "body",
+        "category": "multi-hit",
+        "cooldown": 3,
+        "sources": [
+          "万兽山脉",
+          "古河遗迹"
+        ],
+        "statusIds": [],
+        "effect": {
+          "attackType": "melee",
+          "hits": 3,
+          "damageScale": 0.78
+        },
+        "desc": "三次重击层层叠力，完全依赖肉身与近战根基。"
+      },
+      {
+        "id": "spell-immovable-king",
+        "name": "不动明王身",
+        "quality": "地阶体术",
+        "qi": 34,
+        "power": 0,
+        "unlock": 17,
+        "path": "body",
+        "category": "shield",
+        "cooldown": 5,
+        "sources": [
+          "万兽山脉",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-body-guard"
+        ],
+        "effect": {
+          "shieldPct": 0.38,
+          "bodyGuard": 3
+        },
+        "desc": "气血、骨骼与护体灵力同时锁紧，形成极强正面生存能力。"
+      },
+      {
+        "id": "spell-reflection-gang",
+        "name": "反震罡劲",
+        "quality": "地阶体术",
+        "qi": 28,
+        "power": 0,
+        "unlock": 19,
+        "path": "body",
+        "category": "counter",
+        "cooldown": 4,
+        "sources": [
+          "万兽山脉",
+          "落星矿脉"
+        ],
+        "statusIds": [
+          "status-counter",
+          "status-body-guard"
+        ],
+        "effect": {
+          "counter": 0.45,
+          "bodyGuard": 2
+        },
+        "desc": "不躲不闪，以护体罡劲把一部分来袭威力原路震回。"
+      },
+      {
+        "id": "spell-savage-blood-passive",
+        "name": "蛮血不息",
+        "quality": "地阶秘传",
+        "qi": 0,
+        "power": 0,
+        "unlock": 15,
+        "path": "body",
+        "category": "passive",
+        "cooldown": 0,
+        "sources": [
+          "万兽山脉"
+        ],
+        "statusIds": [],
+        "effect": {
+          "passive": {
+            "path": "body",
+            "pathDamage": 0.1,
+            "hp": 0.15,
+            "incoming": -0.06,
+            "healing": 0.08
+          }
+        },
+        "desc": "让气血始终维持旺盛循环，提高生命上限、体术威力和受伤后的恢复能力。"
+      },
+      {
+        "id": "spell-soul-shock-needle",
+        "name": "惊魂刺",
+        "quality": "玄阶神魂",
+        "qi": 30,
+        "power": 92,
+        "unlock": 10,
+        "path": "spirit",
+        "category": "soul-attack",
+        "cooldown": 2,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "damageScale": 0.92,
+          "weaken": 1
+        },
+        "desc": "神识凝成尖刺直刺识海，肉身防护很难完全抵挡。"
+      },
+      {
+        "id": "spell-bewildering-mist",
+        "name": "迷神雾",
+        "quality": "玄阶神魂",
+        "qi": 36,
+        "power": 0,
+        "unlock": 11,
+        "path": "spirit",
+        "category": "control",
+        "cooldown": 4,
+        "sources": [
+          "古河遗迹",
+          "云梦泽"
+        ],
+        "statusIds": [
+          "status-bind"
+        ],
+        "effect": {
+          "control": 1
+        },
+        "desc": "神识化雾干扰感知，使敌人短暂失去判断与反击。"
+      },
+      {
+        "id": "spell-soul-fixing-curse",
+        "name": "定魂咒",
+        "quality": "玄阶神魂",
+        "qi": 40,
+        "power": 0,
+        "unlock": 12,
+        "path": "spirit",
+        "category": "seal",
+        "cooldown": 4,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-soul-seal"
+        ],
+        "effect": {
+          "soulSeal": 3
+        },
+        "desc": "以咒印镇住神魂运转，使对方连续数次难以完整发力。"
+      },
+      {
+        "id": "spell-divine-sense-barrier",
+        "name": "神识屏障",
+        "quality": "玄阶神魂",
+        "qi": 44,
+        "power": 0,
+        "unlock": 13,
+        "path": "spirit",
+        "category": "shield",
+        "cooldown": 4,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-domain"
+        ],
+        "effect": {
+          "shieldPct": 0.25,
+          "domain": 2
+        },
+        "desc": "神识外放成障，既能抵消伤害，也能扭曲来袭灵机。"
+      },
+      {
+        "id": "spell-thought-seize",
+        "name": "摄念夺神",
+        "quality": "玄阶神魂",
+        "qi": 55,
+        "power": 112,
+        "unlock": 14,
+        "path": "spirit",
+        "category": "drain",
+        "cooldown": 3,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "damageScale": 0.88,
+          "drain": 0.18,
+          "qiPct": 0.08,
+          "weaken": 1
+        },
+        "desc": "撕扯对方神念为己所用，造成伤害的同时回补气血与少量灵力。"
+      },
+      {
+        "id": "spell-soul-cleave",
+        "name": "斩魄",
+        "quality": "玄阶上品",
+        "qi": 70,
+        "power": 184,
+        "unlock": 15,
+        "path": "spirit",
+        "category": "soul-attack",
+        "cooldown": 3,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "damageScale": 1.04,
+          "weaken": 2
+        },
+        "desc": "元神如刀斩过魂魄，伤害与后续神识压制兼备。"
+      },
+      {
+        "id": "spell-primordial-outbody",
+        "name": "元神出窍",
+        "quality": "地阶神通",
+        "qi": 95,
+        "power": 242,
+        "unlock": 18,
+        "path": "spirit",
+        "category": "soul-attack",
+        "cooldown": 5,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "damageScale": 1.08,
+          "evade": 1
+        },
+        "desc": "元神短暂离体发动重击，出手瞬间肉身与神魂错位，也更难被反击。"
+      },
+      {
+        "id": "spell-taixu-godseal-domain",
+        "name": "太虚禁神域",
+        "quality": "地阶上品",
+        "qi": 140,
+        "power": 164,
+        "unlock": 21,
+        "path": "spirit",
+        "category": "domain",
+        "cooldown": 6,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [
+          "status-bind",
+          "status-domain",
+          "status-vulnerable"
+        ],
+        "effect": {
+          "damageScale": 0.68,
+          "control": 2,
+          "domain": 3,
+          "vulnerable": 2
+        },
+        "desc": "展开禁神法域封住感知与灵机，是元婴后期以上才敢施展的强控神通。"
+      },
+      {
+        "id": "spell-one-soul-passive",
+        "name": "守一魂印",
+        "quality": "地阶秘传",
+        "qi": 0,
+        "power": 0,
+        "unlock": 15,
+        "path": "spirit",
+        "category": "passive",
+        "cooldown": 0,
+        "sources": [
+          "古河遗迹",
+          "玄阴禁地"
+        ],
+        "statusIds": [],
+        "effect": {
+          "passive": {
+            "path": "spirit",
+            "pathDamage": 0.12,
+            "qi": 0.15,
+            "incoming": -0.03
+          }
+        },
+        "desc": "识海常驻一枚守一魂印，扩大神识容量并提高神魂技能稳定性。"
+      },
+      {
+        "id": "spell-v36-sword-space-step",
+        "name": "剑光挪移",
+        "quality": "地阶神通",
+        "qi": 190,
+        "power": 0,
+        "unlock": 26,
+        "path": "sword",
+        "category": "movement",
+        "cooldown": 3,
+        "sources": [
+          "天渊城"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "evade": 3,
+          "spaceShift": 2
+        },
+        "desc": "剑光先行、人身后至，短距离跨过空间褶皱，连续提高闪避并强化脱身。"
+      },
+      {
+        "id": "spell-v36-sword-boundary-scar",
+        "name": "断界剑痕",
+        "quality": "地阶神通",
+        "qi": 250,
+        "power": 610,
+        "unlock": 27,
+        "path": "sword",
+        "category": "debuff",
+        "cooldown": 3,
+        "sources": [
+          "虚空裂隙",
+          "上古断界台"
+        ],
+        "statusIds": [
+          "status-vulnerable"
+        ],
+        "effect": {
+          "damageScale": 1.05,
+          "vulnerable": 3,
+          "spaceRend": 0.2
+        },
+        "desc": "剑痕停留在界面本身，削弱目标护体结构并放大后续伤害。"
+      },
+      {
+        "id": "spell-v36-sword-riftstorm",
+        "name": "万剑裂空",
+        "quality": "地阶上品",
+        "qi": 330,
+        "power": 365,
+        "unlock": 28,
+        "path": "sword",
+        "category": "multi-hit",
+        "cooldown": 5,
+        "sources": [
+          "上古断界台"
+        ],
+        "statusIds": [],
+        "effect": {
+          "hits": 5,
+          "damageScale": 0.72,
+          "spaceRend": 0.14
+        },
+        "desc": "五道剑光从不同空间折点同时落下，专破单一方向的护体手段。"
+      },
+      {
+        "id": "spell-v36-flame-voidflash",
+        "name": "虚焰遁光",
+        "quality": "地阶神通",
+        "qi": 200,
+        "power": 0,
+        "unlock": 26,
+        "path": "flame",
+        "category": "movement",
+        "cooldown": 3,
+        "sources": [
+          "空冥裂谷"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "evade": 3,
+          "spaceShift": 2
+        },
+        "desc": "以虚焰烧穿一步距离，身形在火光中错位。"
+      },
+      {
+        "id": "spell-v36-flame-riftfire",
+        "name": "裂空真火",
+        "quality": "地阶神通",
+        "qi": 285,
+        "power": 540,
+        "unlock": 27,
+        "path": "flame",
+        "category": "damage-over-time",
+        "cooldown": 4,
+        "sources": [
+          "虚空裂隙"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 0.92,
+          "burn": 5,
+          "spaceRend": 0.12
+        },
+        "desc": "真火钻入空间细缝后从目标周身爆出，持续灼烧且难以靠普通护体隔绝。"
+      },
+      {
+        "id": "spell-v36-flame-worldsea",
+        "name": "焚界炎海",
+        "quality": "地阶上品",
+        "qi": 390,
+        "power": 720,
+        "unlock": 29,
+        "path": "flame",
+        "category": "area",
+        "cooldown": 6,
+        "sources": [
+          "上古断界台"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 1.02,
+          "burn": 4,
+          "selfHpPct": 0.06,
+          "spaceLock": 1
+        },
+        "desc": "把周围空间化作火海容器，范围、持续与封锁兼具，代价是明显反噬。"
+      },
+      {
+        "id": "spell-v36-body-voidstep",
+        "name": "踏虚步",
+        "quality": "地阶体术",
+        "qi": 95,
+        "power": 0,
+        "unlock": 26,
+        "path": "body",
+        "category": "movement",
+        "cooldown": 3,
+        "sources": [
+          "天渊城",
+          "空冥裂谷"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "evade": 2,
+          "spaceShift": 2
+        },
+        "desc": "不靠遁光，而以肉身强踏空间节点完成短距挪移。"
+      },
+      {
+        "id": "spell-v36-body-boundary-form",
+        "name": "镇界金身",
+        "quality": "地阶体术",
+        "qi": 150,
+        "power": 0,
+        "unlock": 27,
+        "path": "body",
+        "category": "shield",
+        "cooldown": 5,
+        "sources": [
+          "上古断界台"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-body-guard"
+        ],
+        "effect": {
+          "shieldPct": 0.46,
+          "bodyGuard": 3,
+          "voidPhase": 1
+        },
+        "desc": "肉身如界碑镇住自身坐标，先以护盾承压，再以短暂虚化卸去一次重击。"
+      },
+      {
+        "id": "spell-v36-body-riftfist",
+        "name": "崩界神拳",
+        "quality": "地阶体术",
+        "qi": 175,
+        "power": 680,
+        "unlock": 28,
+        "path": "body",
+        "category": "body-attack",
+        "cooldown": 4,
+        "sources": [
+          "空冥裂谷",
+          "上古断界台"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1.12,
+          "weaken": 2,
+          "spaceRend": 0.18
+        },
+        "desc": "拳劲同时震动肉身与周围空间，对高阶护体和界域造成双重冲击。"
+      },
+      {
+        "id": "spell-v36-spirit-shift",
+        "name": "虚空移形",
+        "quality": "地阶神通",
+        "qi": 210,
+        "power": 0,
+        "unlock": 26,
+        "path": "spirit",
+        "category": "movement",
+        "cooldown": 3,
+        "sources": [
+          "天渊城",
+          "虚空裂隙"
+        ],
+        "statusIds": [
+          "status-evade"
+        ],
+        "effect": {
+          "evade": 3,
+          "spaceShift": 3
+        },
+        "desc": "元神先锁定另一处空间坐标，再拖动肉身完成瞬间挪移。"
+      },
+      {
+        "id": "spell-v36-spirit-lock",
+        "name": "空间禁锁",
+        "quality": "地阶上品",
+        "qi": 300,
+        "power": 280,
+        "unlock": 27,
+        "path": "spirit",
+        "category": "control",
+        "cooldown": 5,
+        "sources": [
+          "虚空裂隙",
+          "上古断界台"
+        ],
+        "statusIds": [
+          "status-bind",
+          "status-domain"
+        ],
+        "effect": {
+          "damageScale": 0.55,
+          "control": 1,
+          "domain": 2,
+          "spaceLock": 3
+        },
+        "desc": "冻结一小片空间的位移自由，可压住虚化、遁术和部分空间型敌技。"
+      },
+      {
+        "id": "spell-v36-spirit-phase",
+        "name": "太虚化空",
+        "quality": "地阶上品",
+        "qi": 340,
+        "power": 0,
+        "unlock": 29,
+        "path": "spirit",
+        "category": "defense",
+        "cooldown": 6,
+        "sources": [
+          "上古断界台"
+        ],
+        "statusIds": [
+          "status-domain"
+        ],
+        "effect": {
+          "domain": 2,
+          "voidPhase": 2
+        },
+        "desc": "元神与肉身短暂淡出当前界面，连续两次受击都被显著削弱。"
+      },
+      {
+        "id": "spell-v37-sword-law-cut",
+        "name": "法则断斩",
+        "quality": "天阶神通",
+        "qi": 480,
+        "power": 980,
+        "unlock": 30,
+        "path": "sword",
+        "category": "execute",
+        "cooldown": 4,
+        "sources": [
+          "法则古原"
+        ],
+        "statusIds": [
+          "status-vulnerable"
+        ],
+        "effect": {
+          "damageScale": 1.16,
+          "vulnerable": 3,
+          "lawStrike": 0.22,
+          "executeBelow": 0.32,
+          "executeMult": 1.55
+        },
+        "desc": "斩的不是肉身表面，而是目标护体法则的连续性。"
+      },
+      {
+        "id": "spell-v37-sword-domain-rain",
+        "name": "万剑领域",
+        "quality": "天阶神通",
+        "qi": 620,
+        "power": 720,
+        "unlock": 31,
+        "path": "sword",
+        "category": "domain",
+        "cooldown": 6,
+        "sources": [
+          "万象法坛"
+        ],
+        "statusIds": [
+          "status-domain"
+        ],
+        "effect": {
+          "damageScale": 0.82,
+          "control": 1,
+          "lawDomain": 2
+        },
+        "desc": "以剑意替代领域内的部分天地规则，万千剑痕自行追索敌人。"
+      },
+      {
+        "id": "spell-v37-sword-avatar",
+        "name": "剑尊法相斩",
+        "quality": "天阶上品",
+        "qi": 820,
+        "power": 1500,
+        "unlock": 32,
+        "path": "sword",
+        "category": "burst",
+        "cooldown": 7,
+        "sources": [
+          "归一圣墟"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1.28,
+          "lawStrike": 0.3,
+          "avatarEcho": 1
+        },
+        "desc": "借太白剑尊法相完成一次规则层面的巨型斩击。"
+      },
+      {
+        "id": "spell-v37-flame-lawfire",
+        "name": "焚灭法火",
+        "quality": "天阶神通",
+        "qi": 500,
+        "power": 900,
+        "unlock": 30,
+        "path": "flame",
+        "category": "damage-over-time",
+        "cooldown": 4,
+        "sources": [
+          "法则古原",
+          "天衡战城"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 0.96,
+          "burn": 7,
+          "lawStrike": 0.18
+        },
+        "desc": "火势附着焚灭法则，持续侵蚀灵力、肉身和护体规则。"
+      },
+      {
+        "id": "spell-v37-flame-domain",
+        "name": "大日焚界域",
+        "quality": "天阶神通",
+        "qi": 650,
+        "power": 760,
+        "unlock": 31,
+        "path": "flame",
+        "category": "domain",
+        "cooldown": 6,
+        "sources": [
+          "万象法坛"
+        ],
+        "statusIds": [
+          "status-burn",
+          "status-domain"
+        ],
+        "effect": {
+          "damageScale": 0.78,
+          "burn": 5,
+          "lawDomain": 3,
+          "selfHpPct": 0.05
+        },
+        "desc": "领域内处处皆为火源，敌人每一次运转灵力都加速焚毁。"
+      },
+      {
+        "id": "spell-v37-flame-avatar",
+        "name": "炎神法相坠日",
+        "quality": "天阶上品",
+        "qi": 860,
+        "power": 1580,
+        "unlock": 32,
+        "path": "flame",
+        "category": "area",
+        "cooldown": 7,
+        "sources": [
+          "归一圣墟"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 1.22,
+          "burn": 6,
+          "lawStrike": 0.26,
+          "avatarEcho": 1,
+          "selfHpPct": 0.05
+        },
+        "desc": "炎神法相托起大日虚影轰落战场，范围与持续杀伤同时爆发。"
+      },
+      {
+        "id": "spell-v37-body-lawbody",
+        "name": "镇界法身",
+        "quality": "天阶体术",
+        "qi": 260,
+        "power": 0,
+        "unlock": 30,
+        "path": "body",
+        "category": "shield",
+        "cooldown": 5,
+        "sources": [
+          "天衡战城"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-body-guard"
+        ],
+        "effect": {
+          "shieldPct": 0.62,
+          "bodyGuard": 4,
+          "lawDomain": 1
+        },
+        "desc": "肉身作为领域锚点，强行稳定周围规则并承受冲击。"
+      },
+      {
+        "id": "spell-v37-body-worldfist",
+        "name": "一界镇天拳",
+        "quality": "天阶体术",
+        "qi": 340,
+        "power": 1180,
+        "unlock": 31,
+        "path": "body",
+        "category": "body-attack",
+        "cooldown": 4,
+        "sources": [
+          "万象法坛"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1.24,
+          "weaken": 2,
+          "lawStrike": 0.24
+        },
+        "desc": "一拳携带自身小天地的重量，硬生生压塌目标防御。"
+      },
+      {
+        "id": "spell-v37-body-avatar",
+        "name": "神岳法相镇压",
+        "quality": "天阶上品",
+        "qi": 520,
+        "power": 1320,
+        "unlock": 32,
+        "path": "body",
+        "category": "counter",
+        "cooldown": 7,
+        "sources": [
+          "归一圣墟"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-counter"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1.04,
+          "shieldPct": 0.36,
+          "counter": 0.72,
+          "avatarEcho": 1
+        },
+        "desc": "神岳法相立于身后，以巨大法相承伤并反镇来敌。"
+      },
+      {
+        "id": "spell-v37-spirit-lawseal",
+        "name": "法则禁神印",
+        "quality": "天阶神通",
+        "qi": 520,
+        "power": 700,
+        "unlock": 30,
+        "path": "spirit",
+        "category": "seal",
+        "cooldown": 5,
+        "sources": [
+          "法则古原",
+          "万象法坛"
+        ],
+        "statusIds": [
+          "status-soul-seal",
+          "status-bind"
+        ],
+        "effect": {
+          "damageScale": 0.74,
+          "soulSeal": 4,
+          "control": 1,
+          "lawStrike": 0.14
+        },
+        "desc": "直接封住目标神魂与外界法则的联系。"
+      },
+      {
+        "id": "spell-v37-spirit-domain",
+        "name": "万念禁神域",
+        "quality": "天阶神通",
+        "qi": 680,
+        "power": 640,
+        "unlock": 31,
+        "path": "spirit",
+        "category": "domain",
+        "cooldown": 6,
+        "sources": [
+          "万象法坛"
+        ],
+        "statusIds": [
+          "status-domain",
+          "status-bind"
+        ],
+        "effect": {
+          "damageScale": 0.62,
+          "control": 2,
+          "domain": 4,
+          "lawDomain": 3
+        },
+        "desc": "领域内念头皆受压制，敌人的感知、神通与反击被持续削弱。"
+      },
+      {
+        "id": "spell-v37-spirit-avatar",
+        "name": "天尊法相摄界",
+        "quality": "天阶上品",
+        "qi": 900,
+        "power": 1450,
+        "unlock": 32,
+        "path": "spirit",
+        "category": "soul-attack",
+        "cooldown": 7,
+        "sources": [
+          "归一圣墟"
+        ],
+        "statusIds": [
+          "status-weaken",
+          "status-vulnerable"
+        ],
+        "effect": {
+          "damageScale": 1.18,
+          "weaken": 3,
+          "vulnerable": 3,
+          "lawStrike": 0.28,
+          "avatarEcho": 1,
+          "drain": 0.2
+        },
+        "desc": "万念天尊法相俯视战场，一念摄取整片区域的神魂灵机。"
+      },
+      {
+        "id": "spell-v38-sword-origin-rend",
+        "name": "界源断天",
+        "quality": "大乘神通",
+        "qi": 1100,
+        "power": 2050,
+        "unlock": 34,
+        "path": "sword",
+        "category": "execute",
+        "cooldown": 5,
+        "sources": [
+          "界源海"
+        ],
+        "statusIds": [
+          "status-vulnerable"
+        ],
+        "effect": {
+          "damageScale": 1.24,
+          "vulnerable": 3,
+          "originStrike": 0.28,
+          "executeBelow": 0.36,
+          "executeMult": 1.65
+        },
+        "desc": "借界源定位天地结构的薄弱处，一剑直接切断世界层面的防御联系。"
+      },
+      {
+        "id": "spell-v38-sword-world-edict",
+        "name": "万剑敕界",
+        "quality": "大乘神通",
+        "qi": 1500,
+        "power": 1500,
+        "unlock": 35,
+        "path": "sword",
+        "category": "domain",
+        "cooldown": 7,
+        "sources": [
+          "人界议庭"
+        ],
+        "statusIds": [
+          "status-domain"
+        ],
+        "effect": {
+          "damageScale": 0.92,
+          "worldEdict": 2,
+          "originStrike": 0.18
+        },
+        "desc": "以大乘权柄令一域剑道规则短暂服从己身。"
+      },
+      {
+        "id": "spell-v38-sword-heavensplit",
+        "name": "开天一线",
+        "quality": "大乘绝学",
+        "qi": 2100,
+        "power": 3000,
+        "unlock": 36,
+        "path": "sword",
+        "category": "burst",
+        "cooldown": 8,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1.35,
+          "originStrike": 0.38
+        },
+        "desc": "将本源、领域与法相压成一线，模拟开天辟地时最纯粹的断裂。"
+      },
+      {
+        "id": "spell-v38-flame-origin-fire",
+        "name": "本源天火",
+        "quality": "大乘神通",
+        "qi": 1150,
+        "power": 1880,
+        "unlock": 34,
+        "path": "flame",
+        "category": "damage-over-time",
+        "cooldown": 5,
+        "sources": [
+          "天穹祖脉"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 1.06,
+          "burn": 10,
+          "originStrike": 0.24
+        },
+        "desc": "以世界真露为引，让焚灭火势直接附着本源。"
+      },
+      {
+        "id": "spell-v38-flame-world-edict",
+        "name": "焚界天敕",
+        "quality": "大乘神通",
+        "qi": 1550,
+        "power": 1420,
+        "unlock": 35,
+        "path": "flame",
+        "category": "area",
+        "cooldown": 7,
+        "sources": [
+          "人界议庭"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 0.9,
+          "burn": 8,
+          "worldEdict": 2
+        },
+        "desc": "借人界权柄放大焚灭法则，短暂把一片战场化为大乘火域。"
+      },
+      {
+        "id": "spell-v38-flame-sunfall",
+        "name": "末日坠界",
+        "quality": "大乘绝学",
+        "qi": 2200,
+        "power": 3150,
+        "unlock": 36,
+        "path": "flame",
+        "category": "area",
+        "cooldown": 8,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 1.3,
+          "burn": 9,
+          "originStrike": 0.36,
+          "selfHpPct": 0.04
+        },
+        "desc": "以法相托举本源大日砸落，强行烧穿局部世界规则。"
+      },
+      {
+        "id": "spell-v38-body-origin-body",
+        "name": "界脉不灭体",
+        "quality": "大乘体术",
+        "qi": 680,
+        "power": 0,
+        "unlock": 34,
+        "path": "body",
+        "category": "shield",
+        "cooldown": 6,
+        "sources": [
+          "天穹祖脉"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-body-guard"
+        ],
+        "effect": {
+          "shieldPct": 0.78,
+          "bodyGuard": 5,
+          "originGuard": 0.28
+        },
+        "desc": "将祖脉律动引入肉身，使自身暂时成为人界地脉的一部分。"
+      },
+      {
+        "id": "spell-v38-body-world-fist",
+        "name": "人界镇世拳",
+        "quality": "大乘体术",
+        "qi": 820,
+        "power": 2450,
+        "unlock": 35,
+        "path": "body",
+        "category": "body-attack",
+        "cooldown": 5,
+        "sources": [
+          "人界议庭"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1.3,
+          "weaken": 3,
+          "originStrike": 0.28
+        },
+        "desc": "一拳借来整片大地的稳定性，敌人的领域和法相都会被世界重量压制。"
+      },
+      {
+        "id": "spell-v38-body-heavenpillar",
+        "name": "擎天道体",
+        "quality": "大乘绝学",
+        "qi": 1050,
+        "power": 1950,
+        "unlock": 36,
+        "path": "body",
+        "category": "counter",
+        "cooldown": 8,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-counter"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1.08,
+          "shieldPct": 0.48,
+          "counter": 0.88,
+          "worldEdict": 2
+        },
+        "desc": "法相与肉身化作承天巨柱，以世界权柄硬抗并反镇来敌。"
+      },
+      {
+        "id": "spell-v38-spirit-origin-order",
+        "name": "界源神谕",
+        "quality": "大乘神通",
+        "qi": 1200,
+        "power": 1650,
+        "unlock": 34,
+        "path": "spirit",
+        "category": "soul-attack",
+        "cooldown": 5,
+        "sources": [
+          "界源海"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "damageScale": 1.08,
+          "weaken": 4,
+          "originStrike": 0.22,
+          "drain": 0.24
+        },
+        "desc": "元神沿界源脉络直接向目标下达规则层面的神魂敕令。"
+      },
+      {
+        "id": "spell-v38-spirit-world-edict",
+        "name": "万灵天敕",
+        "quality": "大乘神通",
+        "qi": 1600,
+        "power": 1250,
+        "unlock": 35,
+        "path": "spirit",
+        "category": "control",
+        "cooldown": 7,
+        "sources": [
+          "人界议庭"
+        ],
+        "statusIds": [
+          "status-bind",
+          "status-soul-seal"
+        ],
+        "effect": {
+          "damageScale": 0.82,
+          "control": 2,
+          "soulSeal": 4,
+          "worldEdict": 3
+        },
+        "desc": "以世界权柄放大神禁法则，让战场中的灵机与神念短暂服从自身秩序。"
+      },
+      {
+        "id": "spell-v38-spirit-heavenmind",
+        "name": "天心摄界",
+        "quality": "大乘绝学",
+        "qi": 2300,
+        "power": 2850,
+        "unlock": 36,
+        "path": "spirit",
+        "category": "soul-attack",
+        "cooldown": 8,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [
+          "status-vulnerable",
+          "status-weaken"
+        ],
+        "effect": {
+          "damageScale": 1.26,
+          "vulnerable": 4,
+          "weaken": 4,
+          "originStrike": 0.34,
+          "drain": 0.3
+        },
+        "desc": "元神与天心短暂共鸣，一念便可压住一域神魂与法则运转。"
+      },
+      {
+        "id": "spell-v39-sword-thunder-cut",
+        "name": "斩雷一剑",
+        "quality": "半仙神通",
+        "qi": 2600,
+        "power": 3900,
+        "unlock": 37,
+        "path": "sword",
+        "category": "burst",
+        "cooldown": 7,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1.38,
+          "originStrike": 0.34,
+          "tribulationGuard": 0.1
+        },
+        "desc": "以剑光正面劈开劫雷落点，兼具终局爆发与渡劫护持。"
+      },
+      {
+        "id": "spell-v39-sword-heart-cut",
+        "name": "斩我明心",
+        "quality": "半仙神通",
+        "qi": 2300,
+        "power": 3300,
+        "unlock": 37,
+        "path": "sword",
+        "category": "soul-attack",
+        "cooldown": 8,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [
+          "status-soul-seal"
+        ],
+        "effect": {
+          "damageScale": 1.2,
+          "heartGuard": 0.18
+        },
+        "desc": "以剑意斩去心魔借来的虚假自我。"
+      },
+      {
+        "id": "spell-v39-sword-heaven-gate",
+        "name": "一剑开天门",
+        "quality": "飞升绝学",
+        "qi": 3600,
+        "power": 5200,
+        "unlock": 38,
+        "path": "sword",
+        "category": "execute",
+        "cooldown": 9,
+        "sources": [
+          "飞升天门"
+        ],
+        "statusIds": [],
+        "effect": {
+          "damageScale": 1.45,
+          "originStrike": 0.45
+        },
+        "desc": "渡劫之后才可真正施展的飞升剑式。"
+      },
+      {
+        "id": "spell-v39-flame-nirvana",
+        "name": "九劫涅槃火",
+        "quality": "半仙神通",
+        "qi": 2500,
+        "power": 3600,
+        "unlock": 37,
+        "path": "flame",
+        "category": "damage-over-time",
+        "cooldown": 7,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 1.18,
+          "burn": 12,
+          "tribulationGuard": 0.08,
+          "transformGuard": 0.12
+        },
+        "desc": "以天劫为柴反燃自身，伤敌同时为仙凡蜕变积蓄涅槃之力。"
+      },
+      {
+        "id": "spell-v39-flame-heartfire",
+        "name": "明心炼魔火",
+        "quality": "半仙神通",
+        "qi": 2200,
+        "power": 3000,
+        "unlock": 37,
+        "path": "flame",
+        "category": "soul-attack",
+        "cooldown": 8,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 1.12,
+          "heartGuard": 0.18
+        },
+        "desc": "不烧肉身，只烧心魔借来的妄念。"
+      },
+      {
+        "id": "spell-v39-flame-immortal",
+        "name": "仙焰初生",
+        "quality": "飞升绝学",
+        "qi": 3500,
+        "power": 5000,
+        "unlock": 38,
+        "path": "flame",
+        "category": "area",
+        "cooldown": 9,
+        "sources": [
+          "飞升天门"
+        ],
+        "statusIds": [
+          "status-burn"
+        ],
+        "effect": {
+          "damageScale": 1.4,
+          "burn": 10
+        },
+        "desc": "仙凡蜕变完成后诞生的第一缕仙焰。"
+      },
+      {
+        "id": "spell-v39-body-thunder",
+        "name": "肉身承天劫",
+        "quality": "半仙体术",
+        "qi": 900,
+        "power": 0,
+        "unlock": 37,
+        "path": "body",
+        "category": "shield",
+        "cooldown": 7,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [
+          "status-shield",
+          "status-body-guard"
+        ],
+        "effect": {
+          "shieldPct": 0.85,
+          "bodyGuard": 5,
+          "tribulationGuard": 0.2
+        },
+        "desc": "不躲不避，以肉身正面承接天劫并把雷霆炼入骨血。"
+      },
+      {
+        "id": "spell-v39-body-nirvana",
+        "name": "涅槃重铸身",
+        "quality": "半仙体术",
+        "qi": 1300,
+        "power": 0,
+        "unlock": 37,
+        "path": "body",
+        "category": "heal",
+        "cooldown": 9,
+        "sources": [
+          "仙凡界隙"
+        ],
+        "statusIds": [],
+        "effect": {
+          "healPct": 0.52,
+          "transformGuard": 0.22
+        },
+        "desc": "仙凡界隙中重铸血肉，为真仙之体打下最后根基。"
+      },
+      {
+        "id": "spell-v39-body-immortal",
+        "name": "真仙镇界拳",
+        "quality": "飞升绝学",
+        "qi": 2600,
+        "power": 4800,
+        "unlock": 38,
+        "path": "body",
+        "category": "body-attack",
+        "cooldown": 8,
+        "sources": [
+          "飞升天门"
+        ],
+        "statusIds": [
+          "status-weaken"
+        ],
+        "effect": {
+          "attackType": "melee",
+          "damageScale": 1.46
+        },
+        "desc": "半步仙体完成后的镇界一拳。"
+      },
+      {
+        "id": "spell-v39-spirit-heartmirror",
+        "name": "太上照心镜",
+        "quality": "半仙神通",
+        "qi": 2400,
+        "power": 2600,
+        "unlock": 37,
+        "path": "spirit",
+        "category": "control",
+        "cooldown": 7,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [
+          "status-soul-seal"
+        ],
+        "effect": {
+          "damageScale": 0.92,
+          "control": 2,
+          "heartGuard": 0.3
+        },
+        "desc": "照见心魔根源，使心魔劫最危险的伪装失去依凭。"
+      },
+      {
+        "id": "spell-v39-spirit-soulguard",
+        "name": "元神渡劫衣",
+        "quality": "半仙神通",
+        "qi": 1800,
+        "power": 0,
+        "unlock": 37,
+        "path": "spirit",
+        "category": "shield",
+        "cooldown": 7,
+        "sources": [
+          "九霄劫台"
+        ],
+        "statusIds": [
+          "status-shield"
+        ],
+        "effect": {
+          "shieldPct": 0.62,
+          "tribulationGuard": 0.12,
+          "heartGuard": 0.18
+        },
+        "desc": "以元神秩序编织渡劫外衣，专护识海。"
+      },
+      {
+        "id": "spell-v39-spirit-immortal",
+        "name": "仙识临凡",
+        "quality": "飞升绝学",
+        "qi": 3200,
+        "power": 4700,
+        "unlock": 38,
+        "path": "spirit",
+        "category": "soul-attack",
+        "cooldown": 9,
+        "sources": [
+          "飞升天门"
+        ],
+        "statusIds": [
+          "status-weaken",
+          "status-vulnerable"
+        ],
+        "effect": {
+          "damageScale": 1.42,
+          "weaken": 3,
+          "vulnerable": 3
+        },
+        "desc": "真仙元神初成后第一次以仙识俯视人界规则。"
+      }
+    ],
+    "statuses": {
+      "status-evade": {
+        "id": "status-evade",
+        "name": "御风",
+        "kind": "buff",
+        "stack": "refresh",
+        "defaultDuration": 2
+      },
+      "status-guard": {
+        "id": "status-guard",
+        "name": "灵罡",
+        "kind": "buff",
+        "stack": "refresh",
+        "defaultDuration": 3
+      },
+      "status-domain": {
+        "id": "status-domain",
+        "name": "元神法域",
+        "kind": "buff",
+        "stack": "refresh",
+        "defaultDuration": 3
+      },
+      "status-weaken": {
+        "id": "status-weaken",
+        "name": "神识扰乱",
+        "kind": "debuff",
+        "stack": "refresh",
+        "defaultDuration": 2
+      },
+      "status-burn": {
+        "id": "status-burn",
+        "name": "焚脉",
+        "kind": "debuff",
+        "stack": "refresh",
+        "defaultDuration": 3
+      },
+      "status-body-guard": {
+        "id": "status-body-guard",
+        "name": "炼体架势",
+        "kind": "buff",
+        "stack": "refresh",
+        "defaultDuration": 2
+      },
+      "status-soul-seal": {
+        "id": "status-soul-seal",
+        "name": "摄魂封压",
+        "kind": "debuff",
+        "stack": "refresh",
+        "defaultDuration": 2
+      },
+      "status-bind": {
+        "id": "status-bind",
+        "name": "缚灵",
+        "kind": "debuff",
+        "stack": "refresh",
+        "defaultDuration": 1
+      },
+      "status-vulnerable": {
+        "id": "status-vulnerable",
+        "name": "破绽",
+        "kind": "debuff",
+        "stack": "refresh",
+        "defaultDuration": 2
+      },
+      "status-regen": {
+        "id": "status-regen",
+        "name": "回生",
+        "kind": "buff",
+        "stack": "refresh",
+        "defaultDuration": 2
+      },
+      "status-counter": {
+        "id": "status-counter",
+        "name": "反震",
+        "kind": "buff",
+        "stack": "refresh",
+        "defaultDuration": 1
+      },
+      "status-rage": {
+        "id": "status-rage",
+        "name": "燃战",
+        "kind": "buff",
+        "stack": "refresh",
+        "defaultDuration": 3
+      },
+      "status-shield": {
+        "id": "status-shield",
+        "name": "护盾",
+        "kind": "buff",
+        "stack": "refresh",
+        "defaultDuration": 3
+      },
+      "status-qi-flow": {
+        "id": "status-qi-flow",
+        "name": "聚灵",
+        "kind": "buff",
+        "stack": "refresh",
+        "defaultDuration": 1
+      }
+    },
+    "knownManuals": [
+      "manual-basic-breathing"
+    ],
+    "active": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "passive": null
+  }
+}
