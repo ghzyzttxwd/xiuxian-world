@@ -10,6 +10,8 @@ on:
       - "tools/build-v310-balance-v6.cjs"
       - "tools/verify-v310-v64-evidence.mjs"
       - "tools/verify-v310-v66-evidence.mjs"
+      - "tools/verify-v310-v67-evidence.mjs"
+      - "tools/verify-v310-v68-evidence.mjs"
       - "tools/release-v310-assets.cjs"
       - "tools/verify-v310-public.sh"
       - "tools/aggregate-v310-fullrun-gate.mjs"
@@ -53,6 +55,8 @@ jobs:
           node tests/regression-v310-v64-evidence-verifier.mjs
           node --check tools/verify-v310-v66-evidence.mjs
           node tests/regression-v310-v66-evidence-verifier.mjs
+          node --check tools/verify-v310-v67-evidence.mjs
+          node --check tools/verify-v310-v68-evidence.mjs
           node --check tools/aggregate-v310-fullrun-gate.mjs
           node tests/regression-v310-aggregate-gate.mjs
           node --check tools/release-v310-assets.cjs
@@ -66,4 +70,4 @@ jobs:
           ! grep -q 'eval' app.js
           test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
           test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
-          echo 'V310_V64_RELEASE_PREP_QUICK_PASS'
+          echo 'V310_V68_RELEASE_PREP_QUICK_PASS'
