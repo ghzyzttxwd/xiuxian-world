@@ -17,6 +17,7 @@ concurrency:
 env:
   V39_BASE_SHA: 62db848091ce7686c85357a8c963820a9d27f24c
   V59_HEAD: 96a0aa7be41de1877dbc13b9a8fa8c4eeeaed63c
+  V59_SOURCE_SHA: aa78a4d9d1983bb59832ba83ead8b39bd7c2e20316ca41e84d74df9ae0393e71
 
 jobs:
   validate-v59-candidate:
@@ -49,6 +50,7 @@ jobs:
           node tools/build-v310-balance-v5.cjs
           node --check src/game-v310.js
           first=$(sha256sum src/game-v310.js | awk '{print $1}')
+          test "$first" = "$V59_SOURCE_SHA"
           cp src/game-v310.js /tmp/v310-v59-first.js
           node tools/build-v310-balance-v5.cjs >/tmp/v310-v59-second.log
           second=$(sha256sum src/game-v310.js | awk '{print $1}')
@@ -73,13 +75,15 @@ jobs:
           node tests/regression-v310-resource-utility.mjs
           node -e "const a=require('./V310_RESOURCE_UTILITY_AUDIT.json');if(a.status!=='PASS'||a.unused?.length||a.highUnused?.length||a.namedMaterials!==86||a.highTierMaterials!==46)throw new Error('V59 resource utility gate mismatch')"
 
-      - name: Verify release-prep aggregate gate matches V59 candidate
+      - name: Verify hardened release aggregate gate
         shell: bash
         run: |
           set -euo pipefail
           node --check tools/aggregate-v310-fullrun-gate.mjs
-          node --check /tmp/v310-v59/tools/aggregate-v310-fullrun-gate.mjs
-          cmp -s tools/aggregate-v310-fullrun-gate.mjs /tmp/v310-v59/tools/aggregate-v310-fullrun-gate.mjs
+          grep -q 'uniqueFastestByRealm' tools/aggregate-v310-fullrun-gate.mjs
+          grep -q 'route dominance detected' tools/aggregate-v310-fullrun-gate.mjs
+          grep -q 'Named-material utility is independently fail-closed' tools/aggregate-v310-fullrun-gate.mjs
+          grep -q 'actionSpreadRatio>3' tools/aggregate-v310-fullrun-gate.mjs
 
       - name: Upload non-publishing V59 prep evidence
         shell: bash
