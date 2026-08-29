@@ -25,8 +25,8 @@ jobs:
           test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
           grep -q "build:'3903'" app.js
           grep -q "shopPower:'m1'" app.js
-          grep -q 'ui-shop-v2-power-adapter.js?v=m1-2' app.js
-          grep -q 'ui-shop-v2-power-adapter.js?v=m1-2' sw.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-3' app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-3' sw.js
       - name: Syntax check
         run: |
           set -euo pipefail
