@@ -1,61 +1,35 @@
 {
   "status": "PASS",
-  "ui_version": "playable-v3920-phase8",
+  "ui_version": "playable-v3920-phase8-r2",
   "gameplay_version": "3.9.0",
-  "verified_commit": "35c2ad74dbdc7226fc5634e867dc40e4d79e5408",
+  "verified_commit": "d8266e93e50c9a53e74b399deb18964be867e2ec",
   "source_sha256": "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37",
   "save_schema_version": 36,
-  "reference_device": "vivo X100",
-  "reference_viewport": "420x933",
-  "primary_navigation": [
-    "修炼",
-    "洞府",
-    "天下",
-    "人脉",
-    "储物"
-  ],
-  "monetization": {
-    "mode": "sandbox",
-    "wallet": "localStorage-separate-from-game-save",
-    "features": [
-      "仙玉充值",
-      "月卡",
-      "成长令",
-      "VIP",
-      "每日领取"
-    ],
-    "real_payment": false
-  },
   "balance": {
     "phase": 8,
+    "round": 2,
     "mode": "qol-first",
-    "baselineFinding": "early-game-click-burden",
-    "batchCultivationDays": 7,
+    "batchCultivationDaysByRealm": {
+      "mortalThroughQi3": 7,
+      "qi4Plus": 30
+    },
     "stopsOn": [
       "event",
       "combat",
       "full-progress",
       "death"
     ],
-    "coreCurveChanged": false,
-    "microAudit": {
-      "runs": 3,
-      "qi1DaysRange": [
-        22,
-        32
-      ],
-      "day240TypicalRealm": "炼气四层",
-      "deaths": 0
-    }
+    "coreCurveChanged": false
+  },
+  "monetization": {
+    "mode": "sandbox",
+    "real_payment": false
   },
   "checks": [
-    "required DOM contract",
-    "phase8 batch cultivation smoke",
-    "sandbox monetization smoke",
-    "V2.9-V3.9 headless regression",
-    "V6 icon hashes unchanged",
-    "actual GitHub Pages HTTP 200",
-    "public phase8 markers",
-    "public V3.9 source SHA equality"
+    "adaptive batch smoke",
+    "shop smoke",
+    "V2.9-V3.9 regression",
+    "public HTTP",
+    "frozen core SHA"
   ]
 }
