@@ -1,0 +1,41 @@
+name: Phase 8 Micro Audit
+
+on:
+  push:
+    branches: ["phase8-micro-audit"]
+    paths:
+      - "PHASE8_MICRO.trigger"
+
+permissions:
+  contents: write
+
+jobs:
+  micro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase8-micro-audit
+      - name: Run three 240-day routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          cp tests/playtest-phase8.mjs tests/playtest-phase8-micro.mjs
+          sed -i 's/for(let i=0;i<12;i++)/for(let i=0;i<1;i++)/' tests/playtest-phase8-micro.mjs
+          sed -i 's/maxDays:720/maxDays:240/g' tests/playtest-phase8-micro.mjs
+          sed -i "s/phase:'8-baseline'/phase:'8-micro-audit'/" tests/playtest-phase8-micro.mjs
+          PHASE8_REPORT=PHASE8_MICRO_REPORT.json node tests/playtest-phase8-micro.mjs
+          rm tests/playtest-phase8-micro.mjs
+          test -s PHASE8_MICRO_REPORT.json
+      - name: Commit micro report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_MICRO_REPORT.json
+          git commit -m 'test: record phase 8 micro audit [skip ci]'
+          git push origin HEAD:phase8-micro-audit
