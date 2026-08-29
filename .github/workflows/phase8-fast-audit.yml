@@ -23,10 +23,11 @@ jobs:
           set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
-          cp tests/playtest-phase8.mjs /tmp/fast.mjs
-          sed -i 's/for(let i=0;i<12;i++)/for(let i=0;i<3;i++)/' /tmp/fast.mjs
-          sed -i "s/phase:'8-baseline'/phase:'8-fast-audit'/" /tmp/fast.mjs
-          PHASE8_REPORT=PHASE8_FAST_REPORT.json node /tmp/fast.mjs
+          cp tests/playtest-phase8.mjs tests/playtest-phase8-fast.mjs
+          sed -i 's/for(let i=0;i<12;i++)/for(let i=0;i<3;i++)/' tests/playtest-phase8-fast.mjs
+          sed -i "s/phase:'8-baseline'/phase:'8-fast-audit'/" tests/playtest-phase8-fast.mjs
+          PHASE8_REPORT=PHASE8_FAST_REPORT.json node tests/playtest-phase8-fast.mjs
+          rm tests/playtest-phase8-fast.mjs
           test -s PHASE8_FAST_REPORT.json
       - name: Commit fast report
         shell: bash
