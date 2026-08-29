@@ -1,0 +1,508 @@
+{
+  "phase": "8-round10c-growth-diagnostic",
+  "gameplay": "3.9.0",
+  "coreBuild": 3903,
+  "sourceSha256": "1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c",
+  "schema": 36,
+  "diagnosticOverride": "manual acquisition prerequisites bypassed; core manual effects unchanged",
+  "scenarios": [
+    {
+      "id": null,
+      "name": "基础吐纳诀",
+      "setup": {
+        "manual": "基础吐纳诀",
+        "manualProf": 0,
+        "effects": {},
+        "breakthroughBonus": 0
+      },
+      "rows": [
+        {
+          "index": 0,
+          "name": "凡人",
+          "need": 120,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.28,
+          "meanGain7": 62.09,
+          "meanGain30": 263.56,
+          "theoreticalPureCultivationDays": 14.5,
+          "breakthroughChance": 0.838
+        },
+        {
+          "index": 1,
+          "name": "炼气一层",
+          "need": 220,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.12,
+          "meanGain7": 62,
+          "meanGain30": 269.66,
+          "theoreticalPureCultivationDays": 27.1,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 2,
+          "name": "炼气二层",
+          "need": 300,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.15,
+          "meanGain7": 61.19,
+          "meanGain30": 269.6,
+          "theoreticalPureCultivationDays": 36.8,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 3,
+          "name": "炼气三层",
+          "need": 400,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.16,
+          "meanGain7": 60.02,
+          "meanGain30": 269.92,
+          "theoreticalPureCultivationDays": 49,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 4,
+          "name": "炼气四层",
+          "need": 520,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.21,
+          "meanGain7": 62.33,
+          "meanGain30": 259.52,
+          "theoreticalPureCultivationDays": 63.3,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 5,
+          "name": "炼气五层",
+          "need": 680,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.2,
+          "meanGain7": 61.02,
+          "meanGain30": 271.26,
+          "theoreticalPureCultivationDays": 82.9,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 6,
+          "name": "炼气六层",
+          "need": 880,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.1,
+          "meanGain7": 61.19,
+          "meanGain30": 266.86,
+          "theoreticalPureCultivationDays": 108.6,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 7,
+          "name": "炼气七层",
+          "need": 1150,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.24,
+          "meanGain7": 62.25,
+          "meanGain30": 261.04,
+          "theoreticalPureCultivationDays": 139.6,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 8,
+          "name": "炼气八层",
+          "need": 1500,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.13,
+          "meanGain7": 60.38,
+          "meanGain30": 258.28,
+          "theoreticalPureCultivationDays": 184.5,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 9,
+          "name": "炼气九层",
+          "need": 2000,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.47,
+          "meanGain7": 61.52,
+          "meanGain30": 268.92,
+          "theoreticalPureCultivationDays": 236.1,
+          "breakthroughChance": 0.498
+        },
+        {
+          "index": 10,
+          "name": "筑基初期",
+          "need": 3500,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.07,
+          "meanGain7": 62.72,
+          "meanGain30": 261.86,
+          "theoreticalPureCultivationDays": 433.7,
+          "breakthroughChance": 0.638
+        },
+        {
+          "index": 11,
+          "name": "筑基中期",
+          "need": 5000,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.04,
+          "meanGain7": 62.29,
+          "meanGain30": 259.9,
+          "theoreticalPureCultivationDays": 621.9,
+          "breakthroughChance": 0.638
+        },
+        {
+          "index": 12,
+          "name": "筑基后期",
+          "need": 7200,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.3,
+          "meanGain7": 61.92,
+          "meanGain30": 273.28,
+          "theoreticalPureCultivationDays": 867.5,
+          "breakthroughChance": 0.638
+        },
+        {
+          "index": 13,
+          "name": "筑基圆满",
+          "need": 10000,
+          "manual": "基础吐纳诀",
+          "meanGain1": 8.15,
+          "meanGain7": 61.24,
+          "meanGain30": 260.1,
+          "theoreticalPureCultivationDays": 1227,
+          "breakthroughChance": 0.41800000000000004
+        }
+      ]
+    },
+    {
+      "id": "manual-five-elements-return",
+      "name": "五元归息功",
+      "setup": {
+        "manual": "五元归息功",
+        "manualProf": 0,
+        "effects": {},
+        "breakthroughBonus": 0
+      },
+      "rows": [
+        {
+          "index": 0,
+          "name": "凡人",
+          "need": 120,
+          "manual": "五元归息功",
+          "meanGain1": 8.2,
+          "meanGain7": 60.46,
+          "meanGain30": 263.68,
+          "theoreticalPureCultivationDays": 14.6,
+          "breakthroughChance": 0.838
+        },
+        {
+          "index": 1,
+          "name": "炼气一层",
+          "need": 220,
+          "manual": "五元归息功",
+          "meanGain1": 8.14,
+          "meanGain7": 59.81,
+          "meanGain30": 259.8,
+          "theoreticalPureCultivationDays": 27,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 2,
+          "name": "炼气二层",
+          "need": 300,
+          "manual": "五元归息功",
+          "meanGain1": 8.17,
+          "meanGain7": 61.62,
+          "meanGain30": 256.48,
+          "theoreticalPureCultivationDays": 36.7,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 3,
+          "name": "炼气三层",
+          "need": 400,
+          "manual": "五元归息功",
+          "meanGain1": 8.15,
+          "meanGain7": 60.21,
+          "meanGain30": 263.92,
+          "theoreticalPureCultivationDays": 49.1,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 4,
+          "name": "炼气四层",
+          "need": 520,
+          "manual": "五元归息功",
+          "meanGain1": 8.14,
+          "meanGain7": 61.79,
+          "meanGain30": 276.22,
+          "theoreticalPureCultivationDays": 63.9,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 5,
+          "name": "炼气五层",
+          "need": 680,
+          "manual": "五元归息功",
+          "meanGain1": 8.05,
+          "meanGain7": 61.97,
+          "meanGain30": 263.38,
+          "theoreticalPureCultivationDays": 84.5,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 6,
+          "name": "炼气六层",
+          "need": 880,
+          "manual": "五元归息功",
+          "meanGain1": 8.38,
+          "meanGain7": 61.4,
+          "meanGain30": 258.42,
+          "theoreticalPureCultivationDays": 105,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 7,
+          "name": "炼气七层",
+          "need": 1150,
+          "manual": "五元归息功",
+          "meanGain1": 8.16,
+          "meanGain7": 59.65,
+          "meanGain30": 268.14,
+          "theoreticalPureCultivationDays": 140.9,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 8,
+          "name": "炼气八层",
+          "need": 1500,
+          "manual": "五元归息功",
+          "meanGain1": 8.29,
+          "meanGain7": 61.07,
+          "meanGain30": 259.3,
+          "theoreticalPureCultivationDays": 180.9,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 9,
+          "name": "炼气九层",
+          "need": 2000,
+          "manual": "五元归息功",
+          "meanGain1": 8.22,
+          "meanGain7": 60.35,
+          "meanGain30": 276.5,
+          "theoreticalPureCultivationDays": 243.3,
+          "breakthroughChance": 0.498
+        },
+        {
+          "index": 10,
+          "name": "筑基初期",
+          "need": 3500,
+          "manual": "五元归息功",
+          "meanGain1": 8.27,
+          "meanGain7": 60.72,
+          "meanGain30": 261.66,
+          "theoreticalPureCultivationDays": 423.2,
+          "breakthroughChance": 0.638
+        },
+        {
+          "index": 11,
+          "name": "筑基中期",
+          "need": 5000,
+          "manual": "五元归息功",
+          "meanGain1": 8.27,
+          "meanGain7": 62.64,
+          "meanGain30": 260.78,
+          "theoreticalPureCultivationDays": 604.6,
+          "breakthroughChance": 0.638
+        },
+        {
+          "index": 12,
+          "name": "筑基后期",
+          "need": 7200,
+          "manual": "五元归息功",
+          "meanGain1": 8.05,
+          "meanGain7": 60.52,
+          "meanGain30": 259.7,
+          "theoreticalPureCultivationDays": 894.4,
+          "breakthroughChance": 0.638
+        },
+        {
+          "index": 13,
+          "name": "筑基圆满",
+          "need": 10000,
+          "manual": "五元归息功",
+          "meanGain1": 8.15,
+          "meanGain7": 62.87,
+          "meanGain30": 260.04,
+          "theoreticalPureCultivationDays": 1227,
+          "breakthroughChance": 0.41800000000000004
+        }
+      ]
+    },
+    {
+      "id": "manual-mystic-water",
+      "name": "玄水纳灵篇",
+      "setup": {
+        "manual": "玄水纳灵篇",
+        "manualProf": 0,
+        "effects": {},
+        "breakthroughBonus": 0
+      },
+      "rows": [
+        {
+          "index": 0,
+          "name": "凡人",
+          "need": 120,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.33,
+          "meanGain7": 61.49,
+          "meanGain30": 268.68,
+          "theoreticalPureCultivationDays": 14.4,
+          "breakthroughChance": 0.838
+        },
+        {
+          "index": 1,
+          "name": "炼气一层",
+          "need": 220,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.15,
+          "meanGain7": 60.57,
+          "meanGain30": 267.84,
+          "theoreticalPureCultivationDays": 27,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 2,
+          "name": "炼气二层",
+          "need": 300,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.35,
+          "meanGain7": 61.1,
+          "meanGain30": 267.14,
+          "theoreticalPureCultivationDays": 35.9,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 3,
+          "name": "炼气三层",
+          "need": 400,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.16,
+          "meanGain7": 59.55,
+          "meanGain30": 268.42,
+          "theoreticalPureCultivationDays": 49,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 4,
+          "name": "炼气四层",
+          "need": 520,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.3,
+          "meanGain7": 61.14,
+          "meanGain30": 262.18,
+          "theoreticalPureCultivationDays": 62.7,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 5,
+          "name": "炼气五层",
+          "need": 680,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.25,
+          "meanGain7": 62.87,
+          "meanGain30": 279.22,
+          "theoreticalPureCultivationDays": 82.4,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 6,
+          "name": "炼气六层",
+          "need": 880,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.18,
+          "meanGain7": 61.32,
+          "meanGain30": 264.44,
+          "theoreticalPureCultivationDays": 107.6,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 7,
+          "name": "炼气七层",
+          "need": 1150,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.25,
+          "meanGain7": 61.92,
+          "meanGain30": 258.3,
+          "theoreticalPureCultivationDays": 139.4,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 8,
+          "name": "炼气八层",
+          "need": 1500,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.16,
+          "meanGain7": 59.69,
+          "meanGain30": 252.04,
+          "theoreticalPureCultivationDays": 183.8,
+          "breakthroughChance": 0.758
+        },
+        {
+          "index": 9,
+          "name": "炼气九层",
+          "need": 2000,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.13,
+          "meanGain7": 61.03,
+          "meanGain30": 255.82,
+          "theoreticalPureCultivationDays": 246,
+          "breakthroughChance": 0.498
+        },
+        {
+          "index": 10,
+          "name": "筑基初期",
+          "need": 3500,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.05,
+          "meanGain7": 60.63,
+          "meanGain30": 258.24,
+          "theoreticalPureCultivationDays": 434.8,
+          "breakthroughChance": 0.638
+        },
+        {
+          "index": 11,
+          "name": "筑基中期",
+          "need": 5000,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.16,
+          "meanGain7": 61.02,
+          "meanGain30": 262.66,
+          "theoreticalPureCultivationDays": 612.7,
+          "breakthroughChance": 0.638
+        },
+        {
+          "index": 12,
+          "name": "筑基后期",
+          "need": 7200,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.23,
+          "meanGain7": 61.5,
+          "meanGain30": 261.58,
+          "theoreticalPureCultivationDays": 874.8,
+          "breakthroughChance": 0.638
+        },
+        {
+          "index": 13,
+          "name": "筑基圆满",
+          "need": 10000,
+          "manual": "玄水纳灵篇",
+          "meanGain1": 8.15,
+          "meanGain7": 60.67,
+          "meanGain30": 265.44,
+          "theoreticalPureCultivationDays": 1227,
+          "breakthroughChance": 0.41800000000000004
+        }
+      ]
+    }
+  ]
+}
