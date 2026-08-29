@@ -1,0 +1,26 @@
+name: V3.10 aggregate gate self-test
+
+on:
+  push:
+    branches: ["v310-release-prep-nonpublish"]
+    paths:
+      - ".github/workflows/v310-aggregate-gate-selftest.yml"
+      - "tests/regression-v310-aggregate-gate.mjs"
+      - "tools/aggregate-v310-fullrun-gate.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  aggregate-gate-selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax and behavior self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/aggregate-v310-fullrun-gate.mjs
+          node --check tests/regression-v310-aggregate-gate.mjs
+          node tests/regression-v310-aggregate-gate.mjs
