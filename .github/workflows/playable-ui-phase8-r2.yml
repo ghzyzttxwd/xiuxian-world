@@ -68,6 +68,7 @@ jobs:
           if(d1<1||d1>30||b.player.progress<=p0)throw new Error('30-day cultivation invalid '+JSON.stringify({d1,p0,p1:b.player.progress}));
           if(b.saveSchemaVersion!==36)throw new Error('save schema changed');
           console.log('PHASE8_R2_BATCH_MODES_OK',JSON.stringify({earlyDays:7,qi4PlusDays:30,observedMonthDays:d1,schema:b.saveSchemaVersion}));
+          process.exit(0);
           NODE
 
       - name: Run sandbox monetization smoke
