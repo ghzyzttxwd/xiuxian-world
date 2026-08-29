@@ -61,7 +61,8 @@ jobs:
           if(q.batchDaysFor()!==7)throw new Error('mortal/early batch must be 7 days');
           let a=api.getState(),d0=dayNo(a),p0=a.player.progress;q.batchCultivate(7);let b=api.getState(),d1=dayNo(b)-d0;
           if(d1<1||d1>7||b.player.progress<=p0)throw new Error('7-day cultivation invalid '+JSON.stringify({d1,p0,p1:b.player.progress}));
-          api.newGame('Phase8R2月闭关');api.v39SetPlayerForTest({realmIndex:4});q.mount();
+          api.closeModal();
+          api.newGame('Phase8R2月闭关');api.v39SetPlayerForTest({realmIndex:4});api.closeModal();q.mount();
           if(q.batchDaysFor()!==30)throw new Error('qi4+ batch must be 30 days');
           a=api.getState();d0=dayNo(a);p0=a.player.progress;q.batchCultivate(30);b=api.getState();d1=dayNo(b)-d0;
           if(d1<1||d1>30||b.player.progress<=p0)throw new Error('30-day cultivation invalid '+JSON.stringify({d1,p0,p1:b.player.progress}));
