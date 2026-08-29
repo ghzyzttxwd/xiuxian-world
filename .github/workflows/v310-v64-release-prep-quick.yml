@@ -18,6 +18,7 @@ on:
       - "tests/regression-v310-v38-pill-effects.mjs"
       - "tests/regression-v310-domain-sand-source.mjs"
       - "tests/regression-v310-v64-evidence-verifier.mjs"
+      - "tests/regression-v310-aggregate-gate.mjs"
       - "V310_V64_RELEASE_PREP_QUICK.trigger"
 
 permissions:
@@ -49,6 +50,7 @@ jobs:
           node --check tools/verify-v310-v64-evidence.mjs
           node tests/regression-v310-v64-evidence-verifier.mjs
           node --check tools/aggregate-v310-fullrun-gate.mjs
+          node tests/regression-v310-aggregate-gate.mjs
           node --check tools/release-v310-assets.cjs
           bash -n tools/verify-v310-public.sh
           node tools/release-v310-assets.cjs
