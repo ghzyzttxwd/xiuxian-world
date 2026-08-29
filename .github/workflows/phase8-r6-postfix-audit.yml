@@ -1,0 +1,96 @@
+name: Phase8 R6 Postfix Long Audit
+
+on:
+  push:
+    branches: ["phase8-r6-postfix-audit"]
+    paths: ["PHASE8_R6_POSTFIX.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-phase8-r6-postfix-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase8-r6-postfix-audit
+          fetch-depth: 0
+
+      - name: Verify R5 hotfix baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECT='d933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8'
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "$EXPECT"
+          grep -q 'function randomExploreEnemyEligible' src/game-v39.js
+          grep -q "build:'3902'" app.js
+          node -e "const s=require('./PUBLIC_UI_STATUS.json');if(s.status!=='PASS'||s.ui_version!=='playable-v3920-phase8-r5'||s.core_build!==3902)process.exit(1)"
+
+      - name: Rebuild identical safe-human audit and run six fixed seeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          git fetch origin phase8-round3-safe-audit
+          git show origin/phase8-round3-safe-audit:tests/playtest-phase8-round2.mjs > /tmp/playtest-phase8-r6.mjs
+          cp /tmp/playtest-phase8-r6.mjs tests-playtest-phase8-r6.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests-playtest-phase8-r6.mjs')
+          s=p.read_text()
+          old="function settleCombat(api){let guard=0;while(api.getCombat?.()&&guard++<40){const c=api.getCombat(),s=api.getState();const ratio=(Number(c.playerHp)||0)/Math.max(1,hpMax(api,s));api.combatAction(ratio<.34?'defend':'attack')}return guard}"
+          new="function settleCombat(api){let guard=0;while(api.getCombat?.()&&guard++<40){const c=api.getCombat(),s=api.getState();const ratio=(Number(c.playerHp)||0)/Math.max(1,hpMax(api,s)),diff=(Number(c.enemy?.realm)||0)-(Number(s.player.realmIndex)||0);if(diff>=1||ratio<.62)api.combatAction('flee');else if(ratio<.42)api.combatAction('defend');else api.combatAction('attack')}return guard}"
+          if old not in s: raise SystemExit('safe-combat patch baseline missing')
+          s=s.replace(old,new,1)
+          s=s.replace("const OUT='PHASE8_ROUND2_REPORT.json';","const OUT='PHASE8_R6_POSTFIX_REPORT.json';",1)
+          s=s.replace('maxActions:560','maxActions:800')
+          s=s.replace("phase:'8-round2-human-navigation'","phase:'8-round6-postfix-navigation'",1)
+          s=s.replace("dead:!!end.flags?.dead,milestones","dead:!!end.flags?.dead,deathCause:end.flags?.deathCause||null,milestones",1)
+          p.write_text(s)
+          PY
+          node tests-playtest-phase8-r6.mjs
+          test -s PHASE8_R6_POSTFIX_REPORT.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='PHASE8_R6_POSTFIX_REPORT.json';const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          x.coreBuild=3902;
+          x.sourceSha256='d933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8';
+          x.comparisonBaseline={phase:'8-round3-safe-navigation',runs:6,deaths:5,reached:{qi1:6,qi4:6,qi7:4,qi9:0,foundation:0},medianDays:{qi1:34,qi4:210,qi7:490,qi9:null,foundation:null}};
+          const old=x.comparisonBaseline;
+          x.delta={deaths:x.summary.deaths-old.deaths,reachedQi7:x.summary.reached.qi7-old.reached.qi7,reachedQi9:x.summary.reached.qi9-old.reached.qi9,reachedFoundation:x.summary.reached.foundation-old.reached.foundation};
+          fs.writeFileSync(p,JSON.stringify(x,null,2)+'\n');
+          console.log('PHASE8_R6_POSTFIX',JSON.stringify({summary:x.summary,flags:x.flags,delta:x.delta}));
+          NODE
+
+      - name: Validate report comparability
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const x=require('./PHASE8_R6_POSTFIX_REPORT.json');
+          if(x.phase!=='8-round6-postfix-navigation')throw Error('phase mismatch');
+          if(x.coreBuild!==3902)throw Error('build mismatch');
+          if(x.sourceSha256!=='d933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8')throw Error('sha mismatch');
+          if(x.summary.runs!==6)throw Error('run count mismatch');
+          if(x.comparisonBaseline?.deaths!==5)throw Error('baseline mismatch');
+          if(x.summary.travelRuns<5)throw Error('travel strategy not comparable');
+          if(x.summary.manualUpgradeRuns<5)throw Error('manual strategy not comparable');
+          console.log('R6_COMPARABILITY_OK',JSON.stringify(x.delta));
+          NODE
+
+      - name: Commit R6 report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R6_POSTFIX_REPORT.json
+          git commit -m 'test: record phase8 r6 post-hotfix long audit [skip ci]'
+          git push origin HEAD:phase8-r6-postfix-audit
