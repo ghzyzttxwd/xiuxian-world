@@ -1,1 +1,1 @@
-{"status":"PASS","phase":"final-ui-shop-v2","coreBuild":3903,"schema":36,"realPayment":false,"mainNav":["修炼","洞府","天下","人脉","储物"],"shop":{"dynamicOffers":true,"packages":true,"monthly":true,"growth":true,"vipMax":15,"vip8MajorNode":true,"vip8Title":"八荒至尊"}}
+{"status":"PASS","phase":"final-ui-shop-v2","coreBuild":3903,"schema":36,"realPayment":false,"mainNav":["修炼","洞府","天下","人脉","储物"],"shop":{"dynamicOffers":true,"packages":true,"monthly":true,"growth":true,"vipMax":15,"vip8MajorNode":true,"vip8Title":"八荒至尊","powerRewardAdapter":"M1-PASS"}}

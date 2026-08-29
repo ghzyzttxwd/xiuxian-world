@@ -1,9 +1,10 @@
 /* TAIXUAN_SHOP_V2_POWER_ADAPTER_M1 */
 (()=>{
 'use strict';
-const VERSION='m1-2';
+const VERSION='m1-3';
 const GRADES=['normal','fine','superior','perfect'];
 const COMPONENT_ALIASES=Object.freeze({'spell-clear-sword-heart-passive':'spell-clear-sword-heart'});
+const VIP8_FIRST_ARTIFACT_UNLOCK=Object.freeze({none:17,sword:15,flame:15,body:18,spirit:20});
 const clone=x=>JSON.parse(JSON.stringify(x));
 const resolveSpellId=id=>COMPONENT_ALIASES[id]||id;
 function api(){const a=window.__TAIXUAN_TEST__;if(!a)throw new Error('game_api_not_ready');return a}
@@ -66,6 +67,36 @@ function grantArtifact(id,{grade='perfect',refinement=0,warmth=0,bind=true,equip
  return result(true,'artifact',id,{duplicate,record:clone(gearRecord(id)),loadout:clone(player().artifactLoadout||{})});
 }
 
+function content(){return api().contentRegistrySnapshot()}
+function artifactCatalog(){
+ const c=content(),realms=c.realms||{};
+ return Object.values(c.artifacts||{}).map(a=>({...a,unlock:Number(realms[a.realmRequirement]?.index)||0}));
+}
+function vip8ArtifactScore(a,path){
+ const slot={assault:30,guard:20,support:10}[a.artifactSlot]||0;
+ const tier={fabao:10,gubao:20,lingbao:30}[a.tier]||0;
+ const pathBonus=a.path===path&&path!=='none'?60:a.path==='none'?15:0;
+ return a.unlock*10+slot+tier+pathBonus;
+}
+function vip8ArtifactCandidates(){
+ const p=player(),path=p.daoPath&&p.daoPath!=='none'?p.daoPath:'none',floor=VIP8_FIRST_ARTIFACT_UNLOCK[path]||17,cap=Math.max(Number(p.realmIndex)||0,floor),rows=artifactCatalog().filter(a=>a.artifactSlot!=='natal'&&a.unlock<=cap);
+ let preferred=rows.filter(a=>path==='none'?a.path==='none':a.path===path);
+ if(!preferred.length)preferred=rows.filter(a=>a.path==='none');
+ if(!preferred.length)preferred=rows;
+ return preferred.map(a=>({...a,owned:!!gearRecord(a.itemId),score:vip8ArtifactScore(a,path)})).sort((a,b)=>(Number(a.owned)-Number(b.owned))||b.score-a.score||b.unlock-a.unlock||a.itemId.localeCompare(b.itemId));
+}
+function previewVip8Artifact(itemId=null){
+ const rows=vip8ArtifactCandidates();let row=itemId?rows.find(x=>x.itemId===itemId):rows[0];
+ if(!row&&itemId){const all=artifactCatalog();const a=all.find(x=>x.itemId===itemId);if(a)row={...a,owned:!!gearRecord(a.itemId),score:vip8ArtifactScore(a,player().daoPath||'none')}}
+ if(!row)return {ok:false,reason:'no_artifact_candidate'};
+ return {ok:true,itemId:row.itemId,artifactId:row.artifactId,name:row.name,path:row.path,slot:row.artifactSlot,tier:row.tier,qualityId:row.qualityId,unlock:row.unlock,owned:!!row.owned,score:row.score,grant:{grade:'perfect',refinement:3,warmth:30,bind:true,equip:true,natal:false}};
+}
+function grantVip8Artifact(itemId=null){
+ const preview=previewVip8Artifact(itemId);if(!preview.ok)return preview;
+ const g=grantArtifact(preview.itemId,preview.grant);
+ return {...preview,...g,ok:!!g.ok,rewardName:'八荒至尊法宝匣'};
+}
+
 function grantManual(id,{switchTo=false}={}){
  const row=manualRow(id);if(!row)return result(false,'manual',id,{reason:'missing_manual'});
  const duplicate=knownManual(id);
@@ -121,6 +152,6 @@ function grantBundle(spec={}){
   saveRefresh();return {ok:true,granted,state:state()};
  }catch(e){return {ok:false,reason:e?.grant?.reason||e.message||'grant_failed',granted,state:state()}}
 }
-function snapshot(){const p=player();return {version:VERSION,schema:state().saveSchemaVersion,realmIndex:p.realmIndex,daoPath:p.daoPath,equipment:Object.keys(p.equipmentInventory||{}),equipped:clone(p.equippedItemIds||{}),artifacts:clone(p.artifactLoadout||{}),manuals:[...(p.manualLibraryIds||[])],activeSkills:[...(p.activeSkillIds||[])],passive:p.passiveSkillId||null,bestBuild:bestBuild()}}
-window.__TAIXUAN_POWER_SHOP__={version:VERSION,componentAliases:clone(COMPONENT_ALIASES),resolveSpellId,grantEquipment,grantArtifact,grantManual,grantSpell,grantBundle,inspectBuild,buildsForPath,bestBuild,hasEquipment:id=>!!gearRecord(id),hasManual:knownManual,hasSpell:spellKnown,snapshot,refresh};
+function snapshot(){const p=player();return {version:VERSION,schema:state().saveSchemaVersion,realmIndex:p.realmIndex,daoPath:p.daoPath,equipment:Object.keys(p.equipmentInventory||{}),equipped:clone(p.equippedItemIds||{}),artifacts:clone(p.artifactLoadout||{}),manuals:[...(p.manualLibraryIds||[])],activeSkills:[...(p.activeSkillIds||[])],passive:p.passiveSkillId||null,bestBuild:bestBuild(),vip8:previewVip8Artifact()}}
+window.__TAIXUAN_POWER_SHOP__={version:VERSION,componentAliases:clone(COMPONENT_ALIASES),resolveSpellId,grantEquipment,grantArtifact,previewVip8Artifact,grantVip8Artifact,grantManual,grantSpell,grantBundle,inspectBuild,buildsForPath,bestBuild,hasEquipment:id=>!!gearRecord(id),hasManual:knownManual,hasSpell:spellKnown,snapshot,refresh};
 })();
