@@ -1,4 +1,4 @@
-/* TAIXUAN_PHASE8_QOL_V3 */
+/* TAIXUAN_PHASE8_QOL_V4 */
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s);
@@ -18,8 +18,27 @@ function guideText(s){
  if(ri===9)return '当前目标：准备筑基。修为圆满后重点检查突破条件、伤势与必要资源，不再只靠继续闭关。';
  return '当前目标：沿着眼前境界推进。更远的地图、人物与高阶体系只在真正接触后显示。'
 }
+function combatAdvice(a,s,c){
+ if(!s||!c)return null;
+ const playerRealm=Number(s.player?.realmIndex)||0,enemyRealm=Number(c.enemy?.realm)||0,diff=enemyRealm-playerRealm;
+ let max=Number(s.player?.hp)||1;try{max=Number(a.maxHp?.())||max}catch{}
+ const ratio=(Number(c.playerHp)||0)/Math.max(1,max);
+ if(ratio<.40)return {level:'severe',text:'极高风险：气血已低于四成。优先尝试逃跑；若脱身失败仍会承受敌人反击。'};
+ if(diff>=2)return {level:'severe',text:'极高风险：对方至少高出你两个小境界。不要硬换血，优先尝试逃跑。'};
+ if(diff>=1||ratio<.62)return {level:'high',text:'高风险：当前更适合撤退而不是硬拼。逃跑失败会继续承受反击，需尽早决定。'};
+ return {level:'normal',text:'风险提示：敌我差距暂不悬殊；若气血跌破六成或遭遇更高境界敌人，及时考虑撤退。'}
+}
+function updateCombatAdvice(a,s){
+ let c=null;try{c=a?.getCombat?.()}catch{}
+ const modal=document.getElementById('modal'),flee=modal?.querySelector?.('[data-combat="flee"]');
+ let box=document.getElementById('phase8CombatAdvice');
+ if(!c||!modal||!flee){if(box)box.remove();return null}
+ const advice=combatAdvice(a,s,c);if(!advice)return null;
+ if(!box){box=document.createElement('div');box.id='phase8CombatAdvice';box.className='phase8-combat-advice';const log=modal.querySelector('.combat-log');if(log)modal.insertBefore(box,log);else modal.insertBefore(box,modal.querySelector('.modal-actions')||null)}
+ box.className='phase8-combat-advice '+advice.level;box.textContent=advice.text;flee.classList.toggle('phase8-flee-recommended',advice.level!=='normal');return advice
+}
 function updateGuide(s){const box=document.getElementById('uiWorldHint');if(box&&s)box.textContent=guideText(s)}
-function updateButton(btn){const a=api();let s=null;try{s=a?.getState?.()}catch{}if(s)updateGuide(s);if(!btn)return;const days=batchDaysFor(s);btn.dataset.days=String(days);const b=btn.querySelector('b'),small=btn.querySelector('small');if(b)b.textContent=days>=30?'闭关一月':'闭关七日';if(small&&!btn.__noteTimer)small.textContent=defaultNote(days)}
+function updateButton(btn){const a=api();let s=null;try{s=a?.getState?.()}catch{}if(s){updateGuide(s);updateCombatAdvice(a,s)}if(!btn)return;const days=batchDaysFor(s);btn.dataset.days=String(days);const b=btn.querySelector('b'),small=btn.querySelector('small');if(b)b.textContent=days>=30?'闭关一月':'闭关七日';if(small&&!btn.__noteTimer)small.textContent=defaultNote(days)}
 function setNote(btn,text){const small=btn?.querySelector('small');if(!small)return;small.textContent=text;clearTimeout(btn.__noteTimer);btn.__noteTimer=setTimeout(()=>{btn.__noteTimer=null;updateButton(btn)},2600)}
 function batchCultivate(btn,forcedDays=null){
  const a=api();if(!a?.getState||!a?.action){setNote(btn,'游戏核心尚未就绪');return}
@@ -48,7 +67,7 @@ function mount(){
  if(!btn){const title=panel.querySelector('.panel-title-row');if(!title)return false;btn=document.createElement('button');btn.type='button';btn.id='phase8BatchCultivate';btn.className='ui-batch-cultivate';btn.innerHTML='<b>闭关七日</b><small>最多7日 · 遇到关键情况自动停</small>';btn.addEventListener('click',()=>batchCultivate(btn));title.appendChild(btn)}
  updateButton(btn);return true
 }
-function init(){let tries=0;const t=setInterval(()=>{tries++;const ok=mount();if(ok&&api())updateButton(document.getElementById('phase8BatchCultivate'));if(tries>100)clearInterval(t)},100);setInterval(()=>updateButton(document.getElementById('phase8BatchCultivate')),700)}
+function init(){let tries=0;const t=setInterval(()=>{tries++;const ok=mount();if(ok&&api())updateButton(document.getElementById('phase8BatchCultivate'));if(tries>100)clearInterval(t)},100);setInterval(()=>updateButton(document.getElementById('phase8BatchCultivate')),500)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-window.__TAIXUAN_PHASE8__={batchCultivate:(days=null)=>batchCultivate(document.getElementById('phase8BatchCultivate'),days),batchDaysFor:()=>{try{return batchDaysFor(api()?.getState?.())}catch{return 7}},guideText:()=>{try{return guideText(api()?.getState?.())}catch{return''}},mount};
+window.__TAIXUAN_PHASE8__={batchCultivate:(days=null)=>batchCultivate(document.getElementById('phase8BatchCultivate'),days),batchDaysFor:()=>{try{return batchDaysFor(api()?.getState?.())}catch{return 7}},guideText:()=>{try{return guideText(api()?.getState?.())}catch{return''}},combatAdvice:()=>{try{const a=api(),s=a?.getState?.(),c=a?.getCombat?.();return combatAdvice(a,s,c)}catch{return null}},refreshCombatAdvice:()=>{try{const a=api(),s=a?.getState?.();return updateCombatAdvice(a,s)}catch{return null}},mount};
 })();
