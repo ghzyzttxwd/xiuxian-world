@@ -1,0 +1,130 @@
+name: Shop M4 VIP15 Staged Supreme Entitlements
+on:
+  push:
+    paths:
+      - 'ui-shop-v2-vip15.js'
+      - 'app.js'
+      - 'sw.js'
+      - '.github/workflows/shop-m4-vip15.yml'
+      - 'SHOP_M4_TRIGGER.txt'
+concurrency:
+  group: shop-m4-vip15
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  validate-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen core and M4 wiring
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          grep -q "shopVip15:'m4'" app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-3' app.js
+          grep -q 'ui-shop-v2-vip8.js?v=m2-1' app.js
+          grep -q 'ui-shop-v2-vip12.js?v=m3-1' app.js
+          grep -q 'ui-shop-v2-vip15.js?v=m4-1' app.js
+          grep -q 'ui-shop-v2-vip15.js?v=m4-1' sw.js
+      - name: Syntax check
+        run: |
+          set -euo pipefail
+          node --check ui-shop-v2-power-adapter.js
+          node --check ui-shop-v2-vip8.js
+          node --check ui-shop-v2-vip12.js
+          node --check ui-shop-v2-vip15.js
+          node --check app.js
+          node --check sw.js
+      - name: Browser smoke - low realm defer, four stages, readiness, persistence and retrofit
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g,'');
+          const GAME_KEY='xiuxian_world_v02',WALLET_KEY='taixuan-premium-wallet-v1';
+          function walletBase(extra={}){return {version:2,jade:0,vipExp:65000,totalCny:6500,monthlyUntil:0,monthlyClaimDate:'',growthOwned:false,growthClaimed:[],vipClaimDate:'',vipMilestoneClaimed:[],firstBonusUsed:{},packBuys:{},receipts:[],titles:[],offerWindowEnd:Date.now()+1800000,...extra}}
+          function boot(gameSave=null,walletSave=null){
+            const d=new JSDOM(html,{url:'https://m4.test/',runScripts:'outside-only',pretendToBeVisual:true});
+            const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.confirm=()=>true;w.console=console;
+            if(gameSave)w.localStorage.setItem(GAME_KEY,gameSave);if(walletSave)w.localStorage.setItem(WALLET_KEY,walletSave);
+            w.eval(fs.readFileSync('src/game-v39.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-power-adapter.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-vip8.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-vip12.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-vip15.js','utf8'));
+            w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));
+            return w;
+          }
+          const w=boot(null,JSON.stringify(walletBase()));w.__TAIXUAN_TEST__.newGame('VIP15全阶段');const v=w.__TAIXUAN_VIP15__,a=w.__TAIXUAN_TEST__,p=w.__TAIXUAN_POWER_SHOP__;
+          // 1. Low realm: activate long-term entitlement but do not leak high-tier items.
+          const low=v.claimFull();if(!low.ok)throw Error('low VIP15 claim failed '+JSON.stringify(low));
+          let s=a.getState(),wa=JSON.parse(w.localStorage.getItem(WALLET_KEY));
+          if(s.saveSchemaVersion!==36||s.player.realmIndex!==0)throw Error('low realm altered incorrectly');
+          if(!wa.vipMilestoneClaimed.includes(15)||wa.jade!==3888||!wa.titles.includes('诸天仙尊')||wa.vip15Entitlement?.status!=='active')throw Error('VIP15 base wallet invalid '+JSON.stringify(wa));
+          if(Object.keys(s.player.equipmentInventory||{}).some(id=>id.startsWith('item-v39-')))throw Error('low realm leaked terminal artifact');
+          if(Object.values(wa.vip15Stages).some(x=>x.status==='claimed'||x.status==='partial'))throw Error('low realm stage leaked '+JSON.stringify(wa.vip15Stages));
+          // 2. Refining Void stage.
+          a.v36SetPlayerForTest({realmIndex:26});let r=v.redeemEligibleStages();if(!r.ok)throw Error('void redeem wrapper failed');
+          s=a.getState();wa=JSON.parse(w.localStorage.getItem(WALLET_KEY));const v36=a.v36StateSnapshot();
+          if(wa.vip15Stages.void.status!=='claimed'||v36.spaceInsight<100||v36.voidEssence<6||s.player.insight<20)throw Error('void entitlement failed '+JSON.stringify({stage:wa.vip15Stages.void,v36,insight:s.player.insight}));
+          // 3. Unity stage respects player law choice, then boosts it.
+          a.v34ActivateBuildForTest('build-flame-dot');a.v37SetPlayerForTest({realmIndex:30});const law=a.v37ChooseLaw('law-annihilation',true);if(!law.ok)throw Error('law fixture failed');
+          v.redeemEligibleStages();const v37=a.v37StateSnapshot();wa=JSON.parse(w.localStorage.getItem(WALLET_KEY));
+          if(wa.vip15Stages.unity.status!=='claimed'||v37.lawId!=='law-annihilation'||v37.lawProficiency<140||v37.unity<85||v37.unityEssence<4)throw Error('unity entitlement failed '+JSON.stringify({stage:wa.vip15Stages.unity,v37}));
+          // 4. Mahayana: core benefits first; natal mark waits for player's own natal artifact choice.
+          a.v38SetPlayerForTest({realmIndex:34});v.redeemEligibleStages();let v38=a.v38StateSnapshot();wa=JSON.parse(w.localStorage.getItem(WALLET_KEY));
+          if(wa.vip15Stages.mahayana.status!=='partial'||v38.originInsight<320||v38.worldAuthority<190||v38.mahayanaEssence<5)throw Error('mahayana core entitlement failed '+JSON.stringify({stage:wa.vip15Stages.mahayana,v38}));
+          const natal=p.grantArtifact('item-v38-worldfire-cauldron',{grade:'perfect',refinement:5,warmth:50,bind:true,equip:true,natal:true});if(!natal.ok)throw Error('natal fixture failed '+JSON.stringify(natal));
+          v.redeemEligibleStages();v38=a.v38StateSnapshot();wa=JSON.parse(w.localStorage.getItem(WALLET_KEY));
+          if(wa.vip15Stages.mahayana.status!=='claimed'||v38.natalOriginMarks<8)throw Error('mahayana natal completion failed '+JSON.stringify({stage:wa.vip15Stages.mahayana,v38}));
+          // 5. Tribulation stage: raises actual readiness, but never starts tribulation or ascension.
+          a.v39SetPlayerForTest({realmIndex:37,location:'九霄劫台'});v.redeemEligibleStages();s=a.getState();wa=JSON.parse(w.localStorage.getItem(WALLET_KEY));const v39=a.v39StateSnapshot(),ready=a.v39TribulationReadiness();
+          if(wa.vip15Stages.tribulation.status!=='claimed')throw Error('tribulation stage not claimed '+JSON.stringify(wa.vip15Stages.tribulation));
+          if(!Object.values(ready.requirements).every(Boolean)||!ready.ready)throw Error('VIP15 did not produce real readiness '+JSON.stringify(ready));
+          const prep=s.player.v38TribulationPrep;if(!['body','soul','law','artifact','formation'].every(k=>prep[k]>=80))throw Error('tribulation prep not raised '+JSON.stringify(prep));
+          const umbrella=s.player.equipmentInventory['item-v39-thunder-umbrella'];if(!umbrella||umbrella.grade!=='perfect'||umbrella.refinement<7||umbrella.warmth<70||!umbrella.bound)throw Error('anti-tribulation artifact invalid '+JSON.stringify(umbrella));
+          if(v39.status!=='idle'||v39.ascensionComplete)throw Error('VIP15 illegally auto-started/ascended '+JSON.stringify(v39));
+          // 6. Save/reload preserves all stage ledgers and actual readiness state.
+          const gameSave=w.localStorage.getItem(GAME_KEY),walletSave=w.localStorage.getItem(WALLET_KEY);if(!gameSave||!walletSave)throw Error('M4 persistence payload missing');
+          const w2=boot(gameSave,walletSave);w2.document.getElementById('continueBtn').click();const s2=w2.__TAIXUAN_TEST__.getState(),wa2=JSON.parse(w2.localStorage.getItem(WALLET_KEY)),ready2=w2.__TAIXUAN_TEST__.v39TribulationReadiness();
+          if(s2.saveSchemaVersion!==36||!Object.values(wa2.vip15Stages).every(x=>x.status==='claimed')||!ready2.ready)throw Error('M4 persistence failed '+JSON.stringify({schema:s2.saveSchemaVersion,stages:wa2.vip15Stages,ready:ready2}));
+          // 7. Old VIP15 only receives new staged entitlement, never duplicate jade.
+          const old=boot(null,JSON.stringify(walletBase({jade:777,vipMilestoneClaimed:[15],titles:['诸天仙尊']})));old.__TAIXUAN_TEST__.newGame('旧VIP15');old.__TAIXUAN_TEST__.v36SetPlayerForTest({realmIndex:26});const retro=old.__TAIXUAN_VIP15__.retrofit();if(!retro.ok)throw Error('old VIP15 retrofit failed '+JSON.stringify(retro));const ow=JSON.parse(old.localStorage.getItem(WALLET_KEY));if(ow.jade!==777||ow.vip15Stages.void.status!=='claimed'||!ow.vip15Entitlement?.retroactive)throw Error('old VIP15 duplicated base reward '+JSON.stringify(ow));
+          console.log('SHOP_M4_VIP15_OK',JSON.stringify({void:v36.spaceInsight,law:v37.lawId,origin:v38.originInsight,authority:v38.worldAuthority,readiness:ready2.ready,artifact:'九霄避雷伞',schema:s2.saveSchemaVersion,retrofit:ow.vip15Stages.void.status}));
+          NODE
+          rm -rf node_modules package.json package-lock.json
+      - name: Publish M4 to gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin gh-pages:gh-pages || true
+          git checkout gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          git checkout origin/main -- .
+          rm -rf node_modules
+          git add -A
+          git commit -m 'publish: shop M4 VIP15 staged supreme entitlements' || true
+          git push origin gh-pages
+      - name: Mark M4 PASS on main
+        run: |
+          set -euo pipefail
+          git checkout main
+          git pull --ff-only origin main
+          python - <<'PY'
+          import json
+          p='PUBLIC_UI_STATUS.json'
+          d=json.load(open(p,encoding='utf-8'))
+          d['status']='PASS';d['phase']='final-ui-shop-v2';d['coreBuild']=3903;d['schema']=36;d['realPayment']=False
+          s=d.setdefault('shop',{});s['powerRewardAdapter']='M1-PASS';s['vip8PowerNode']='M2-PASS';s['vip12PowerNode']='M3-PASS';s['vip15PowerNode']='M4-PASS';s['vip15StagedEntitlement']=True;s['vip15Stages']=['void','unity','mahayana','tribulation'];s['vip15ReadinessBoost']=True;s['vip15NoAutoAscension']=True;s['vip15LegacyRetrofit']=True
+          open(p,'w',encoding='utf-8').write(json.dumps(d,ensure_ascii=False,separators=(',',':'))+'\n')
+          PY
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'status: shop M4 VIP15 PASS' || true
+          git push origin main
