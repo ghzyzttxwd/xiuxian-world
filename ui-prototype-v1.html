@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0e1410" />
+  <title>太玄界 · UI Phase 5 Prototype</title>
+  <link rel="stylesheet" href="./ui-prototype-v1.css?v=1" />
+</head>
+<body data-prototype="TAIXUAN_UI_PHASE5_PROTO_V1">
+  <div class="proto-shell">
+    <header class="proto-head">
+      <div><b>太玄界 · UI原型</b><span>vivo X100 竖屏参考 · 420×933</span></div>
+      <a href="./">返回游戏</a>
+    </header>
+
+    <nav class="screen-switch" aria-label="原型页面切换">
+      <button class="active" data-screen="breakthrough">突破</button>
+      <button data-screen="battle">战斗</button>
+      <button data-screen="events">见闻</button>
+      <button data-screen="sect">宗门</button>
+      <button data-screen="craft">炼制</button>
+    </nav>
+
+    <main class="phone-stage">
+      <section class="phone-screen active" data-view="breakthrough">
+        <div class="safe-top"></div>
+        <header class="game-head"><button class="back">‹</button><div><b>突破 · 筑基</b><small>大境界突破</small></div><span></span></header>
+        <div class="scroll-body">
+          <section class="realm-hero">
+            <span class="eyebrow">破境</span>
+            <h1>炼气九层 <i>→</i> 筑基</h1>
+            <p>道基一成，此后仙途方算真正开始。</p>
+          </section>
+          <section class="card stats-card">
+            <div class="kv"><span>修为</span><b class="good">圆满</b></div>
+            <div class="kv"><span>主修功法</span><b class="good">养气诀 · 大成</b></div>
+            <div class="kv"><span>筑基丹</span><b class="good">1枚</b></div>
+            <div class="kv"><span>经脉状态</span><b class="good">良好</b></div>
+            <div class="kv"><span>心境</span><b class="good">平稳</b></div>
+          </section>
+          <section class="chance-card">
+            <span>本次成功率</span><strong>68%</strong>
+            <p>失败可能造成重伤、寿元损失，严重时道基受损。</p>
+          </section>
+          <section class="card">
+            <h2>突破准备</h2>
+            <button class="list-row"><span>服用筑基丹</span><b>已选择</b><em>›</em></button>
+            <button class="list-row"><span>护身法器</span><b class="muted">无</b><em>›</em></button>
+            <button class="list-row"><span>闭关地点</span><b>洞府静室</b><em>›</em></button>
+          </section>
+          <button class="primary big">开始筑基</button>
+        </div>
+      </section>
+
+      <section class="phone-screen" data-view="battle">
+        <div class="safe-top"></div>
+        <header class="game-head"><button class="back">‹</button><div><b>遭遇战</b><small>黑风岭</small></div><span></span></header>
+        <div class="scroll-body battle-body">
+          <section class="fighter enemy">
+            <div class="fighter-title"><div class="seal">狼</div><div><h2>黑风狼妖</h2><p>炼气二层 · 妖兽</p></div><span>受伤</span></div>
+            <div class="meter red"><i style="width:76%"></i></div><small>气血 76 / 100</small>
+          </section>
+          <div class="versus">战</div>
+          <section class="fighter player">
+            <div class="fighter-title"><div class="seal">陆</div><div><h2>陆尘</h2><p>炼气三层</p></div><span class="good">护体</span></div>
+            <div class="meter"><i style="width:88%"></i></div><small>气血 88 / 100</small>
+            <div class="meter mana"><i style="width:70%"></i></div><small>法力 42 / 60</small>
+          </section>
+          <section class="card combat-actions">
+            <h2>选择行动</h2>
+            <div class="two-grid"><button class="primary">青木剑诀<small>法力 -8</small></button><button>御气护体<small>法力 -6</small></button><button>使用物品<small>丹药 / 符箓</small></button><button class="danger">尝试逃离<small>成功率 62%</small></button></div>
+          </section>
+          <section class="battle-log"><b>战况</b><p>你一剑刺中狼妖，造成 <strong>18</strong> 点伤害。</p><p>狼妖扑咬，被护体真气抵消部分伤害。</p></section>
+        </div>
+      </section>
+
+      <section class="phone-screen" data-view="events">
+        <div class="safe-top"></div>
+        <header class="game-head"><button class="back">‹</button><div><b>见闻</b><small>你所知道的世界</small></div><span></span></header>
+        <div class="scroll-body">
+          <div class="seg"><button class="active">本地见闻</button><button disabled>天下大势</button></div>
+          <p class="locked-note">你尚只是凡人，只能知道青石村附近发生的事情。</p>
+          <article class="event-card"><div class="event-top"><span class="event-mark">兽</span><div><h2>后山兽患</h2><p>青石村 · 约持续12日</p></div></div><p>村外近来常有野兽出没，猎户们正在招人结伴进山。</p><button class="primary">前往查看</button></article>
+          <article class="event-card"><div class="event-top"><span class="event-mark">市</span><div><h2>集市药材涨价</h2><p>青石集市 · 今日</p></div></div><p>连续阴雨导致部分草药减产，今日价格略有上涨。</p></article>
+          <article class="rumor-card"><span>传闻</span><p>“青云山上似乎真有仙人……”</p><small>来源：过路商旅</small></article>
+        </div>
+      </section>
+
+      <section class="phone-screen" data-view="sect">
+        <div class="safe-top"></div>
+        <header class="game-head"><button class="back">‹</button><div><b>青云宗</b><small>宗门</small></div><span></span></header>
+        <div class="scroll-body">
+          <section class="sect-hero"><div class="sect-seal">青</div><div><h1>青云宗</h1><p>外门弟子 · 入门第2年</p></div></section>
+          <section class="card compact-kv"><div class="kv"><span>宗门贡献</span><b>126</b></div><div class="kv"><span>师门声望</span><b>普通</b></div><div class="kv"><span>当前师父</span><b>周玄</b></div></section>
+          <section class="task-card"><span>当前宗门事务</span><h2>采集赤叶草 × 5</h2><p>进度 3 / 5 · 剩余8日</p><div class="meter gold"><i style="width:60%"></i></div><button>查看任务</button></section>
+          <section class="card"><h2>宗门入口</h2><button class="list-row"><span>任务堂<small>领取和交付宗门事务</small></span><b>2项可领</b><em>›</em></button><button class="list-row"><span>藏经阁<small>功法、术法与典籍</small></span><b>可兑换</b><em>›</em></button><button class="list-row"><span>师门<small>师父、同门与长老</small></span><b>3人近况</b><em>›</em></button><button class="list-row"><span>宗门坊市<small>宗门内部交易</small></span><b>开放</b><em>›</em></button></section>
+          <section class="news-strip"><b>宗门近况</b><span>内门弟子韩越昨日突破炼气八层。</span></section>
+        </div>
+      </section>
+
+      <section class="phone-screen" data-view="craft">
+        <div class="safe-top"></div>
+        <header class="game-head"><button class="back">‹</button><div><b>洞府 · 炼制</b><small>生产设施</small></div><span></span></header>
+        <div class="scroll-body">
+          <div class="seg"><button class="active">炼丹</button><button>炼器</button></div>
+          <div class="facility-line"><span>炼丹房 Lv.1</span><small>成功率 +2%</small></div>
+          <section class="recipe-hero"><span class="pill-icon">丹</span><div><h1>聚气丹</h1><p>一阶丹药 · 炼气期常用</p></div></section>
+          <section class="card compact-kv"><h2>所需材料</h2><div class="kv"><span>赤叶草 ×2</span><b class="good">3 / 2</b></div><div class="kv"><span>清灵花 ×1</span><b class="good">1 / 1</b></div><div class="kv"><span>灵石 ×5</span><b class="good">36 / 5</b></div><div class="kv total"><span>预计成功率</span><b>82%</b></div></section>
+          <button class="primary big">开始炼制</button>
+          <section class="card"><h2>已掌握丹方</h2><button class="list-row"><span>聚气丹</span><b class="good">可炼</b><em>›</em></button><button class="list-row"><span>回春丹</span><b class="bad">缺材料</b><em>›</em></button><button class="list-row"><span>辟谷丹</span><b class="good">可炼</b><em>›</em></button></section>
+        </div>
+      </section>
+    </main>
+
+    <footer class="proto-foot">这是 UI 交互原型，不会改动 V3.9 核心玩法数据。</footer>
+  </div>
+
+  <script>
+    document.querySelectorAll('.screen-switch button').forEach(btn=>btn.addEventListener('click',()=>{
+      document.querySelectorAll('.screen-switch button').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.phone-screen').forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelector(`[data-view="${btn.dataset.screen}"]`).classList.add('active');
+      window.scrollTo({top:0,behavior:'smooth'});
+    }));
+  </script>
+</body>
+</html>
