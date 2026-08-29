@@ -1,0 +1,23 @@
+{
+  "phase": "8-round8-seed9206",
+  "gameplay": "3.9.0",
+  "coreBuild": 3903,
+  "schema": 36,
+  "results": [
+    {
+      "seed": 9206,
+      "profile": "resource-aware",
+      "steps": 360,
+      "days": 379,
+      "dead": false,
+      "finalRealm": 5,
+      "finalProgress": 144,
+      "lastAction": "explore",
+      "deathContext": null,
+      "finalLocation": "青云山",
+      "finalManual": "玄水纳灵篇",
+      "stones": 20,
+      "herbs": 82
+    }
+  ]
+}
