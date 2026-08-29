@@ -1,4 +1,5 @@
-/* TAIXUAN_PHASE8_QOL_V1 */
+/* TAIXUAN_PHASE8_QOL_V2 */
 .ui-batch-cultivate{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;min-height:44px;padding:7px 10px;border:1px solid #5b5135;border-radius:10px;background:linear-gradient(180deg,#221f15,#171710);color:#e3ce8a;text-align:right;white-space:nowrap}
 .ui-batch-cultivate b{font-size:11px;line-height:1.2}.ui-batch-cultivate small{display:block;max-width:150px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;color:#958b6c;font-size:8px;line-height:1.2}.ui-batch-cultivate:disabled{opacity:.55}
-@media(max-width:370px){.ui-batch-cultivate{padding:6px 8px}.ui-batch-cultivate small{max-width:112px}}
+.phase8-combat-advice{margin:8px 0 10px;padding:9px 11px;border:1px solid #425346;border-radius:10px;background:#121914;color:#c8c0a6;font-size:12px;line-height:1.55}.phase8-combat-advice.high{border-color:#806b38;background:#211d13;color:#e0ca8a}.phase8-combat-advice.severe{border-color:#7c413a;background:#241513;color:#df9a8f;font-weight:600}.modal-actions button.phase8-flee-recommended{border-color:#b79a56;box-shadow:0 0 0 1px rgba(183,154,86,.28),0 0 12px rgba(183,154,86,.16);color:#e6cf8c}
+@media(max-width:370px){.ui-batch-cultivate{padding:6px 8px}.ui-batch-cultivate small{max-width:112px}.phase8-combat-advice{font-size:11px;padding:8px 9px}}
