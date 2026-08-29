@@ -13,15 +13,15 @@ function replaceOnce(src,before,after,label){
 }
 
 // V60 flame proved the mandatory realm33 natal-origin trip is reachable but can roll a realm35
-// enemy at 天穹祖脉. The runner already owned/equipped its normal guard artifact, yet V38's
+// enemy at 天穹祖脉. The runner already owned/equipped its normal guard artifact, yet the inherited
 // one-preparation-per-flee policy always let shield/control spells consume the preparation turn first,
 // so the guard artifact fallback was never reached. Six ordinary flee rolls then failed in sequence.
 //
-// V62 keeps the one-preparation rule and the exact flee probability. After TWO completed flee failures,
-// the next eligible preparation turn prioritizes the already-equipped guard artifact once. The artifact
-// is activated through the ordinary combatAction('artifact:<id>') API; its normal cooldown, shield value,
-// enemy counterattack, RNG and action cost all remain in force. If unavailable, the inherited spell
-// preparation path runs unchanged. No state mutation, forced flee, stat change, or resource grant exists.
+// V62 keeps V45's current critical-HP direct-flee gate, the one-preparation rule and the exact flee
+// probability. After TWO completed flee failures, the next eligible preparation turn prioritizes the
+// already-equipped guard artifact once. The artifact is activated through the ordinary
+// combatAction('artifact:<id>') API; normal cooldown, shield value, enemy counterattack, RNG and action
+// cost remain in force. If unavailable, the inherited effect-aware spell path runs unchanged.
 let v61=fs.readFileSync(v61Path,'utf8');
 v61=replaceOnce(
  v61,
@@ -58,7 +58,9 @@ if(!runner.includes("if(fleeAttempts===2){"))throw new Error('V62 two-failure gu
 if(!runner.includes("spendAction('combat-v62-escape-guard:'+escapeGuardId,()=>invoke('combatAction',guardAction))"))throw new Error('V62 ordinary guard combat API missing');
 if(!runner.includes('V310_FULLRUN_V62_ESCAPE_GUARD'))throw new Error('V62 runtime escape-guard marker missing');
 if(!runner.includes('if(advanced){escapePreparedAt=fleeAttempts;continue;}'))throw new Error('V62 one-preparation accounting missing');
-if(!runner.includes("const prepWanted=(fleeAttempts===0||fleeAttempts%2===0||hpRatio<.58)&&escapePreparedAt!==fleeAttempts;"))throw new Error('V62 lost V38 single-preparation gate');
+if(!runner.includes("const prepWanted=hpRatio>=.45&&(fleeAttempts===0||fleeAttempts%2===0)&&escapePreparedAt!==fleeAttempts;"))throw new Error('V62 lost current V45 critical-HP direct-flee gate');
+if(!runner.includes('V310_FULLRUN_V45_ESCAPE_OPTIONS'))throw new Error('V62 lost V45 effect-aware escape ranking');
+if(!runner.includes('escapePreparedAt=-1'))throw new Error('V62 lost one-preparation-per-flee accounting');
 if(!runner.includes('V310_FULLRUN_V61_LIVE_TRIBULATION_ENTRY'))throw new Error('V62 lost V61 live tribulation gear entry');
 if(!runner.includes('V310_FULLRUN_V57_GEAR_CALL'))throw new Error('V62 lost V57 high-realm gear live marker');
 if(runner.includes("invoke('v37SetPlayerForTest'")||runner.includes("invoke('v34ActivateBuildForTest'")||runner.includes("v33AddMaterial('mat-v39-thunder-crystal'")||runner.includes("v33AddMaterial('mat-v39-tribulation-gold'"))throw new Error('forbidden shortcut leaked into V62 runner');
@@ -66,5 +68,5 @@ if(runner.includes("invoke('v37SetPlayerForTest'")||runner.includes("invoke('v34
 fs.writeFileSync(finalRunnerPath,runner);
 const syntax=spawnSync(process.execPath,['--check',finalRunnerPath.pathname],{encoding:'utf8'});
 if(syntax.status!==0)throw new Error('V62 final runner syntax failure: '+(syntax.stderr||syntax.stdout||''));
-console.log('V310_FULLRUN_V62_FINAL_RUNNER_PASS '+JSON.stringify({guardPriorityAfterRealFleeFailures:2,ordinaryArtifactCombatActionOnly:true,onePreparationPerFleeAttemptPreserved:true,fleeChanceUnchanged:true,enemyStatsUnchanged:true,artifactStatsAndCooldownsUnchanged:true,gameBalanceUnchanged:true,seedUnchanged:true,actionCapUnchanged:true,noDirectResourceInjection:true,noDirectStateMutation:true,v61LiveTribulationGearPreserved:true}));
+console.log('V310_FULLRUN_V62_FINAL_RUNNER_PASS '+JSON.stringify({guardPriorityAfterRealFleeFailures:2,ordinaryArtifactCombatActionOnly:true,currentV45CriticalHpGatePreserved:true,effectAwareEscapePreserved:true,onePreparationPerFleeAttemptPreserved:true,fleeChanceUnchanged:true,enemyStatsUnchanged:true,artifactStatsAndCooldownsUnchanged:true,gameBalanceUnchanged:true,seedUnchanged:true,actionCapUnchanged:true,noDirectResourceInjection:true,noDirectStateMutation:true,v61LiveTribulationGearPreserved:true}));
 await import(finalRunnerPath.href+'?v62final='+Date.now());
