@@ -1,0 +1,129 @@
+name: V3.10 V67 final four-path candidate
+
+on:
+  push:
+    branches: ["v310-v67-unity-logistics"]
+    paths:
+      - "V310_V67_FOUR_PATHS.trigger"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v310-v67-four-path-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    name: no-recharge-${{ matrix.dao }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dao: sword
+            seed: "31006701"
+            midguard: "item-v32-swordguard-wheel"
+          - dao: flame
+            seed: "31006702"
+            midguard: "item-v32-firecloud-aegis"
+          - dao: body
+            seed: "31006703"
+            midguard: "item-v32-goldenbody-drum"
+          - dao: spirit
+            seed: "31006704"
+            midguard: "item-v32-nether-armor"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify immutable V3.9 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse origin/main)" = "62db848091ce7686c85357a8c963820a9d27f24c"
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+
+      - name: Install headless dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+
+      - name: Build and regress exact V6 gameplay source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v310-v38-pill-effects.mjs
+          node tools/build-v310-balance-v6.cjs
+          node --check src/game-v310.js
+          test "$(sha256sum src/game-v310.js | awk '{print $1}')" = "af83bcef5657ccf17372e51038ea8f1709da6623a4739b8e9267a902ffd47f63"
+          grep -q "p.location==='归一圣墟'&&rand()<.28" src/game-v310.js
+          node tests/regression-v310.mjs
+          node tests/regression-v310-premahayana-auction.mjs
+          node tests/regression-v310-core-market.mjs
+          node tests/regression-v310-natal-origin-id.mjs
+          node tests/regression-v310-tribulation-essence.mjs
+          node tools/build-v310-balance-v6.cjs >/tmp/v67-resource-build.log
+          node tests/regression-v310-resource-utility.mjs
+          node tests/regression-v310-domain-sand-source.mjs
+          node --check tools/fullrun-v310-no-recharge-v67.mjs
+
+      - name: Prepare gameplay-neutral headless copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          original=$(sha256sum src/game-v310.js | awk '{print $1}')
+          node tools/build-v310-fullrun-headless.cjs
+          node --check src/game-v310.js
+          node -e "const r=require('/tmp/V310_HEADLESS.json');if(r.status!=='PASS'||r.mode!=='fullrun-headless-ui-persistence-only'||r.replacements!==3||r.original_sha256!==process.argv[1])throw new Error('headless transform mismatch')" "$original"
+
+      - name: Run legal V67 ${{ matrix.dao }} full-run
+        shell: bash
+        env:
+          V310_DAO_PATH: ${{ matrix.dao }}
+          V310_FULLRUN_SEED: ${{ matrix.seed }}
+          V310_FULLRUN_MAX_ACTIONS: "300000"
+          V310_FULLRUN_MAX_FARM_ACTIONS: "2400"
+        run: |
+          set -euo pipefail
+          set +e
+          node tools/fullrun-v310-no-recharge-v67.mjs 2>&1 | tee V310_FULLRUN_LOG.txt
+          rc=${PIPESTATUS[0]}
+          set -e
+          grep -q 'V310_FULLRUN_V67_FINAL_RUNNER_PASS' V310_FULLRUN_LOG.txt
+          grep -q 'V310_FULLRUN_V65_DWELLING' V310_FULLRUN_LOG.txt
+          grep -q 'V310_FULLRUN_V66_MID_GUARD.*${{ matrix.midguard }}' V310_FULLRUN_LOG.txt
+          grep -q 'V310_FULLRUN_V67_UNITY_LOGISTICS.*"authoredProbability":0.28' V310_FULLRUN_LOG.txt
+          grep -q 'V310_FULLRUN_V57_GEAR_CALL' V310_FULLRUN_LOG.txt
+          if grep -q 'V310_FULLRUN_V54_NAMED_SOURCE.*mat-v37-domain-sand' V310_FULLRUN_LOG.txt; then
+            grep -q 'V310_FULLRUN_V64_PRODUCTIVE_SOURCE.*mat-v37-domain-sand' V310_FULLRUN_LOG.txt
+          fi
+          if grep -Eq 'V310_FULLRUN_V39_FLEE.*(界心巨灵|法暴灵|四律缝合体|断脉古尊|无名界尊)' V310_FULLRUN_LOG.txt; then
+            grep -q 'V310_FULLRUN_V62_ESCAPE_GUARD' V310_FULLRUN_LOG.txt
+          fi
+          if grep -q 'V310_FULLRUN_V63_MAHAYANA_BREW' V310_FULLRUN_LOG.txt; then
+            echo 'V67 must not auto-chase Mahayana pills' >&2
+            exit 1
+          fi
+          if [ "$rc" -ne 0 ]; then exit "$rc"; fi
+          grep -q 'V310_FULLRUN_V60_TRIBULATION_GEAR' V310_FULLRUN_LOG.txt
+          grep -q 'V310_FULLRUN_V61_LIVE_TRIBULATION_ENTRY' V310_FULLRUN_LOG.txt
+          grep -q 'item-v39-thunder-umbrella' V310_FULLRUN_LOG.txt
+          grep -q 'item-v39-tribulation-array-disc' V310_FULLRUN_LOG.txt
+          node -e "const r=require('./V310_FULLRUN_RESULT.json');if(r.status!=='PASS'||r.daoPath!==process.argv[1]||r.actions<1||r.actions>300000||r.maxRealm!==39||r.final.realmIndex!==39||r.final.realm!=='真仙'||r.final.location!=='飞升天门'||!r.final.ascended||r.final.thunderStage!==6||r.final.transformStep!==3||!r.proof?.freshSave||!r.proof?.noRecharge||!r.proof?.noDirectStateMutation||!r.proof?.legalGameplayCallsOnly||!r.proof?.ascensionComplete||r.forbiddenCalls?.length)throw new Error('V67 legal four-path proof incomplete')" "${{ matrix.dao }}"
+
+      - name: Upload V67 path evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v310-v67-fullrun-${{ matrix.dao }}
+          path: |
+            V310_FULLRUN_RESULT.json
+            V310_FULLRUN_LOG.txt
+            BUILD_V310_BALANCE.json
+          if-no-files-found: ignore
+          retention-days: 14
