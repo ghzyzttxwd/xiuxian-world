@@ -1,0 +1,66 @@
+name: Phase8 R10 Growth Diagnostic
+
+on:
+  push:
+    branches: ["phase8-r10-growth-diagnostic"]
+    paths: ["PHASE8_R10_GROWTH.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase8-r10-growth-diagnostic
+          fetch-depth: 0
+
+      - name: Verify R8 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          node -e "const s=require('./PUBLIC_UI_STATUS.json');if(s.status!=='PASS'||s.ui_version!=='playable-v3920-phase8-r8'||s.core_build!==3903)process.exit(1)"
+
+      - name: Extract cultivation curve and manual gain diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');
+          const source=fs.readFileSync('src/game-v39.js','utf8');
+          function make(name){const d=new JSDOM(html,{url:'https://growth-diag.test/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.console={log(){},warn(){},error(){}};w.eval(source);const a=w.__TAIXUAN_TEST__;a.newGame(name);return a}
+          function num(v){if(typeof v==='number')return v;if(v&&typeof v==='object'){for(const k of ['gain','progress','cultivation','value','total'])if(typeof v[k]==='number')return v[k]}return null}
+          function setupManual(a,id,location){const s=a.getState();s.player.spiritStones=99999;s.player.location=location;if(!id)return {learn:'default',switch:'default'};let learn=null,sw=null;try{learn=a.learnV31Manual(id,false)}catch(e){learn='error:'+e.message}try{sw=a.switchV31Manual(id,false)}catch(e){sw='error:'+e.message}return {learn,sw}}
+          function scenario(label,id,location){const a=make('诊断-'+label),setup=setupManual(a,id,location),curve=a.realmBalance();const rows=[];for(let i=0;i<=13;i++){a.v39SetPlayerForTest({realmIndex:i,location});const s=a.getState();s.player.progress=0;const one=a.cultivationGainForDays(1),seven=a.cultivationGainForDays(7),thirty=a.cultivationGainForDays(30),g1=num(one),need=Number(curve[i]?.need)||null;rows.push({index:i,name:curve[i]?.name||null,need,manual:s.player.manual,manualProf:s.player.manualProf,gain1:one,gain7:seven,gain30:thirty,theoreticalPureCultivationDays:g1&&need?Number((need/g1).toFixed(1)):null,remainingLifespanYears:typeof a.remainingLifespanYears==='function'?a.remainingLifespanYears():null})}return {label,id,location,setup,rows}}
+          const probe=make('API探针');const apiKeys=Object.keys(probe).sort();
+          const report={phase:'8-round10-growth-diagnostic',gameplay:'3.9.0',coreBuild:3903,sourceSha256:'1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c',schema:probe.getState().saveSchemaVersion,apiKeys:apiKeys.filter(k=>/cultiv|realm|break|manual|lifespan/i.test(k)),scenarios:[scenario('基础吐纳诀',null,'青石村'),scenario('五元归息功','manual-five-elements-return','青石镇'),scenario('玄水纳灵篇','manual-mystic-water','临江城')]};
+          if(typeof probe.v31CatalogSnapshot==='function')report.catalog=probe.v31CatalogSnapshot();
+          fs.writeFileSync('PHASE8_R10_GROWTH_DIAGNOSTIC.json',JSON.stringify(report,null,2)+'\n');
+          console.log('R10_GROWTH_DIAGNOSTIC',JSON.stringify({apiKeys:report.apiKeys,setup:report.scenarios.map(x=>({label:x.label,setup:x.setup,manual:x.rows[1]?.manual})),qiNeeds:report.scenarios[0].rows.slice(1,10).map(x=>({i:x.index,n:x.name,need:x.need,g1:x.gain1,days:x.theoreticalPureCultivationDays}))}));
+          NODE
+          test -s PHASE8_R10_GROWTH_DIAGNOSTIC.json
+
+      - name: Validate diagnostic shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const x=require('./PHASE8_R10_GROWTH_DIAGNOSTIC.json');if(x.coreBuild!==3903||x.schema!==36||x.scenarios.length!==3)throw Error('shape mismatch');for(const s of x.scenarios)if(s.rows.length!==14)throw Error('row count '+s.label);console.log('R10_GROWTH_SHAPE_OK')
+          NODE
+
+      - name: Commit growth diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R10_GROWTH_DIAGNOSTIC.json
+          git commit -m 'test: record phase8 r10 growth diagnostic [skip ci]'
+          git push origin HEAD:phase8-r10-growth-diagnostic
