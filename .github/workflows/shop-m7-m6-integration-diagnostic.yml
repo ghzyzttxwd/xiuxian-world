@@ -1,0 +1,33 @@
+name: M7 M6 Terminal Jade Diagnostic
+on:
+  push:
+    paths:
+      - '.github/workflows/shop-m7-m6-integration-diagnostic.yml'
+      - 'SHOP_M7_M6_DIAG_TRIGGER.txt'
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reproduce VIP15 plus terminal jade purchase
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g,'');
+          const files=['src/game-v39.js','ui-shop-v2-power-adapter.js','ui-shop-v2.js','ui-shop-v2-vip8.js','ui-shop-v2-vip12.js','ui-shop-v2-vip15.js','ui-shop-v2-dynamic-power.js','ui-shop-v2-jade-sinks.js'];
+          const d=new JSDOM(html,{url:'https://diag.test/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.confirm=()=>true;w.console=console;for(const f of files)w.eval(fs.readFileSync(f,'utf8'));w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));
+          const wallet=()=>JSON.parse(w.localStorage.getItem('taixuan-premium-wallet-v1')||'{}');
+          const recharge=(id,n=1)=>{w.__TAIXUAN_SHOP__.open('jade');for(let i=0;i<n;i++){const b=w.document.querySelector(`[data-recharge="${id}"]`);if(!b)throw Error('missing recharge '+id);b.click()}};
+          const vip8=()=>{recharge('jade-648');recharge('jade-128');recharge('jade-30')};
+          const vip12=()=>{recharge('jade-648',2);recharge('jade-128')};
+          const vip15=()=>{recharge('jade-648',6);recharge('jade-328');recharge('jade-68')};
+          w.__TAIXUAN_TEST__.newGame('M7M6诊断');vip8();const r8=w.__TAIXUAN_VIP8__.claimFull();if(!r8.ok)throw Error('v8');w.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:19});w.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-sword-burst');vip12();const r12=w.__TAIXUAN_VIP12__.claimFull();if(!r12.ok)throw Error('v12');w.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:37,location:'九霄劫台'});w.__TAIXUAN_TEST__.v37ChooseLaw('law-severing',true);const id=r8.artifact.itemId||r8.artifact.id;const natal=w.__TAIXUAN_POWER_SHOP__.grantArtifact(id,{grade:'perfect',refinement:6,warmth:60,bind:true,natal:true});if(!natal.ok)throw Error('natal '+JSON.stringify(natal));vip15();const r15=w.__TAIXUAN_VIP15__.claimFull();if(!r15.ok)throw Error('v15 '+JSON.stringify(r15));
+          const offers=w.__TAIXUAN_JADE_SINKS__.getOffers();const jo=offers.find(x=>x.type==='materials');const before={wallet:wallet(),trib:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence'),mah:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v38-mahayana-essence'),realm:w.__TAIXUAN_TEST__.getState().player.realmIndex,offer:jo&&{id:jo.id,name:jo.name,price:jo.price,reward:jo.reward,key:jo.key}};const result=jo?w.__TAIXUAN_JADE_SINKS__.buy(jo.id):{ok:false,reason:'missing'};const after={wallet:wallet(),trib:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence'),mah:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v38-mahayana-essence'),stateTrib:w.__TAIXUAN_TEST__.getState().player.tribulationEssence,result};
+          console.log('M7_M6_DIAGNOSTIC',JSON.stringify({before,after,offers:offers.map(x=>({id:x.id,type:x.type,name:x.name,price:x.price,reward:x.reward}))},null,2));
+          if(!jo||!result.ok)throw Error('diagnostic purchase failed');
+          NODE
