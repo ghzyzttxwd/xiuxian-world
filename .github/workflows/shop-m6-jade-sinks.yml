@@ -1,0 +1,103 @@
+name: Shop M6 Jade Consumption Outlets
+on:
+  push:
+    paths:
+      - 'ui-shop-v2-jade-sinks.js'
+      - 'ui-shop-v2-power-adapter.js'
+      - 'app.js'
+      - 'sw.js'
+      - '.github/workflows/shop-m6-jade-sinks.yml'
+      - 'SHOP_M6_TRIGGER.txt'
+concurrency:
+  group: shop-m6-jade-sinks
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  validate-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen core and M6 wiring
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          grep -q "shopJadeSinks:'m6'" app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-4' app.js
+          grep -q 'ui-shop-v2-jade-sinks.js?v=m6-1' app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-4' sw.js
+          grep -q 'ui-shop-v2-jade-sinks.js?v=m6-1' sw.js
+      - name: Syntax check
+        run: |
+          set -euo pipefail
+          node --check ui-shop-v2-jade-sinks.js
+          node --check ui-shop-v2-power-adapter.js
+          node --check app.js
+          node --check sw.js
+      - name: Browser smoke - jade rotation, growth, manuals, skills, pills, materials and persistence
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g,'');
+          const GAME='xiuxian_world_v02',WALLET='taixuan-premium-wallet-v1';
+          function walletBase(jade=20000){return {version:2,jade,vipExp:0,totalCny:0,monthlyUntil:0,monthlyClaimDate:'',growthOwned:false,growthClaimed:[],vipClaimDate:'',vipMilestoneClaimed:[],firstBonusUsed:{},packBuys:{},receipts:[],titles:[],jadeSinkBuys:{}}}
+          function boot(gameSave=null,walletSave=null,withShop=false){const d=new JSDOM(html,{url:'https://m6.test/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.confirm=()=>true;w.console=console;if(gameSave)w.localStorage.setItem(GAME,gameSave);if(walletSave)w.localStorage.setItem(WALLET,walletSave);w.eval(fs.readFileSync('src/game-v39.js','utf8'));w.eval(fs.readFileSync('ui-shop-v2-power-adapter.js','utf8'));if(withShop)w.eval(fs.readFileSync('ui-shop-v2.js','utf8'));w.eval(fs.readFileSync('ui-shop-v2-jade-sinks.js','utf8'));w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));return w}
+          const w=boot(null,JSON.stringify(walletBase()),true);w.__TAIXUAN_TEST__.newGame('M6验收');w.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-sword-burst');w.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:26});
+          const js=w.__TAIXUAN_JADE_SINKS__,pw=w.__TAIXUAN_POWER_SHOP__;
+          // A. Daily artifact rotation is deterministic for the same state/day and grants a real bound perfect artifact.
+          const rot1=js.artifactRotation(),rot2=js.artifactRotation();if(!rot1.length||rot1.length>3)throw Error('artifact rotation missing');if(rot1.map(x=>x.id).join('|')!==rot2.map(x=>x.id).join('|'))throw Error('artifact rotation not stable');
+          const art=rot1[0],jade0=JSON.parse(w.localStorage.getItem(WALLET)).jade,ar=js.buy(art.id);if(!ar.ok)throw Error('artifact jade buy failed '+JSON.stringify(ar));let s=w.__TAIXUAN_TEST__.getState(),itemId=ar.granted.id,rec=s.player.equipmentInventory[itemId];if(!rec||rec.grade!=='perfect'||!rec.bound||rec.refinement<2||rec.warmth<20)throw Error('artifact reward invalid '+JSON.stringify(rec));if(!Object.values(s.player.artifactLoadout||{}).includes(itemId))throw Error('artifact not equipped');let wa=JSON.parse(w.localStorage.getItem(WALLET));if(wa.jade!==jade0-art.price)throw Error('artifact jade deduction wrong');
+          // B. Artifact growth spends jade and changes the actual equipped record without RNG.
+          let grow=js.artifactGrowthOffers().find(x=>x.name.includes('祭炼'));if(!grow)throw Error('refine growth offer missing');const beforeRef=s.player.equipmentInventory[itemId].refinement,beforeJade=wa.jade,gr=js.buy(grow.id);if(!gr.ok)throw Error('growth buy failed '+JSON.stringify(gr));s=w.__TAIXUAN_TEST__.getState();wa=JSON.parse(w.localStorage.getItem(WALLET));if(s.player.equipmentInventory[itemId].refinement!==beforeRef+1||wa.jade!==beforeJade-grow.price)throw Error('growth state/jade invalid');
+          // C. Manual box reveals the exact manual, adds it to library, and does not force-switch the current manual.
+          const mo=js.getOffers().find(x=>x.type==='manual');if(!mo)throw Error('manual offer missing');const manualId=mo.id.slice(7),manualBefore=w.__TAIXUAN_TEST__.getState().player.manual,mr=js.buy(mo.id);if(!mr.ok)throw Error('manual buy failed');s=w.__TAIXUAN_TEST__.getState();if(!s.player.manualLibraryIds.includes(manualId)||s.player.manual!==manualBefore)throw Error('manual grant switched loadout or missing');
+          // D. Core semantics may auto-fill an empty slot when learning; existing occupied slots must never be overwritten.
+          const so=js.getOffers().find(x=>x.type==='spell');if(!so)throw Error('spell offer missing');const spellId=so.id.slice(6),slotsBefore=[...s.player.activeSkillIds],sr=js.buy(so.id);if(!sr.ok)throw Error('spell buy failed');s=w.__TAIXUAN_TEST__.getState();const spellRow=w.__TAIXUAN_TEST__.v31CatalogSnapshot().spells.find(x=>x.id===spellId);if(!spellRow||!(spellRow.name in s.player.spells))throw Error('spell not learned');for(let i=0;i<slotsBefore.length;i++)if(slotsBefore[i]&&s.player.activeSkillIds[i]!==slotsBefore[i])throw Error('existing active slot overwritten at '+i);if(spellRow.category!=='passive'&&slotsBefore.some(x=>!x)&&!s.player.activeSkillIds.includes(spellId))throw Error('new spell did not auto-fill an empty core slot');
+          // E. Pill outlet creates real perfect-grade pill inventory.
+          const po=js.getOffers().find(x=>x.type==='pill');if(!po)throw Error('pill offer missing');const recipeId=po.id.slice(5),pill0=Number(s.player.pillInventoryById?.[recipeId]?.perfect)||0,pr=js.buy(po.id);if(!pr.ok)throw Error('pill buy failed '+JSON.stringify(pr));s=w.__TAIXUAN_TEST__.getState();if((Number(s.player.pillInventoryById?.[recipeId]?.perfect)||0)!==pill0+2)throw Error('perfect pill inventory did not increase');
+          // F. High-realm material outlet switches to real terminal-stage materials and persists them.
+          w.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:37});const mat=js.getOffers().find(x=>x.type==='materials');if(!mat||!mat.name.includes('渡劫'))throw Error('tribulation material outlet missing '+JSON.stringify(mat));const counts={};for(const id of ['mat-v39-tribulation-essence','mat-v38-mahayana-essence'])counts[id]=w.__TAIXUAN_TEST__.v33MaterialCount(id);const br=js.buy(mat.id);if(!br.ok)throw Error('material buy failed');for(const [id,n] of br.granted.items)if(w.__TAIXUAN_TEST__.v33MaterialCount(id)<(counts[id]||0)+n&&id in counts)throw Error('material not granted '+id);
+          // G. Zero-jade purchase is atomic: no reward and no negative wallet.
+          wa=JSON.parse(w.localStorage.getItem(WALLET));wa.jade=0;w.localStorage.setItem(WALLET,JSON.stringify(wa));const repeat=js.getOffers().find(x=>x.type==='materials');const tribBefore=w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence'),fail=js.buy(repeat.id);if(fail.ok||fail.reason!=='jade'||w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence')!==tribBefore||JSON.parse(w.localStorage.getItem(WALLET)).jade!==0)throw Error('insufficient jade was not atomic');
+          // H. Jade tab injects high-value store, explicit simulated-payment disclosure, and no extra shop tab.
+          wa.jade=9999;w.localStorage.setItem(WALLET,JSON.stringify(wa));w.__TAIXUAN_SHOP__.open('jade');js.decorate();const box=w.document.querySelector('#uiJadeSinksM6');if(!box||!box.querySelectorAll('.jade-sink-card').length)throw Error('jade sink UI missing');if(!box.textContent.includes('不接真实支付')||!box.textContent.includes('仅消耗已有仙玉'))throw Error('simulated-payment disclosure missing');if(w.document.querySelectorAll('.ui-shop-tabs [data-shop-tab]').length!==6)throw Error('shop tab count changed');
+          // I. Save/reload keeps schema36 and all purchased combat assets.
+          const gameSave=w.localStorage.getItem(GAME),walletSave=w.localStorage.getItem(WALLET);if(!gameSave||!walletSave)throw Error('save payload missing');const w2=boot(gameSave,walletSave,false);w2.document.getElementById('continueBtn').click();const s2=w2.__TAIXUAN_TEST__.getState();if(s2.saveSchemaVersion!==36)throw Error('schema drift after M6');const r2=s2.player.equipmentInventory[itemId];if(!r2||r2.grade!=='perfect'||r2.refinement<beforeRef+1||!s2.player.manualLibraryIds.includes(manualId)||(Number(s2.player.pillInventoryById?.[recipeId]?.perfect)||0)<pill0+2)throw Error('M6 persistence failed');
+          console.log('SHOP_M6_JADE_SINKS_OK',JSON.stringify({artifact:art.name,itemId,refinement:r2.refinement,manual:manualId,spell:spellId,pill:recipeId,tribulationEssence:s2.player.tribulationEssence,jade:JSON.parse(walletSave).jade,schema:s2.saveSchemaVersion}));
+          NODE
+          rm -rf node_modules package.json package-lock.json
+      - name: Mark M6 PASS on main
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git checkout main
+          git pull --ff-only origin main
+          python - <<'PY'
+          import json
+          p='PUBLIC_UI_STATUS.json'
+          d=json.load(open(p,encoding='utf-8'))
+          d['status']='PASS';d['phase']='final-ui-shop-v2';d['coreBuild']=3903;d['schema']=36;d['realPayment']=False
+          s=d.setdefault('shop',{});s['powerRewardAdapter']='M1-PASS';s['vip8PowerNode']='M2-PASS';s['vip12PowerNode']='M3-PASS';s['vip15PowerNode']='M4-PASS';s['dynamicPowerOffers']='M5-PASS';s['jadeSinks']='M6-PASS';s['jadeArtifactRotation']=True;s['jadeArtifactGrowth']=True;s['jadeManualSkillBoxes']=True;s['jadePills']=True;s['jadeHighRealmMaterials']=True
+          open(p,'w',encoding='utf-8').write(json.dumps(d,ensure_ascii=False,separators=(',',':'))+'\n')
+          PY
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'status: shop M6 jade sinks PASS' || true
+          git push origin main
+      - name: Publish validated M6 and current status to gh-pages
+        run: |
+          set -euo pipefail
+          git fetch origin main gh-pages
+          git checkout -B gh-pages origin/gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          git checkout origin/main -- .
+          rm -rf node_modules
+          git add -A
+          git commit -m 'publish: shop M6 jade consumption outlets' || true
+          git push origin gh-pages
