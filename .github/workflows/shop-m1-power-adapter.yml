@@ -25,8 +25,8 @@ jobs:
           test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
           grep -q "build:'3903'" app.js
           grep -q "shopPower:'m1'" app.js
-          grep -q 'ui-shop-v2-power-adapter.js?v=m1-1' app.js
-          grep -q 'ui-shop-v2-power-adapter.js?v=m1-1' sw.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-2' app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-2' sw.js
       - name: Syntax check
         run: |
           set -euo pipefail
@@ -53,6 +53,7 @@ jobs:
           const w=boot();
           w.__TAIXUAN_TEST__.newGame('M1验收');
           const p=w.__TAIXUAN_POWER_SHOP__;
+          if(p.resolveSpellId('spell-clear-sword-heart-passive')!=='spell-clear-sword-heart')throw Error('component alias missing');
           let r=p.grantEquipment('item-v32-qingmu-sword',{grade:'perfect',equip:true});
           if(!r.ok||r.record?.grade!=='perfect')throw Error('equipment grant failed');
           r=p.grantArtifact('item-v32-sevenstar-swordcase',{grade:'perfect',refinement:3,warmth:30,bind:true,equip:true});
@@ -64,13 +65,14 @@ jobs:
           if(!dup.ok||!dup.duplicate)throw Error('artifact duplicate protection failed');
           const m=p.grantManual('manual-taibai-sword');if(!m.ok)throw Error('manual grant failed '+JSON.stringify(m));
           const sk=p.grantSpell('spell-sword-qi-slash',{equip:true,slot:0});if(!sk.ok||!sk.equipped)throw Error('active spell grant failed');
-          const ps=p.grantSpell('spell-clear-sword-heart-passive',{equip:true});if(!ps.ok||!ps.equipped)throw Error('passive grant failed');
+          const ps=p.grantSpell('spell-clear-sword-heart-passive',{equip:true});if(!ps.ok||!ps.equipped||ps.actualId!=='spell-clear-sword-heart')throw Error('passive alias grant failed '+JSON.stringify(ps));
           s=w.__TAIXUAN_TEST__.getState();
           if(!s.player.manualLibraryIds.includes('manual-taibai-sword'))throw Error('manual missing from library');
           if(s.player.activeSkillIds[0]!=='spell-sword-qi-slash')throw Error('active loadout missing');
-          if(s.player.passiveSkillId!=='spell-clear-sword-heart-passive')throw Error('passive loadout missing');
+          if(s.player.passiveSkillId!=='spell-clear-sword-heart')throw Error('passive loadout missing');
           w.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-sword-burst');
-          const b=p.inspectBuild('build-sword-burst');if(!b.ok||!b.mastered||b.score<5)throw Error('build detector failed '+JSON.stringify(b));
+          const ps2=p.grantSpell('spell-clear-sword-heart',{equip:true});if(!ps2.ok||!ps2.equipped)throw Error('passive restore after build fixture failed');
+          const b=p.inspectBuild('build-sword-burst');if(!b.ok||!b.mastered||b.score<5||b.missing.passive!==null)throw Error('build detector failed '+JSON.stringify(b));
           s=w.__TAIXUAN_TEST__.getState();if(s.saveSchemaVersion!==36)throw Error('schema drift before reload');
           const saved=w.localStorage.getItem('xiuxian_world_v02');if(!saved)throw Error('save missing');
           const w2=boot(saved);w2.document.getElementById('continueBtn').click();
@@ -78,8 +80,9 @@ jobs:
           if(s2.saveSchemaVersion!==36)throw Error('schema drift after reload');
           if(!r2||r2.grade!=='perfect'||!r2.bound||r2.refinement<3||r2.warmth<30)throw Error('artifact persistence failed');
           if(!s2.player.manualLibraryIds.includes('manual-taibai-sword'))throw Error('manual persistence failed');
-          if(s2.player.passiveSkillId!=='spell-clear-sword-heart-passive')throw Error('passive persistence failed');
-          console.log('SHOP_M1_POWER_ADAPTER_OK',JSON.stringify({schema:s2.saveSchemaVersion,artifact:r2,manuals:s2.player.manualLibraryIds.length,passive:s2.player.passiveSkillId,build:b.id,score:b.score}));
+          if(s2.player.passiveSkillId!=='spell-clear-sword-heart')throw Error('passive persistence failed');
+          const b2=w2.__TAIXUAN_POWER_SHOP__.inspectBuild('build-sword-burst');if(!b2.mastered||b2.score<5)throw Error('build persistence failed '+JSON.stringify(b2));
+          console.log('SHOP_M1_POWER_ADAPTER_OK',JSON.stringify({schema:s2.saveSchemaVersion,artifact:r2,manuals:s2.player.manualLibraryIds.length,passive:s2.player.passiveSkillId,build:b2.id,score:b2.score}));
           NODE
           rm -rf node_modules package.json package-lock.json
       - name: Publish M1 adapter to gh-pages
@@ -99,6 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           git checkout main
+          git pull --ff-only origin main
           python - <<'PY'
           import json
           p='PUBLIC_UI_STATUS.json'
