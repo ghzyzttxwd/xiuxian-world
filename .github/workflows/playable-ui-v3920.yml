@@ -32,11 +32,16 @@ jobs:
           test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
           node --check app.js
           node --check ui-v3920.js
+          node --check ui-shop-v1.js
           node --check src/game-v39.js
           grep -q 'data-ui-shell="playable-v3920"' index.html
           grep -q 'TAIXUAN_PLAYABLE_UI_V3920' ui-v3920.css
-          grep -q 'TAIXUAN_PLAYABLE_UI_V3920' ui-v3920.js
-          grep -q 'taixuan-v3.9.0-playable-ui-3920' sw.js
+          grep -q 'TAIXUAN_PLAYABLE_UI_V3920_PHASE6' ui-v3920.js
+          grep -q 'TAIXUAN_MONETIZATION_UI_V1' ui-shop-v1.js
+          grep -q 'TAIXUAN_MONETIZATION_UI_V1' ui-shop-v1.css
+          grep -q 'ui-shop-v1.js?v=1' app.js
+          grep -q 'ui-shop-v1.css?v=1' app.js
+          grep -q 'taixuan-v3.9.0-playable-ui-3920-phase7' sw.js
           grep -q 'src/game-v39.js?v=3901' app.js
           python3 - <<'PY'
           from pathlib import Path
@@ -63,12 +68,34 @@ jobs:
           print('UI_V3920_DOM_CONTRACT_OK')
           PY
 
-      - name: Run V2.9 through V3.9 gameplay regression
+      - name: Run sandbox monetization smoke test
         shell: bash
         run: |
           set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs');
+          const {JSDOM}=require('jsdom');
+          const dom=new JSDOM('<!doctype html><html><body><div class="ui-currency"><b>仙玉</b><em>—</em></div></body></html>',{url:'https://taixuan.test/',runScripts:'outside-only'});
+          dom.window.eval(fs.readFileSync('ui-shop-v1.js','utf8'));
+          dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+          const api=dom.window.__TAIXUAN_SHOP__;
+          if(!api) throw new Error('shop api missing');
+          api.open('jade');
+          const first=dom.window.document.querySelector('[data-recharge="jade-6"]');
+          if(!first) throw new Error('recharge card missing');
+          first.click();
+          const w=api.getWallet();
+          if(w.jade!==120||w.vipExp!==60||w.totalCny!==6) throw new Error('sandbox recharge accounting failed '+JSON.stringify(w));
+          if(!dom.window.localStorage.getItem('taixuan-premium-wallet-v1')) throw new Error('premium wallet not persisted');
+          console.log('SANDBOX_MONETIZATION_SMOKE_OK',JSON.stringify({jade:w.jade,vipExp:w.vipExp,totalCny:w.totalCny}));
+          NODE
+
+      - name: Run V2.9 through V3.9 gameplay regression
+        shell: bash
+        run: |
+          set -euo pipefail
           node tests/regression-v29.mjs
           node tests/regression-v30.mjs
           node tests/regression-v31.mjs
@@ -89,14 +116,14 @@ jobs:
           rm -rf /tmp/pages3920
           git worktree add /tmp/pages3920 origin/gh-pages
           mkdir -p /tmp/pages3920/src
-          cp index.html style.css ui-v3920.css ui-v3920.js app.js sw.js /tmp/pages3920/
+          cp index.html style.css ui-v3920.css ui-v3920.js ui-shop-v1.css ui-shop-v1.js app.js sw.js /tmp/pages3920/
           cp src/game-v39.js /tmp/pages3920/src/game-v39.js
           cd /tmp/pages3920
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html style.css ui-v3920.css ui-v3920.js app.js sw.js src/game-v39.js
+          git add index.html style.css ui-v3920.css ui-v3920.js ui-shop-v1.css ui-shop-v1.js app.js sw.js src/game-v39.js
           if ! git diff --cached --quiet; then
-            git commit -m "feat: publish playable UI v3920 ${GITHUB_SHA} [skip ci]"
+            git commit -m "feat: publish playable UI v3920 phase7 ${GITHUB_SHA} [skip ci]"
             git push origin HEAD:gh-pages
           fi
 
@@ -108,11 +135,13 @@ jobs:
           EXPECT_GAME='99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37'
           success=0
           for i in $(seq 1 60); do
-            bust="ui3920-${GITHUB_SHA}-${i}"
+            bust="ui3920-phase7-${GITHUB_SHA}-${i}"
             ok=1
             curl -fsSL "${BASE}?${bust}" -o /tmp/live-index.html || ok=0
             curl -fsSL "${BASE}ui-v3920.css?${bust}" -o /tmp/live-ui.css || ok=0
             curl -fsSL "${BASE}ui-v3920.js?${bust}" -o /tmp/live-ui.js || ok=0
+            curl -fsSL "${BASE}ui-shop-v1.css?${bust}" -o /tmp/live-shop.css || ok=0
+            curl -fsSL "${BASE}ui-shop-v1.js?${bust}" -o /tmp/live-shop.js || ok=0
             curl -fsSL "${BASE}sw.js?${bust}" -o /tmp/live-sw.js || ok=0
             curl -fsSL "${BASE}app.js?${bust}" -o /tmp/live-app.js || ok=0
             curl -fsSL "${BASE}src/game-v39.js?${bust}" -o /tmp/live-game.js || ok=0
@@ -121,8 +150,11 @@ jobs:
               if [ "$hgame" = "$EXPECT_GAME" ] \
                 && grep -q 'data-ui-shell="playable-v3920"' /tmp/live-index.html \
                 && grep -q 'TAIXUAN_PLAYABLE_UI_V3920' /tmp/live-ui.css \
-                && grep -q 'TAIXUAN_PLAYABLE_UI_V3920' /tmp/live-ui.js \
-                && grep -q 'taixuan-v3.9.0-playable-ui-3920' /tmp/live-sw.js \
+                && grep -q 'TAIXUAN_PLAYABLE_UI_V3920_PHASE6' /tmp/live-ui.js \
+                && grep -q 'TAIXUAN_MONETIZATION_UI_V1' /tmp/live-shop.css \
+                && grep -q 'TAIXUAN_MONETIZATION_UI_V1' /tmp/live-shop.js \
+                && grep -q 'taixuan-v3.9.0-playable-ui-3920-phase7' /tmp/live-sw.js \
+                && grep -q 'ui-shop-v1.js?v=1' /tmp/live-app.js \
                 && grep -q 'data-page="dwelling"' /tmp/live-index.html \
                 && grep -q 'data-page="inventory"' /tmp/live-index.html; then
                 success=1
@@ -132,7 +164,7 @@ jobs:
             sleep 5
           done
           test "$success" -eq 1
-          echo 'PUBLIC_PLAYABLE_UI_V3920_HTTP_AND_HASH_OK'
+          echo 'PUBLIC_PLAYABLE_UI_V3920_PHASE7_HTTP_AND_HASH_OK'
 
       - name: Record public PASS on gh-pages
         shell: bash
@@ -143,7 +175,7 @@ jobs:
           const fs=require('fs');
           const s={
             status:'PASS',
-            ui_version:'playable-v3920',
+            ui_version:'playable-v3920-phase7',
             gameplay_version:'3.9.0',
             verified_commit:process.env.GITHUB_SHA,
             source_sha256:'99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37',
@@ -152,7 +184,8 @@ jobs:
             reference_viewport:'420x933',
             primary_navigation:['修炼','洞府','天下','人脉','储物'],
             progressive_disclosure:['map=current+direct-routes','npc=8-per-page-default','unknown-content=hidden'],
-            checks:['required DOM contract','V2.9-V3.9 headless regression','V6 icon hashes unchanged','actual GitHub Pages HTTP 200','public v3920 markers','public V3.9 source SHA equality']
+            monetization:{mode:'sandbox',wallet:'localStorage-separate-from-game-save',features:['仙玉充值','月卡','成长令','VIP','每日领取'],real_payment:false},
+            checks:['required DOM contract','sandbox monetization smoke','V2.9-V3.9 headless regression','V6 icon hashes unchanged','actual GitHub Pages HTTP 200','public phase7 markers','public V3.9 source SHA equality']
           };
           fs.writeFileSync('PUBLIC_UI_STATUS.json',JSON.stringify(s,null,2)+'\n');
           NODE
@@ -160,7 +193,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if ! git diff --cached --quiet; then
-            git commit -m "chore: record playable UI v3920 PASS ${GITHUB_SHA} [skip ci]"
+            git commit -m "chore: record playable UI phase7 PASS ${GITHUB_SHA} [skip ci]"
             git push origin HEAD:gh-pages
           fi
 
@@ -170,8 +203,8 @@ jobs:
           set -euo pipefail
           visible=0
           for i in $(seq 1 60); do
-            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_UI_STATUS.json?verify3920=${GITHUB_SHA}-${i}" -o /tmp/live-ui-status.json; then
-              if GITHUB_SHA="$GITHUB_SHA" node -e "const s=require('/tmp/live-ui-status.json');if(s.status!=='PASS'||s.ui_version!=='playable-v3920'||s.verified_commit!==process.env.GITHUB_SHA||s.source_sha256!=='99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37')process.exit(1)"; then visible=1; break; fi
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_UI_STATUS.json?verify-phase7=${GITHUB_SHA}-${i}" -o /tmp/live-ui-status.json; then
+              if GITHUB_SHA="$GITHUB_SHA" node -e "const s=require('/tmp/live-ui-status.json');if(s.status!=='PASS'||s.ui_version!=='playable-v3920-phase7'||s.verified_commit!==process.env.GITHUB_SHA||s.source_sha256!=='99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37'||s.monetization?.mode!=='sandbox'||s.monetization?.real_payment!==false)process.exit(1)"; then visible=1; break; fi
             fi
             sleep 5
           done
@@ -188,6 +221,6 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add PUBLIC_UI_STATUS.json
           if ! git diff --cached --quiet; then
-            git commit -m "chore: record playable UI v3920 PASS ${GITHUB_SHA} [skip ci]"
+            git commit -m "chore: record playable UI phase7 PASS ${GITHUB_SHA} [skip ci]"
             git push origin HEAD:main
           fi
