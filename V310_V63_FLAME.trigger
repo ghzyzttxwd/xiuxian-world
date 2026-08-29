@@ -1,0 +1,6 @@
+V3.10 V63 combined flame candidate trigger
+base_main=62db848091ce7686c85357a8c963820a9d27f24c
+v6_source_sha256=af83bcef5657ccf17372e51038ea8f1709da6623a4739b8e9267a902ffd47f63
+seed=31006702
+max_actions=300000
+policy=first Mahayana attempt unchanged; post-failure only normal auction+alchemy+pill
