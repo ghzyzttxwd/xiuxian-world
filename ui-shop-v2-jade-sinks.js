@@ -8,13 +8,13 @@ const MATERIAL_NAMES=Object.freeze({
  'mat-v38-mahayana-essence':'大乘本源髓','mat-v39-tribulation-essence':'万劫真髓'
 });
 const clone=x=>JSON.parse(JSON.stringify(x));
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
 function api(){return window.__TAIXUAN_TEST__||null}
 function power(){return window.__TAIXUAN_POWER_SHOP__||null}
 function game(){try{return api()?.getState?.()||null}catch{return null}}
 function wallet(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch{return{}}}
 function normalizeWallet(w){w.version=2;w.jade=Math.max(0,Number(w.jade)||0);if(!Array.isArray(w.receipts))w.receipts=[];if(!w.jadeSinkBuys||typeof w.jadeSinkBuys!=='object'||Array.isArray(w.jadeSinkBuys))w.jadeSinkBuys={};return w}
-function saveWallet(w){localStorage.setItem(KEY,JSON.stringify(normalizeWallet(w))}
+function saveWallet(w){localStorage.setItem(KEY,JSON.stringify(normalizeWallet(w)))}
 function addReceipt(w,label){w.receipts.unshift({at:Date.now(),label});w.receipts=w.receipts.slice(0,20)}
 function persistGame(){document.getElementById('saveBtn')?.click();setTimeout(()=>document.querySelector('[data-close-modal]')?.click(),10);setTimeout(()=>document.querySelector('.nav-btn.active')?.click(),40)}
 function toast(text,bad=false){const e=document.getElementById('uiShopToast');if(!e)return;e.textContent=text;e.classList.remove('hidden');e.classList.toggle('bad',!!bad);clearTimeout(toast.t);toast.t=setTimeout(()=>{e.classList.add('hidden');e.classList.remove('bad')},2600)}

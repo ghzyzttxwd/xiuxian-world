@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Syntax gate
+        run: node --check ui-shop-v2-jade-sinks.js
       - name: Reproduce VIP15 plus terminal jade purchase
         run: |
           set -euo pipefail
@@ -27,7 +29,12 @@ jobs:
           const vip12=()=>{recharge('jade-648',2);recharge('jade-128')};
           const vip15=()=>{recharge('jade-648',6);recharge('jade-328');recharge('jade-68')};
           w.__TAIXUAN_TEST__.newGame('M7M6诊断');vip8();const r8=w.__TAIXUAN_VIP8__.claimFull();if(!r8.ok)throw Error('v8');w.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:19});w.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-sword-burst');vip12();const r12=w.__TAIXUAN_VIP12__.claimFull();if(!r12.ok)throw Error('v12');w.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:37,location:'九霄劫台'});w.__TAIXUAN_TEST__.v37ChooseLaw('law-severing',true);const id=r8.artifact.itemId||r8.artifact.id;const natal=w.__TAIXUAN_POWER_SHOP__.grantArtifact(id,{grade:'perfect',refinement:6,warmth:60,bind:true,natal:true});if(!natal.ok)throw Error('natal '+JSON.stringify(natal));vip15();const r15=w.__TAIXUAN_VIP15__.claimFull();if(!r15.ok)throw Error('v15 '+JSON.stringify(r15));
-          const offers=w.__TAIXUAN_JADE_SINKS__.getOffers();const jo=offers.find(x=>x.type==='materials');const before={wallet:wallet(),trib:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence'),mah:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v38-mahayana-essence'),realm:w.__TAIXUAN_TEST__.getState().player.realmIndex,offer:jo&&{id:jo.id,name:jo.name,price:jo.price,reward:jo.reward,key:jo.key}};const result=jo?w.__TAIXUAN_JADE_SINKS__.buy(jo.id):{ok:false,reason:'missing'};const after={wallet:wallet(),trib:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence'),mah:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v38-mahayana-essence'),stateTrib:w.__TAIXUAN_TEST__.getState().player.tribulationEssence,result};
-          console.log('M7_M6_DIAGNOSTIC',JSON.stringify({before,after,offers:offers.map(x=>({id:x.id,type:x.type,name:x.name,price:x.price,reward:x.reward}))},null,2));
-          if(!jo||!result.ok)throw Error('diagnostic purchase failed');
+          const offers=w.__TAIXUAN_JADE_SINKS__.getOffers(),jo=offers.find(x=>x.type==='materials');if(!jo)throw Error('material offer missing');const before={wallet:wallet(),trib:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence'),mah:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v38-mahayana-essence'),offer:{id:jo.id,name:jo.name,price:jo.price,reward:jo.reward,key:jo.key}};const result=w.__TAIXUAN_JADE_SINKS__.buy(jo.id);const after={wallet:wallet(),trib:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v39-tribulation-essence'),mah:w.__TAIXUAN_TEST__.v33MaterialCount('mat-v38-mahayana-essence'),stateTrib:w.__TAIXUAN_TEST__.getState().player.tribulationEssence,result};
+          console.log('M7_M6_DIAGNOSTIC',JSON.stringify({before,after},null,2));
+          if(!result.ok)throw Error('purchase failed '+JSON.stringify(result));
+          if(!jo.reward.includes('万劫真髓×5'))throw Error('terminal offer still omits tribulation essence '+jo.reward);
+          if(after.trib!==before.trib+5)throw Error(`tribulation essence delta wrong ${before.trib}->${after.trib}`);
+          if(after.mah!==before.mah+2)throw Error(`mahayana essence delta wrong ${before.mah}->${after.mah}`);
+          if(after.wallet.jade!==before.wallet.jade-1688)throw Error(`jade delta wrong ${before.wallet.jade}->${after.wallet.jade}`);
+          if(after.wallet.totalCny!==before.wallet.totalCny)throw Error('jade purchase changed simulated RMB total');
           NODE
