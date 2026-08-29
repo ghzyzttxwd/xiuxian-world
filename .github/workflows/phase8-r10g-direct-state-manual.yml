@@ -1,0 +1,41 @@
+name: Phase8 R10G Direct State Manual Diagnostic
+
+on:
+  push:
+    branches: ["phase8-r10-growth-diagnostic"]
+    paths: ["PHASE8_R10G_DIRECT.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: phase8-r10-growth-diagnostic, fetch-depth: 0}
+      - name: Measure manual wiring via internal state in same JS global
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');const source=fs.readFileSync('src/game-v39.js','utf8');
+          const d=new JSDOM(html,{url:'https://direct-state.test/',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.console={log(){},warn(){},error(){}};w.eval(source);w.__TAIXUAN_TEST__.newGame('直接状态诊断');
+          function probe(name,prof){const q=JSON.stringify(name);return w.eval(`(()=>{state.player.realmIndex=7;state.player.location='青云山';state.player.manual=${q};state.player.manualProf=${prof};state.player.progress=0;const gains=[];for(let i=0;i<300;i++)gains.push(cultivationGainForDays(1));const need=REALMS[7].need;state.player.progress=need;return {name:state.player.manual,prof:state.player.manualProf,legacyManual:manual(),meta:v31CurrentManualMeta(),effects:v31CurrentManualEffects(),breakthroughBonus:v31BreakthroughBonus(),meanGain1:gains.reduce((a,b)=>a+b,0)/gains.length,breakthroughChance:breakthroughChance()}})()`)}
+          const profs=[0,100,300,700,1400];const names=['基础吐纳诀','五元归息功','玄水纳灵篇'];const rows=[];for(const name of names)for(const prof of profs)rows.push(probe(name,prof));const report={phase:'8-round10g-direct-state-manual',coreBuild:3903,sourceSha256:'1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c',schema:36,rows};fs.writeFileSync('PHASE8_R10G_DIRECT_STATE_MANUAL.json',JSON.stringify(report,null,2)+'\n');console.log('R10G',JSON.stringify(rows));
+          NODE
+          node - <<'NODE'
+          const x=require('./PHASE8_R10G_DIRECT_STATE_MANUAL.json');if(x.rows.length!==15)throw Error('shape');for(const n of ['五元归息功','玄水纳灵篇'])if(!x.rows.find(r=>r.name===n)?.legacyManual?.mult)throw Error('manual lookup missing '+n);console.log('R10G_OK')
+          NODE
+      - name: Commit direct-state diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R10G_DIRECT_STATE_MANUAL.json
+          git commit -m 'test: record phase8 r10g direct-state manual diagnostic [skip ci]'
+          git push origin HEAD:phase8-r10-growth-diagnostic
