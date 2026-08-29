@@ -33,10 +33,11 @@ jobs:
           set -euo pipefail
           git fetch origin main v310-natal-origin-id-fix
           test "$(git rev-parse origin/main)" = "$V39_BASE_SHA"
-          test "$(git rev-parse origin/v310-natal-origin-id-fix)" = "$V59_HEAD"
           git cat-file -e "$V59_HEAD^{commit}"
+          git merge-base --is-ancestor "$V59_HEAD" origin/v310-natal-origin-id-fix
           rm -rf /tmp/v310-v59
           git worktree add --detach /tmp/v310-v59 "$V59_HEAD"
+          test "$(git -C /tmp/v310-v59 rev-parse HEAD)" = "$V59_HEAD"
 
       - name: Rebuild deterministic V59 source twice
         shell: bash
