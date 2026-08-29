@@ -1,0 +1,134 @@
+name: Shop M3 VIP12 Build Completion
+on:
+  push:
+    paths:
+      - 'ui-shop-v2-vip12.js'
+      - 'ui-shop-v2-power-adapter.js'
+      - 'app.js'
+      - 'sw.js'
+      - '.github/workflows/shop-m3-vip12.yml'
+      - 'SHOP_M3_TRIGGER.txt'
+concurrency:
+  group: shop-m3-vip12
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  validate-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen core and M3 wiring
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          grep -q "shopPower:'m1'" app.js
+          grep -q "shopVip8:'m2'" app.js
+          grep -q "shopVip12:'m3'" app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-3' app.js
+          grep -q 'ui-shop-v2-vip8.js?v=m2-1' app.js
+          grep -q 'ui-shop-v2-vip12.js?v=m3-1' app.js
+          grep -q 'ui-shop-v2-vip12.js?v=m3-1' sw.js
+      - name: Syntax check
+        run: |
+          set -euo pipefail
+          node --check ui-shop-v2-power-adapter.js
+          node --check ui-shop-v2-vip8.js
+          node --check ui-shop-v2-vip12.js
+          node --check app.js
+          node --check sw.js
+      - name: Browser smoke - deferred entitlement, full build, retrofit and persistence
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g,'');
+          const GAME_KEY='xiuxian_world_v02',WALLET_KEY='taixuan-premium-wallet-v1';
+          function walletBase(extra={}){return {version:2,jade:0,vipExp:22000,totalCny:2200,monthlyUntil:0,monthlyClaimDate:'',growthOwned:false,growthClaimed:[],vipClaimDate:'',vipMilestoneClaimed:[],firstBonusUsed:{},packBuys:{},receipts:[],titles:[],offerWindowEnd:Date.now()+1800000,...extra}}
+          function boot(gameSave=null,walletSave=null){
+            const d=new JSDOM(html,{url:'https://m3.test/',runScripts:'outside-only',pretendToBeVisual:true});
+            const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.confirm=()=>true;w.console=console;
+            if(gameSave)w.localStorage.setItem(GAME_KEY,gameSave);if(walletSave)w.localStorage.setItem(WALLET_KEY,walletSave);
+            w.eval(fs.readFileSync('src/game-v39.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-power-adapter.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-vip8.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-vip12.js','utf8'));
+            w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));
+            return w;
+          }
+          // A. Early VIP12: base rewards arrive, build entitlement stays pending, path is untouched.
+          const early=boot(null,JSON.stringify(walletBase()));early.__TAIXUAN_TEST__.newGame('早充VIP12');
+          const ep=early.__TAIXUAN_VIP12__.preview();if(!ep.ok||!ep.pending)throw Error('early VIP12 should be pending '+JSON.stringify(ep));
+          const eo=early.__TAIXUAN_VIP12__.claimFull();if(!eo.ok||!eo.pending)throw Error('early VIP12 claim failed '+JSON.stringify(eo));
+          const es=early.__TAIXUAN_TEST__.getState(),ew=JSON.parse(early.localStorage.getItem(WALLET_KEY));
+          if(es.player.daoPath!=='none')throw Error('VIP12 must not auto choose dao path');
+          if(es.saveSchemaVersion!==36)throw Error('early VIP12 schema drift');
+          if(!ew.vipMilestoneClaimed.includes(12)||ew.jade!==1288||!ew.titles.includes('太玄道君'))throw Error('early VIP12 wallet invalid '+JSON.stringify(ew));
+          if(ew.vip12BuildEntitlement?.status!=='pending'||ew.vip12BuildReward)throw Error('pending entitlement invalid '+JSON.stringify(ew));
+          if((es.player.spiritStones||0)<1291||(es.player.rareMaterials||0)<48||(es.player.relicFragments||0)<10)throw Error('VIP12 base rewards missing');
+          // B. Adapter can replace an existing same-path build with another full build.
+          const swap=boot();swap.__TAIXUAN_TEST__.newGame('Build换装');swap.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-flame-dot');
+          const sb=swap.__TAIXUAN_POWER_SHOP__.completeBuild('build-flame-burst',{artifactRefinement:5,artifactWarmth:50});
+          if(!sb.ok||!sb.mastered||sb.id!=='build-flame-burst'||sb.score<5)throw Error('build replacement failed '+JSON.stringify(sb));
+          const ss=swap.__TAIXUAN_TEST__.getState(),def=swap.__TAIXUAN_TEST__.v34BuildRegistry()['build-flame-burst'];
+          if(!def.skills.every(x=>ss.player.activeSkillIds.includes(x)))throw Error('three core skills not filled');
+          if(ss.player.passiveSkillId!==swap.__TAIXUAN_POWER_SHOP__.resolveSpellId(def.passive))throw Error('passive not filled');
+          if(!Object.values(ss.player.artifactLoadout||{}).includes(sb.artifact.itemId))throw Error('same-path artifact not equipped');
+          const sr=ss.player.equipmentInventory[sb.artifact.itemId];if(!sr||sr.grade!=='perfect'||sr.refinement<5||sr.warmth<50||!sr.bound)throw Error('M3 artifact spec invalid '+JSON.stringify(sr));
+          // C. Direct VIP12 on a chosen path grants a real mastered build.
+          const direct=boot(null,JSON.stringify(walletBase()));direct.__TAIXUAN_TEST__.newGame('直领VIP12');direct.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-body-bastion');
+          const dp=direct.__TAIXUAN_VIP12__.preview();if(!dp.ok||dp.pending||dp.path!=='body')throw Error('chosen-path preview invalid '+JSON.stringify(dp));
+          const d=direct.__TAIXUAN_VIP12__.claimFull();if(!d.ok||d.pending||!d.build?.mastered)throw Error('direct VIP12 claim failed '+JSON.stringify(d));
+          const ds=direct.__TAIXUAN_TEST__.getState(),dw=JSON.parse(direct.localStorage.getItem(WALLET_KEY)),dr=ds.player.equipmentInventory[d.build.artifact.itemId];
+          if(!dw.vip12BuildReward||dw.vip12BuildReward.id!==d.build.id||dw.vip12BuildEntitlement?.status!=='redeemed')throw Error('VIP12 build receipt missing '+JSON.stringify(dw));
+          if(!dr||dr.grade!=='perfect'||dr.refinement<5||dr.warmth<50||!dr.bound)throw Error('VIP12 build artifact invalid');
+          if(!direct.__TAIXUAN_POWER_SHOP__.inspectBuild(d.build.id).mastered)throw Error('VIP12 build not mastered in real state');
+          // Real combat uses the granted artifact.
+          direct.__TAIXUAN_TEST__.startCombat('灰背野狼');const c0=direct.__TAIXUAN_TEST__.getCombat();direct.__TAIXUAN_TEST__.combatAction('artifact:'+d.build.artifact.itemId);const c1=direct.__TAIXUAN_TEST__.getCombat();
+          if(c1&&c1.enemyHp>=c0.enemyHp&&!(Number(c1.artifactCooldowns?.[d.build.artifact.itemId])>0))throw Error('VIP12 artifact did not enter real combat');
+          // D. Save reload keeps Build and wallet entitlement/reward.
+          const gameSave=direct.localStorage.getItem(GAME_KEY),walletSave=direct.localStorage.getItem(WALLET_KEY);if(!gameSave||!walletSave)throw Error('VIP12 persistence payload missing');
+          const reload=boot(gameSave,walletSave);reload.document.getElementById('continueBtn').click();const rs=reload.__TAIXUAN_TEST__.getState(),rw=JSON.parse(reload.localStorage.getItem(WALLET_KEY));
+          if(rs.saveSchemaVersion!==36||!rw.vip12BuildReward||rw.vip12BuildEntitlement?.status!=='redeemed')throw Error('VIP12 persistence metadata failed');
+          if(!reload.__TAIXUAN_POWER_SHOP__.inspectBuild(rw.vip12BuildReward.id).mastered)throw Error('VIP12 build persistence failed');
+          // E. Old VIP12 gets only the new Build, not duplicate currency/base rewards.
+          const old=boot(null,JSON.stringify(walletBase({jade:777,vipMilestoneClaimed:[12],titles:['太玄道君']})));old.__TAIXUAN_TEST__.newGame('旧VIP12');old.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-spirit-seal');
+          const retro=old.__TAIXUAN_VIP12__.claimBuildOnly();if(!retro.ok||!retro.retroactive||!retro.build?.mastered)throw Error('old VIP12 retrofit failed '+JSON.stringify(retro));
+          const ow=JSON.parse(old.localStorage.getItem(WALLET_KEY));if(ow.jade!==777||!ow.vip12BuildReward||ow.vip12BuildEntitlement?.status!=='redeemed')throw Error('old VIP12 duplicated base rewards '+JSON.stringify(ow));
+          console.log('SHOP_M3_VIP12_OK',JSON.stringify({early:'pending',swap:sb.name,direct:d.build.name,artifact:d.build.artifact.name,schema:rs.saveSchemaVersion,retrofit:retro.build.name}));
+          NODE
+          rm -rf node_modules package.json package-lock.json
+      - name: Publish M3 to gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin gh-pages:gh-pages || true
+          git checkout gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          git checkout origin/main -- .
+          rm -rf node_modules
+          git add -A
+          git commit -m 'publish: shop M3 VIP12 build completion' || true
+          git push origin gh-pages
+      - name: Mark M3 PASS on main
+        run: |
+          set -euo pipefail
+          git checkout main
+          git pull --ff-only origin main
+          python - <<'PY'
+          import json
+          p='PUBLIC_UI_STATUS.json'
+          d=json.load(open(p,encoding='utf-8'))
+          d['status']='PASS';d['phase']='final-ui-shop-v2';d['coreBuild']=3903;d['schema']=36;d['realPayment']=False
+          s=d.setdefault('shop',{});s['powerRewardAdapter']='M1-PASS';s['vip8PowerNode']='M2-PASS';s['vip12PowerNode']='M3-PASS';s['vip12BuildCompletion']=True;s['vip12ArtifactGrade']='perfect';s['vip12ArtifactRefinement']=5;s['vip12ArtifactWarmth']=50;s['vip12DeferredEntitlement']=True;s['vip12LegacyRetrofit']=True
+          open(p,'w',encoding='utf-8').write(json.dumps(d,ensure_ascii=False,separators=(',',':'))+'\n')
+          PY
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'status: shop M3 VIP12 PASS' || true
+          git push origin main
