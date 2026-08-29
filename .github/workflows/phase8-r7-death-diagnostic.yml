@@ -1,0 +1,67 @@
+name: Phase8 R7 Death Diagnostic
+
+on:
+  push:
+    branches: ["phase8-r7-death-diagnostic"]
+    paths: ["PHASE8_R7_DEATH_DIAG.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-phase8-r7-death-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase8-r7-death-diagnostic
+          fetch-depth: 0
+      - name: Verify R5 public core baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = 'd933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8'
+          grep -q 'function randomExploreEnemyEligible' src/game-v39.js
+      - name: Run three earliest R6 death seeds with context capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          git fetch origin phase8-death-diagnostic
+          git show origin/phase8-death-diagnostic:tests/phase8-death-diagnostic.mjs > tests-phase8-r7-death-diagnostic.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests-phase8-r7-death-diagnostic.mjs')
+          s=p.read_text()
+          s=s.replace("const balanced={name:'balanced',stoneFloor:10,exploreEvery:8,gatherEvery:12,rumorEvery:10};const resource={name:'resource-aware',stoneFloor:18,exploreEvery:10,gatherEvery:9,rumorEvery:11};\nconst results=[run(9202,balanced),run(9206,resource)];fs.writeFileSync('PHASE8_DEATH_DIAGNOSTIC.json',JSON.stringify({phase:'8-death-diagnostic',gameplay:'3.9.0',schema:36,results},null,2)+'\\n');console.log('DEATH_DIAG',JSON.stringify(results));",
+          "const balanced={name:'balanced',stoneFloor:10,exploreEvery:8,gatherEvery:12,rumorEvery:10};const cultivation={name:'cultivation-heavy',stoneFloor:7,exploreEvery:12,gatherEvery:16,rumorEvery:14};const resource={name:'resource-aware',stoneFloor:18,exploreEvery:10,gatherEvery:9,rumorEvery:11};\nconst results=[run(9206,resource),run(9203,cultivation),run(9205,resource)];fs.writeFileSync('PHASE8_R7_DEATH_DIAGNOSTIC.json',JSON.stringify({phase:'8-round7-death-diagnostic',gameplay:'3.9.0',coreBuild:3902,sourceSha256:'d933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8',schema:36,results},null,2)+'\\n');console.log('R7_DEATH_DIAG',JSON.stringify(results));")
+          p.write_text(s)
+          PY
+          node tests-phase8-r7-death-diagnostic.mjs
+          test -s PHASE8_R7_DEATH_DIAGNOSTIC.json
+      - name: Validate diagnostic coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const x=require('./PHASE8_R7_DEATH_DIAGNOSTIC.json');
+          if(x.coreBuild!==3902||x.results.length!==3)throw Error('diagnostic metadata mismatch');
+          const seeds=x.results.map(r=>r.seed).sort((a,b)=>a-b).join(',');if(seeds!=='9203,9205,9206')throw Error('seed mismatch '+seeds);
+          if(x.results.some(r=>!r.dead||!r.deathContext))throw Error('expected death context missing');
+          console.log('R7_DIAGNOSTIC_OK',JSON.stringify(x.results.map(r=>({seed:r.seed,context:r.deathContext}))));
+          NODE
+      - name: Commit R7 diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R7_DEATH_DIAGNOSTIC.json
+          git commit -m 'test: record phase8 r7 death diagnostic [skip ci]'
+          git push origin HEAD:phase8-r7-death-diagnostic
