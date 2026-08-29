@@ -1,0 +1,112 @@
+name: Shop M1 Power Reward Adapter
+on:
+  push:
+    paths:
+      - 'ui-shop-v2-power-adapter.js'
+      - 'app.js'
+      - 'sw.js'
+      - '.github/workflows/shop-m1-power-adapter.yml'
+      - 'SHOP_M1_TRIGGER.txt'
+concurrency:
+  group: shop-m1-power-adapter
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  validate-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen core and M1 wiring
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          grep -q "shopPower:'m1'" app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-1' app.js
+          grep -q 'ui-shop-v2-power-adapter.js?v=m1-1' sw.js
+      - name: Syntax check
+        run: |
+          set -euo pipefail
+          node --check ui-shop-v2-power-adapter.js
+          node --check app.js
+          node --check sw.js
+      - name: Browser smoke - real combat component grants and persistence
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g,'');
+          function boot(saved=null){
+            const d=new JSDOM(html,{url:'https://m1.test/',runScripts:'outside-only',pretendToBeVisual:true});
+            const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.confirm=()=>true;w.console=console;
+            if(saved)w.localStorage.setItem('xiuxian_world_v02',saved);
+            w.eval(fs.readFileSync('src/game-v39.js','utf8'));
+            w.eval(fs.readFileSync('ui-shop-v2-power-adapter.js','utf8'));
+            w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));
+            return w;
+          }
+          const w=boot();
+          w.__TAIXUAN_TEST__.newGame('M1验收');
+          const p=w.__TAIXUAN_POWER_SHOP__;
+          let r=p.grantEquipment('item-v32-qingmu-sword',{grade:'perfect',equip:true});
+          if(!r.ok||r.record?.grade!=='perfect')throw Error('equipment grant failed');
+          r=p.grantArtifact('item-v32-sevenstar-swordcase',{grade:'perfect',refinement:3,warmth:30,bind:true,equip:true});
+          if(!r.ok)throw Error('artifact grant failed '+JSON.stringify(r));
+          let s=w.__TAIXUAN_TEST__.getState(),rec=s.player.equipmentInventory['item-v32-sevenstar-swordcase'];
+          if(!rec||rec.grade!=='perfect'||!rec.bound||rec.refinement<3||rec.warmth<30)throw Error('artifact state invalid');
+          if(s.player.artifactLoadout.assault!=='item-v32-sevenstar-swordcase')throw Error('artifact not equipped');
+          const dup=p.grantArtifact('item-v32-sevenstar-swordcase',{grade:'perfect',refinement:3,warmth:30});
+          if(!dup.ok||!dup.duplicate)throw Error('artifact duplicate protection failed');
+          const m=p.grantManual('manual-taibai-sword');if(!m.ok)throw Error('manual grant failed '+JSON.stringify(m));
+          const sk=p.grantSpell('spell-sword-qi-slash',{equip:true,slot:0});if(!sk.ok||!sk.equipped)throw Error('active spell grant failed');
+          const ps=p.grantSpell('spell-clear-sword-heart-passive',{equip:true});if(!ps.ok||!ps.equipped)throw Error('passive grant failed');
+          s=w.__TAIXUAN_TEST__.getState();
+          if(!s.player.manualLibraryIds.includes('manual-taibai-sword'))throw Error('manual missing from library');
+          if(s.player.activeSkillIds[0]!=='spell-sword-qi-slash')throw Error('active loadout missing');
+          if(s.player.passiveSkillId!=='spell-clear-sword-heart-passive')throw Error('passive loadout missing');
+          w.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-sword-burst');
+          const b=p.inspectBuild('build-sword-burst');if(!b.ok||!b.mastered||b.score<5)throw Error('build detector failed '+JSON.stringify(b));
+          s=w.__TAIXUAN_TEST__.getState();if(s.saveSchemaVersion!==36)throw Error('schema drift before reload');
+          const saved=w.localStorage.getItem('xiuxian_world_v02');if(!saved)throw Error('save missing');
+          const w2=boot(saved);w2.document.getElementById('continueBtn').click();
+          const s2=w2.__TAIXUAN_TEST__.getState(),r2=s2.player.equipmentInventory['item-v32-sevenstar-swordcase'];
+          if(s2.saveSchemaVersion!==36)throw Error('schema drift after reload');
+          if(!r2||r2.grade!=='perfect'||!r2.bound||r2.refinement<3||r2.warmth<30)throw Error('artifact persistence failed');
+          if(!s2.player.manualLibraryIds.includes('manual-taibai-sword'))throw Error('manual persistence failed');
+          if(s2.player.passiveSkillId!=='spell-clear-sword-heart-passive')throw Error('passive persistence failed');
+          console.log('SHOP_M1_POWER_ADAPTER_OK',JSON.stringify({schema:s2.saveSchemaVersion,artifact:r2,manuals:s2.player.manualLibraryIds.length,passive:s2.player.passiveSkillId,build:b.id,score:b.score}));
+          NODE
+          rm -rf node_modules package.json package-lock.json
+      - name: Publish M1 adapter to gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin gh-pages:gh-pages || true
+          git checkout gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          git checkout origin/main -- .
+          rm -rf node_modules
+          git add -A
+          git commit -m 'publish: shop M1 power reward adapter' || true
+          git push origin gh-pages
+      - name: Mark M1 PASS on main
+        run: |
+          set -euo pipefail
+          git checkout main
+          python - <<'PY'
+          import json
+          p='PUBLIC_UI_STATUS.json'
+          d=json.load(open(p,encoding='utf-8'))
+          d['status']='PASS';d['phase']='final-ui-shop-v2';d['coreBuild']=3903;d['schema']=36;d['realPayment']=False
+          d.setdefault('shop',{})['powerRewardAdapter']='M1-PASS'
+          open(p,'w',encoding='utf-8').write(json.dumps(d,ensure_ascii=False,separators=(',',':'))+'\n')
+          PY
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'status: shop M1 power adapter PASS' || true
+          git push origin main
