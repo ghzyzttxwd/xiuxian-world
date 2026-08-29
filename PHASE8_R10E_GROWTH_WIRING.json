@@ -1,0 +1,17 @@
+{
+  "phase": "8-round10e-growth-wiring",
+  "coreBuild": 3903,
+  "sourceSha256": "1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c",
+  "functions": {
+    "cultivationGainForDays": "function cultivationGainForDays(days=1,retreatBoost=1){const p=state.player,d=Math.max(1,Math.floor(days)),base=rint(6*d,10*d),rootM=root().mult,manualM=manual().mult,injuryM=[1,.90,.70,.48][clamp(p.injury||0,0,3)],gain=Math.floor(base*rootM*manualM*injuryM*dwellingCultivationMultiplier()*Math.max(.1,retreatBoost));return Math.max(1,gain)}",
+    "manualMultiplier": null,
+    "manualIdFromName": "function manualIdFromName(name){return V31_MANUAL_ID_BY_NAME[name]||MANUAL_ID_BY_NAME[name]||null}",
+    "v31CurrentManualEffects": "function v31CurrentManualEffects(){const meta=v31CurrentManualMeta(),stage=v31ManualStageFromProf(state?.player?.manualProf||0);return v31ScaledEffects(meta?.effects||{},v31StageScale(stage))}",
+    "v31BreakthroughBonus": "function v31BreakthroughBonus(){return Number(v31CurrentManualEffects().breakthrough||0)}",
+    "v31ManualStageFromProf": "function v31ManualStageFromProf(prof=0){const n=Math.max(0,Number(prof)||0);return n>=700?3:n>=300?2:n>=100?1:0}",
+    "v31StageScale": "function v31StageScale(stage){return [1,1.15,1.32,1.52][clamp(Number(stage)||0,0,3)]}",
+    "legacyManuals": null,
+    "fiveElementsRow": "{\"id\":\"manual-five-elements-return\",\"name\":\"五元归息功\",\"quality\":\"黄阶下品\",\"mult\":1.18,\"unlock\":1,\"path\":\"none\",\"sources\":[\"青石镇\",\"临江城\"],\"effects\":{\"qi\":0.06,\"breakthrough\":0.01}",
+    "mysticWaterRow": "{\"id\":\"manual-mystic-water\",\"name\":\"玄水纳灵篇\",\"quality\":\"黄阶中品\",\"mult\":1.23,\"unlock\":3,\"path\":\"none\",\"sources\":[\"临江城\",\"云梦泽\"],\"effects\":{\"qi\":0.12,\"categoryDamage\":{\"control\":0.04}"
+  }
+}
