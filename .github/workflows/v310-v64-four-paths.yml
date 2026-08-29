@@ -97,10 +97,10 @@ jobs:
           if grep -q 'V310_FULLRUN_V39_FLEE.*界心巨灵' V310_FULLRUN_LOG.txt; then
             grep -q 'V310_FULLRUN_V62_ESCAPE_GUARD' V310_FULLRUN_LOG.txt
           fi
-          if grep -q 'V310_FULLRUN_BREAKTHROUGH_RETRY.*大乘' V310_FULLRUN_LOG.txt; then
+          if grep -q 'V310_FULLRUN_BREAKTHROUGH_RETRY.*"realm":"合体圆满"' V310_FULLRUN_LOG.txt; then
             grep -q 'V310_FULLRUN_V63_MAHAYANA_RECIPE' V310_FULLRUN_LOG.txt
             grep -q 'V310_FULLRUN_V63_MAHAYANA_BREW' V310_FULLRUN_LOG.txt
-            grep -q 'V310_FULLRUN_V63_MAHAYANA_PILL' V310_FULLRUN_LOG.txt
+            grep -q 'V310_FULLRUN_V63_MAHAYANA_PILL.*"stage":"used"' V310_FULLRUN_LOG.txt
           fi
           if [ "$rc" -ne 0 ]; then exit "$rc"; fi
           grep -q 'V310_FULLRUN_V60_TRIBULATION_GEAR' V310_FULLRUN_LOG.txt
