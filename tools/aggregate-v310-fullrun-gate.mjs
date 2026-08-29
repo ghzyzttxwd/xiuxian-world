@@ -88,7 +88,12 @@ const manuals=new Set(requiredPaths.map(p=>paths[p].finalManual).filter(Boolean)
 assert(manuals.size>=3,'V3.10 four-path terminal builds collapsed onto fewer than three distinct manuals');
 if(actionSpreadRatio>3)throw new Error(`V3.10 four-path action spread exceeds 3x (${actionSpreadRatio.toFixed(3)}); one route may be materially dominating or lagging`);
 
+// Reject near-total progression dominance as well as literal 7/7 dominance. A single path being the
+// unique youngest route at six or seven of the seven representative major checkpoints is too strong
+// a signal to call the four-path economy/build surface balanced, even if another path happens to win
+// one isolated checkpoint. Ties are deliberately not counted as unique wins.
 const dominanceCheckpoints=[14,19,23,30,34,37,39];
+const dominanceHardLimit=6;
 const uniqueFastestByRealm={};
 const uniqueFastestCount=Object.fromEntries(requiredPaths.map(p=>[p,0]));
 for(const realm of dominanceCheckpoints){
@@ -99,7 +104,7 @@ for(const realm of dominanceCheckpoints){
  if(leaders.length===1)uniqueFastestCount[leaders[0]]++;
 }
 for(const p of requiredPaths){
- assert(uniqueFastestCount[p]<dominanceCheckpoints.length,`V3.10 route dominance detected: ${p} is uniquely fastest at every major checkpoint (${dominanceCheckpoints.join(',')})`);
+ assert(uniqueFastestCount[p]<dominanceHardLimit,`V3.10 route dominance detected: ${p} is uniquely fastest at ${uniqueFastestCount[p]}/${dominanceCheckpoints.length} major checkpoints; hard limit is ${dominanceHardLimit-1}`);
 }
 
 const summary={
@@ -116,10 +121,11 @@ const summary={
  terminalManualVariety:manuals.size,
  actionSpreadRatio:Number(actionSpreadRatio.toFixed(3)),
  actionSpreadAssessment:actionSpreadRatio<=2?'balanced-within-2x':actionSpreadRatio<=3?'review-2x-to-3x':'fail-over-3x',
- routeDominance:{checkpoints:dominanceCheckpoints,uniqueFastestByRealm,uniqueFastestCount,noSingleRouteWinsAll:true},
+ routeDominance:{checkpoints:dominanceCheckpoints,hardLimit:dominanceHardLimit,uniqueFastestByRealm,uniqueFastestCount,noNearTotalRouteDominance:true},
  notes:[
   'Action spread is reported as a balance-dominance signal; it is not silently relaxed to force PASS.',
-  'A single route uniquely fastest at every selected major realm checkpoint is a hard failure.',
+  'A single route uniquely fastest at six or more of seven selected major realm checkpoints is a hard failure.',
+  'V3.4 stable regression independently verifies eight real build identities, two per dao path, mechanical bonuses/downside and enemy counter mechanics.',
   'Static scarce-resource and price/stock/source invariants remain covered by regression-v310-premahayana-auction.mjs and regression-v310-core-market.mjs.',
   'Named-material utility is independently fail-closed by regression-v310-resource-utility.mjs.'
  ]
