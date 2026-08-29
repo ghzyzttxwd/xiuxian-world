@@ -1,0 +1,392 @@
+{
+  "phase": "8-fast-audit",
+  "gameplay": "3.9.0",
+  "schema": 36,
+  "generatedAt": "2026-08-29T06:22:12.826Z",
+  "policy": "normal-player-no-cheats-no-paid-buffs",
+  "summary": {
+    "runs": 9,
+    "foundationReached": 0,
+    "dead": 0,
+    "qi1Reached": 9,
+    "qi9Reached": 1,
+    "medianDays": {
+      "qi1": 33,
+      "qi9": 731,
+      "foundation": null
+    },
+    "averageDays": {
+      "qi1": 31.2,
+      "qi9": 731,
+      "foundation": null
+    },
+    "averageBreakthroughFailures": 0.7,
+    "maxFullProgressStall": 1,
+    "minSpiritStones": 3,
+    "profiles": {
+      "balanced": {
+        "runs": 3,
+        "foundation": 0,
+        "deaths": 0,
+        "medianFoundation": null
+      },
+      "cautious": {
+        "runs": 3,
+        "foundation": 0,
+        "deaths": 0,
+        "medianFoundation": null
+      },
+      "cultivation-heavy": {
+        "runs": 3,
+        "foundation": 0,
+        "deaths": 0,
+        "medianFoundation": null
+      }
+    }
+  },
+  "flags": [
+    "FOUNDATION_REACH_RATE_LOW",
+    "FOUNDATION_TOO_SLOW",
+    "QI_ENTRY_UNRELIABLE"
+  ],
+  "results": [
+    {
+      "seed": 8101,
+      "profile": "balanced",
+      "stopped": "horizon",
+      "days": 714,
+      "steps": 720,
+      "finalRealm": 7,
+      "finalProgress": 683,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 28,
+        "qi9": null,
+        "foundation": null
+      },
+      "breakthroughFailures": 0,
+      "combatCount": 20,
+      "combatLosses": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "minHpRatio": 0.307,
+      "actions": {
+        "work": 3,
+        "cultivate": 475,
+        "explore": 91,
+        "rumor": 76,
+        "gather": 47,
+        "rest": 1
+      },
+      "final": {
+        "stones": 53,
+        "herbs": 110,
+        "injury": 0,
+        "manual": "基础吐纳诀",
+        "location": "青石村",
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 8102,
+      "profile": "balanced",
+      "stopped": "horizon",
+      "days": 714,
+      "steps": 720,
+      "finalRealm": 7,
+      "finalProgress": 72,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 40,
+        "qi9": null,
+        "foundation": null
+      },
+      "breakthroughFailures": 1,
+      "combatCount": 22,
+      "combatLosses": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "minHpRatio": 0.3,
+      "actions": {
+        "work": 4,
+        "cultivate": 470,
+        "explore": 91,
+        "rumor": 75,
+        "gather": 47,
+        "rest": 3
+      },
+      "final": {
+        "stones": 59,
+        "herbs": 109,
+        "injury": 0,
+        "manual": "基础吐纳诀",
+        "location": "青石村",
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 8103,
+      "profile": "balanced",
+      "stopped": "horizon",
+      "days": 722,
+      "steps": 720,
+      "finalRealm": 7,
+      "finalProgress": 138,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 34,
+        "qi9": null,
+        "foundation": null
+      },
+      "breakthroughFailures": 1,
+      "combatCount": 14,
+      "combatLosses": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "minHpRatio": 0.307,
+      "actions": {
+        "work": 4,
+        "cultivate": 483,
+        "explore": 88,
+        "rumor": 76,
+        "gather": 46,
+        "rest": 1
+      },
+      "final": {
+        "stones": 51,
+        "herbs": 117,
+        "injury": 0,
+        "manual": "基础吐纳诀",
+        "location": "青石村",
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 8104,
+      "profile": "cautious",
+      "stopped": "horizon",
+      "days": 731,
+      "steps": 720,
+      "finalRealm": 7,
+      "finalProgress": 490,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 38,
+        "qi9": null,
+        "foundation": null
+      },
+      "breakthroughFailures": 0,
+      "combatCount": 3,
+      "combatLosses": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "minHpRatio": 0.5,
+      "actions": {
+        "work": 11,
+        "explore": 29,
+        "cultivate": 522,
+        "rumor": 89,
+        "gather": 59
+      },
+      "final": {
+        "stones": 25,
+        "herbs": 131,
+        "injury": 0,
+        "manual": "基础吐纳诀",
+        "location": "青石村",
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 8105,
+      "profile": "cautious",
+      "stopped": "horizon",
+      "days": 734,
+      "steps": 720,
+      "finalRealm": 9,
+      "finalProgress": 26,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 31,
+        "qi9": 731,
+        "foundation": null
+      },
+      "breakthroughFailures": 0,
+      "combatCount": 4,
+      "combatLosses": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "minHpRatio": 0.885,
+      "actions": {
+        "work": 11,
+        "explore": 30,
+        "cultivate": 519,
+        "rumor": 89,
+        "gather": 58
+      },
+      "final": {
+        "stones": 31,
+        "herbs": 123,
+        "injury": 0,
+        "manual": "基础吐纳诀",
+        "location": "青石村",
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 8106,
+      "profile": "cautious",
+      "stopped": "horizon",
+      "days": 732,
+      "steps": 720,
+      "finalRealm": 7,
+      "finalProgress": 492,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 33,
+        "qi9": null,
+        "foundation": null
+      },
+      "breakthroughFailures": 2,
+      "combatCount": 6,
+      "combatLosses": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "minHpRatio": 0.307,
+      "actions": {
+        "work": 11,
+        "cultivate": 518,
+        "explore": 30,
+        "rumor": 87,
+        "gather": 58,
+        "rest": 1
+      },
+      "final": {
+        "stones": 25,
+        "herbs": 124,
+        "injury": 1,
+        "manual": "基础吐纳诀",
+        "location": "青石村",
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 8107,
+      "profile": "cultivation-heavy",
+      "stopped": "horizon",
+      "days": 726,
+      "steps": 720,
+      "finalRealm": 8,
+      "finalProgress": 1066,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 21,
+        "qi9": null,
+        "foundation": null
+      },
+      "breakthroughFailures": 0,
+      "combatCount": 10,
+      "combatLosses": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "minHpRatio": 0.302,
+      "actions": {
+        "work": 2,
+        "cultivate": 559,
+        "explore": 56,
+        "rumor": 60,
+        "gather": 24,
+        "rest": 1
+      },
+      "final": {
+        "stones": 30,
+        "herbs": 59,
+        "injury": 0,
+        "manual": "基础吐纳诀",
+        "location": "青石村",
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 8108,
+      "profile": "cultivation-heavy",
+      "stopped": "horizon",
+      "days": 728,
+      "steps": 720,
+      "finalRealm": 7,
+      "finalProgress": 780,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 35,
+        "qi9": null,
+        "foundation": null
+      },
+      "breakthroughFailures": 1,
+      "combatCount": 8,
+      "combatLosses": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "minHpRatio": 0.657,
+      "actions": {
+        "work": 2,
+        "cultivate": 560,
+        "explore": 58,
+        "rumor": 60,
+        "gather": 24
+      },
+      "final": {
+        "stones": 28,
+        "herbs": 52,
+        "injury": 0,
+        "manual": "基础吐纳诀",
+        "location": "青石村",
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 8109,
+      "profile": "cultivation-heavy",
+      "stopped": "horizon",
+      "days": 730,
+      "steps": 720,
+      "finalRealm": 8,
+      "finalProgress": 1079,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 21,
+        "qi9": null,
+        "foundation": null
+      },
+      "breakthroughFailures": 1,
+      "combatCount": 8,
+      "combatLosses": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "minHpRatio": 0.95,
+      "actions": {
+        "work": 1,
+        "cultivate": 560,
+        "explore": 59,
+        "rumor": 59,
+        "gather": 24
+      },
+      "final": {
+        "stones": 20,
+        "herbs": 62,
+        "injury": 0,
+        "manual": "基础吐纳诀",
+        "location": "青石村",
+        "sect": "散修"
+      }
+    }
+  ]
+}
