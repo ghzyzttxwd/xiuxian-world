@@ -1,37 +1,45 @@
 {
   "status": "PASS",
-  "ui_version": "playable-v3920-phase8-r5",
+  "ui_version": "playable-v3920-phase8-r8",
   "gameplay_version": "3.9.0",
-  "core_build": 3902,
-  "verified_commit": "68338f1abc46379fd7d8b73b775e8858b8edb205",
-  "source_sha256": "d933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8",
-  "previous_source_sha256": "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37",
+  "core_build": 3903,
+  "verified_commit": "0555603ea80817620dc4aabc694f41c86397a594",
+  "source_sha256": "1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c",
+  "previous_source_sha256": "d933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8",
   "save_schema_version": 36,
   "balance": {
     "phase": 8,
-    "round": 5,
+    "round": 8,
     "mode": "evidence-driven-hotfix",
     "cultivationCurveChanged": false,
     "enemyStatsChanged": false,
     "randomExploreEnemyGate": {
       "maxMinorRealmGap": 2,
       "crossMajorRealm": false,
+      "emptyEligiblePool": "no-combat",
       "explicitBossAndScriptedCombatUnchanged": true
     }
   },
   "guidance": {
     "realmAware": true,
-    "combatRiskAdvice": true
+    "combatRiskAdvice": true,
+    "lockedEnemyIdentityHidden": true
   },
   "evidence": {
-    "fixedSeedDeathDiagnostic": {
+    "r7DeathDiagnostic": {
       "enemy": "青云试剑傀",
       "enemyRealm": 12,
       "playerRealms": [
-        4,
-        5
-      ],
-      "source": "random explore at 青云山"
+        5,
+        7,
+        6
+      ]
+    },
+    "seed9206AfterFix": {
+      "dead": false,
+      "days": 379,
+      "finalRealm": 5,
+      "deathEnemy": null
     }
   },
   "monetization": {
@@ -39,11 +47,12 @@
     "real_payment": false
   },
   "checks": [
-    "fixed-seed death diagnostic",
-    "realm-aware random enemy gate",
+    "R7 repeated death diagnostic",
+    "empty eligible random pool returns no combat",
+    "seed 9206 beyond prior death point",
     "V2.9-V3.9 regression",
     "public HTTP",
     "public core SHA",
-    "entry cache version 3902"
+    "entry cache version 3903"
   ]
 }
