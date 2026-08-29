@@ -1,0 +1,57 @@
+name: Phase8 R10B Growth Diagnostic
+
+on:
+  push:
+    branches: ["phase8-r10-growth-diagnostic"]
+    paths: ["PHASE8_R10B_GROWTH.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase8-r10-growth-diagnostic
+          fetch-depth: 0
+
+      - name: Verify R8 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+
+      - name: Extract corrected manual gains and breakthrough chances
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');
+          const source=fs.readFileSync('src/game-v39.js','utf8');
+          function make(name){const d=new JSDOM(html,{url:'https://growth-diag-b.test/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.console={log(){},warn(){},error(){}};w.eval(source);const a=w.__TAIXUAN_TEST__;a.newGame(name);return a}
+          function n(v){if(typeof v==='number')return v;if(v&&typeof v==='object'){for(const k of ['gain','progress','cultivation','value','total'])if(typeof v[k]==='number')return v[k]}return NaN}
+          function avgGain(a,days,samples=120){let sum=0,ok=0;for(let i=0;i<samples;i++){const v=n(a.cultivationGainForDays(days));if(Number.isFinite(v)){sum+=v;ok++}}return ok?Number((sum/ok).toFixed(2)):null}
+          function prepare(a,id,location,unlockRealm){a.v39SetPlayerForTest({realmIndex:unlockRealm,location});const s=a.getState();s.player.spiritStones=99999;s.player.location=location;if(!id)return {learn:'default',sw:'default',manual:s.player.manual};let learn,sw;try{learn=a.learnV31Manual(id,false)}catch(e){learn='error:'+e.message}try{sw=a.switchV31Manual(id,false)}catch(e){sw='error:'+e.message}return {learn,sw,manual:a.getState().player.manual}}
+          function scenario(label,id,location,unlockRealm){const a=make('诊断B-'+label),setup=prepare(a,id,location,unlockRealm),curve=a.realmBalance(),rows=[];for(let i=0;i<=13;i++){a.v39SetPlayerForTest({realmIndex:i,location});const s=a.getState();s.player.progress=0;const gain1=avgGain(a,1),gain7=avgGain(a,7,60),gain30=avgGain(a,30,30),need=Number(curve[i]?.need)||null;let chance=null;try{s.player.progress=need;chance=a.breakthroughChance()}catch{}rows.push({index:i,name:curve[i]?.name||null,need,manual:s.player.manual,manualProf:s.player.manualProf,meanGain1:gain1,meanGain7:gain7,meanGain30:gain30,theoreticalPureCultivationDays:gain1&&need?Number((need/gain1).toFixed(1)):null,breakthroughChance:chance})}return {label,id,location,unlockRealm,setup,rows}}
+          const report={phase:'8-round10b-growth-diagnostic',gameplay:'3.9.0',coreBuild:3903,sourceSha256:'1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c',schema:36,scenarios:[scenario('基础吐纳诀',null,'青石村',0),scenario('五元归息功','manual-five-elements-return','青石镇',1),scenario('玄水纳灵篇','manual-mystic-water','临江城',3)]};
+          fs.writeFileSync('PHASE8_R10B_GROWTH_DIAGNOSTIC.json',JSON.stringify(report,null,2)+'\n');console.log('R10B',JSON.stringify(report.scenarios.map(s=>({label:s.label,setup:s.setup,qi:s.rows.slice(1,10).map(r=>({i:r.index,need:r.need,g:r.meanGain1,days:r.theoreticalPureCultivationDays,chance:r.breakthroughChance}))}))));
+          NODE
+          node - <<'NODE'
+          const x=require('./PHASE8_R10B_GROWTH_DIAGNOSTIC.json');if(x.scenarios.some(s=>s.rows.length!==14))throw Error('row shape');if(x.scenarios[1].setup.manual!=='五元归息功')throw Error('five-elements setup failed '+JSON.stringify(x.scenarios[1].setup));if(x.scenarios[2].setup.manual!=='玄水纳灵篇')throw Error('mystic-water setup failed '+JSON.stringify(x.scenarios[2].setup));console.log('R10B_SETUP_OK')
+          NODE
+
+      - name: Commit corrected diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R10B_GROWTH_DIAGNOSTIC.json
+          git commit -m 'test: record corrected phase8 r10b growth diagnostic [skip ci]'
+          git push origin HEAD:phase8-r10-growth-diagnostic
