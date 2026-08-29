@@ -121,3 +121,52 @@ jobs:
             BUILD_V310_BALANCE.json
           if-no-files-found: ignore
           retention-days: 14
+
+  aggregate:
+    name: aggregate-final-gate
+    needs: proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download sword evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: v310-v68-fullrun-sword
+          path: V310_FULLRUN_EVIDENCE/sword
+      - name: Download flame evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: v310-v68-fullrun-flame
+          path: V310_FULLRUN_EVIDENCE/flame
+      - name: Download body evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: v310-v68-fullrun-body
+          path: V310_FULLRUN_EVIDENCE/body
+      - name: Download spirit evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: v310-v68-fullrun-spirit
+          path: V310_FULLRUN_EVIDENCE/spirit
+      - name: Verify durable V68 evidence and aggregate balance gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/verify-v310-v68-evidence.mjs
+          node --check tools/aggregate-v310-fullrun-gate.mjs
+          node tools/verify-v310-v68-evidence.mjs V310_FULLRUN_EVIDENCE
+          node tools/aggregate-v310-fullrun-gate.mjs V310_FULLRUN_EVIDENCE
+          test -f V310_V68_EVIDENCE_VERIFICATION.json
+          test -f V310_FINAL_GATE_SUMMARY.json
+          grep -q '"status": "PASS"' V310_V68_EVIDENCE_VERIFICATION.json
+          grep -q '"status": "PASS"' V310_FINAL_GATE_SUMMARY.json
+      - name: Upload aggregate V68 gate
+        uses: actions/upload-artifact@v4
+        with:
+          name: v310-v68-final-gate
+          path: |
+            V310_V68_EVIDENCE_VERIFICATION.json
+            V310_FINAL_GATE_SUMMARY.json
+          if-no-files-found: error
+          retention-days: 14
