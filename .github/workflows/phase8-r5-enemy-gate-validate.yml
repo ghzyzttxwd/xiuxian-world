@@ -1,0 +1,84 @@
+name: Phase8 R5 Enemy Gate Validate
+
+on:
+  push:
+    branches: ["phase8-r5-enemy-gate"]
+    paths: ["UI_PHASE8_R5_VALIDATE.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-phase8-r5-enemy-gate-validate
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase8-r5-enemy-gate
+          fetch-depth: 0
+      - name: Patch random explore enemy gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/game-v39.js')
+          s=p.read_text()
+          old="function weightedEnemy(){const pool=ENEMIES.filter(e=>!e.areas||e.areas.includes(state.player.location));const rows=pool.map(e=>({e,w:e.weight/(1+Math.abs(e.realm-state.player.realmIndex)*.65)}));let n=rand()*rows.reduce((a,x)=>a+x.w,0);for(const x of rows){n-=x.w;if(n<=0)return x.e}return rows[0]?.e||ENEMIES[0]}"
+          new="function randomExploreEnemyEligible(e){const pr=state.player.realmIndex,er=e?.realm||0;return majorRealmStage(er)<=majorRealmStage(pr)&&er<=pr+2}\nfunction weightedEnemy(){const here=ENEMIES.filter(e=>!e.areas||e.areas.includes(state.player.location)),eligible=here.filter(randomExploreEnemyEligible),pool=eligible.length?eligible:here.slice().sort((a,b)=>(a.realm||0)-(b.realm||0)).slice(0,1);const rows=pool.map(e=>({e,w:e.weight/(1+Math.abs(e.realm-state.player.realmIndex)*.65)}));let n=rand()*rows.reduce((a,x)=>a+x.w,0);for(const x of rows){n-=x.w;if(n<=0)return x.e}return rows[0]?.e||ENEMIES[0]}"
+          if old not in s: raise SystemExit('weightedEnemy baseline not found')
+          s=s.replace(old,new,1)
+          anchor='remainingLifespanYears,cultivationGainForDays,retreatSevenDays,routeInfo:'
+          if anchor not in s: raise SystemExit('test api anchor not found')
+          s=s.replace(anchor,'remainingLifespanYears,cultivationGainForDays,retreatSevenDays,randomExploreEnemyEligible,routeInfo:',1)
+          p.write_text(s)
+          a=Path('app.js');t=a.read_text().replace('build 3901','build 3902').replace("build:'3901'","build:'3902'").replace('src/game-v39.js?v=3901','src/game-v39.js?v=3902');a.write_text(t)
+          sw=Path('sw.js');t=sw.read_text().replace('taixuan-v3.9.0-playable-ui-3920-phase8-r4','taixuan-v3.9.0-playable-ui-3920-phase8-r5').replace('src/game-v39.js?v=3901','src/game-v39.js?v=3902').replace('app.js?v=3901','app.js?v=3902');sw.write_text(t)
+          PY
+          node --check src/game-v39.js
+          node --check app.js
+          grep -q 'function randomExploreEnemyEligible' src/game-v39.js
+          grep -q 'build 3902' app.js
+          grep -q 'phase8-r5' sw.js
+      - name: Verify realm-aware random enemy eligibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');
+          const d=new JSDOM(html,{url:'https://r5.test/',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;
+          w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.console=console;
+          w.eval(fs.readFileSync('src/game-v39.js','utf8'));const a=w.__TAIXUAN_TEST__;a.newGame('R5验收');
+          a.v39SetPlayerForTest({realmIndex:4,location:'青云山'});
+          if(a.randomExploreEnemyEligible({realm:12})!==false)throw Error('Qi4 must not randomly meet Foundation realm12');
+          if(a.randomExploreEnemyEligible({realm:6})!==true)throw Error('Qi4 should allow nearby Qi6 danger');
+          a.v39SetPlayerForTest({realmIndex:10,location:'青云山'});
+          if(a.randomExploreEnemyEligible({realm:12})!==true)throw Error('Foundation player must still be able to meet realm12 puppet');
+          if(a.getState().saveSchemaVersion!==36)throw Error('schema changed');
+          console.log('PHASE8_R5_ENEMY_GATE_OK');process.exit(0)
+          NODE
+      - name: Run V2.9 through V3.9 regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          for v in 29 30 31 32 33 34 35 36 37 38 39;do node tests/regression-v${v}.mjs;done
+      - name: Commit validated hotfix to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          NEW_SHA="$(sha256sum src/game-v39.js|awk '{print $1}')"
+          cat > PHASE8_R5_VALIDATION.json <<EOF
+          {"status":"PASS","phase":"8-round5","hotfix":"random-explore-enemy-realm-gate","source_sha256":"${NEW_SHA}","save_schema_version":36,"build":3902,"rules":{"maxRandomMinorGap":2,"crossMajorRealmRandomEncounter":false,"explicitBossAndScriptedCombatUnchanged":true},"evidence":{"deathDiagnosticEnemy":"青云试剑傀","enemyRealm":12,"observedPlayerRealms":[4,5]}}
+          EOF
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v39.js app.js sw.js PHASE8_R5_VALIDATION.json
+          git commit -m 'fix: gate random explore enemies by player realm [skip ci]'
+          git push origin HEAD:phase8-r5-enemy-gate
