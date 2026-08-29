@@ -2,7 +2,7 @@
   "status": "PASS",
   "ui_version": "playable-v3920",
   "gameplay_version": "3.9.0",
-  "verified_commit": "ff1cf1c72690ba942da5e639e540bd1891775618",
+  "verified_commit": "82591bd9128cc05c53c83cd493f9fd6041cc0d30",
   "source_sha256": "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37",
   "save_schema_version": 36,
   "reference_device": "vivo X100",
