@@ -1,0 +1,94 @@
+name: Shop M5 Dynamic Combat Offers
+on:
+  push:
+    paths:
+      - 'ui-shop-v2-dynamic-power.js'
+      - 'app.js'
+      - 'sw.js'
+      - '.github/workflows/shop-m5-dynamic-power.yml'
+      - 'SHOP_M5_TRIGGER.txt'
+concurrency:
+  group: shop-m5-dynamic-power
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  validate-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen core and M5 wiring
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+          grep -q "shopDynamicPower:'m5'" app.js
+          grep -q 'ui-shop-v2-dynamic-power.js?v=m5-1' app.js
+          grep -q 'ui-shop-v2-dynamic-power.js?v=m5-1' sw.js
+      - name: Syntax check
+        run: |
+          set -euo pipefail
+          node --check ui-shop-v2-dynamic-power.js
+          node --check app.js
+          node --check sw.js
+      - name: Browser smoke - state triggers, paid grants, UI injection and persistence
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g,'');
+          const WALLET='taixuan-premium-wallet-v1';
+          function boot(withBaseShop=false){const d=new JSDOM(html,{url:'https://m5.test/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.confirm=()=>true;w.console=console;w.eval(fs.readFileSync('src/game-v39.js','utf8'));w.eval(fs.readFileSync('ui-shop-v2-power-adapter.js','utf8'));if(withBaseShop)w.eval(fs.readFileSync('ui-shop-v2.js','utf8'));w.eval(fs.readFileSync('ui-shop-v2-dynamic-power.js','utf8'));w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));return w}
+          function find(w,type){return w.__TAIXUAN_DYNAMIC_POWER__.getOffers({includeBought:false}).find(x=>x.type===type)}
+          // 1. Build missing component => exact build completion offer and simulated VIP spend.
+          const b=boot();b.__TAIXUAN_TEST__.newGame('Build缺件');b.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-flame-dot');let o=find(b,'build');if(!o)throw Error('build offer missing');const before=JSON.parse(b.localStorage.getItem(WALLET)||'{}');const bo=b.__TAIXUAN_DYNAMIC_POWER__.buy(o.id);if(!bo.ok)throw Error('build offer buy failed '+JSON.stringify(bo));const bw=JSON.parse(b.localStorage.getItem(WALLET));if((bw.vipExp||0)!==o.price*10||(bw.totalCny||0)!==o.price)throw Error('simulated payment not recorded');if(!b.__TAIXUAN_POWER_SHOP__.inspectBuild(bo.granted.id).mastered)throw Error('build offer did not master build');
+          // 2. Damaged artifact gets top-priority repair offer, then failed-refinement offer can push refinement without RNG.
+          const d=boot();d.__TAIXUAN_TEST__.newGame('法宝受损');let ar=d.__TAIXUAN_POWER_SHOP__.grantArtifact('item-v32-sevenstar-swordcase',{grade:'perfect',refinement:3,warmth:30,bind:true,equip:true});if(!ar.ok)throw Error('artifact fixture failed');d.__TAIXUAN_TEST__.refineV32Artifact('item-v32-sevenstar-swordcase','damage');o=find(d,'artifact-damage');if(!o)throw Error('damage offer missing');const ro=d.__TAIXUAN_DYNAMIC_POWER__.buy(o.id);if(!ro.ok||d.__TAIXUAN_TEST__.getState().player.equipmentInventory['item-v32-sevenstar-swordcase'].damaged)throw Error('damage repair offer failed');o=find(d,'artifact-refine');if(!o)throw Error('refine offer missing after major failure');const ref0=d.__TAIXUAN_TEST__.getState().player.equipmentInventory['item-v32-sevenstar-swordcase'].refinement;const rr=d.__TAIXUAN_DYNAMIC_POWER__.buy(o.id);const ref1=d.__TAIXUAN_TEST__.getState().player.equipmentInventory['item-v32-sevenstar-swordcase'].refinement;if(!rr.ok||ref1<=ref0)throw Error('refine rescue failed');
+          // 3. Natal threshold offer names and converts the actual selected equipped artifact.
+          const n=boot();n.__TAIXUAN_TEST__.newGame('本命临界');n.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:15});n.__TAIXUAN_POWER_SHOP__.grantArtifact('item-v32-sevenstar-swordcase',{grade:'perfect',refinement:3,warmth:30,bind:true,equip:true});o=find(n,'natal');if(!o||!o.desc.includes('青云七星剑匣'))throw Error('natal offer missing or not specific '+JSON.stringify(o));const nr=n.__TAIXUAN_DYNAMIC_POWER__.buy(o.id);if(!nr.ok||n.__TAIXUAN_TEST__.getState().player.natalArtifactId!=='item-v32-sevenstar-swordcase')throw Error('natal conversion failed');
+          // 4. Chosen law gets a domain-ready boost; the shop never chooses law for the player.
+          const l=boot();l.__TAIXUAN_TEST__.newGame('法则初成');l.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-flame-dot');l.__TAIXUAN_TEST__.v37SetPlayerForTest({realmIndex:30});if(!l.__TAIXUAN_TEST__.v37ChooseLaw('law-annihilation',true).ok)throw Error('law fixture failed');o=find(l,'law');if(!o)throw Error('law offer missing');if(!l.__TAIXUAN_DYNAMIC_POWER__.buy(o.id).ok)throw Error('law offer failed');const ls=l.__TAIXUAN_TEST__.v37StateSnapshot();if(ls.lawId!=='law-annihilation'||ls.lawProficiency<40||ls.unity<30)throw Error('law boost invalid '+JSON.stringify(ls));
+          // 5. Mahayana origin and authority gap is independently monetized.
+          const g=boot();g.__TAIXUAN_TEST__.newGame('本源缺口');g.__TAIXUAN_TEST__.v38SetPlayerForTest({realmIndex:34,originInsight:100,authority:40});o=find(g,'origin');if(!o)throw Error('origin offer missing');if(!g.__TAIXUAN_DYNAMIC_POWER__.buy(o.id).ok)throw Error('origin offer failed');const gs=g.__TAIXUAN_TEST__.v38StateSnapshot();if(gs.originInsight<300||gs.worldAuthority<170||gs.mahayanaEssence<2)throw Error('origin boost invalid '+JSON.stringify(gs));
+          // 6. Tribulation offer always targets the current weakest of five prep dimensions.
+          const t=boot();t.__TAIXUAN_TEST__.newGame('渡劫短板');t.__TAIXUAN_TEST__.v39SetPlayerForTest({realmIndex:37,prep:{body:12,soul:70,law:65,artifact:60,formation:55}});o=find(t,'tribulation');if(!o||o.id!=='trib-body')throw Error('weakest-prep offer wrong '+JSON.stringify(o));if(!t.__TAIXUAN_DYNAMIC_POWER__.buy(o.id).ok)throw Error('tribulation offer failed');if(t.__TAIXUAN_TEST__.getState().player.v38TribulationPrep.body<80)throw Error('tribulation weakest dimension not fixed');
+          // 7. Recommendation UI shows at most four live combat offers and explicitly labels simulated payment.
+          const u=boot(true);u.__TAIXUAN_TEST__.newGame('推荐UI');u.__TAIXUAN_TEST__.v34ActivateBuildForTest('build-body-bastion');u.__TAIXUAN_SHOP__.open('recommend');u.__TAIXUAN_DYNAMIC_POWER__.decorate();const cards=[...u.document.querySelectorAll('#uiDynamicPowerOffers .power-offer-card')];if(!cards.length||cards.length>4)throw Error('dynamic UI card count invalid '+cards.length);if(!u.document.querySelector('#uiDynamicPowerOffers').textContent.includes('模拟 ¥')||!u.document.querySelector('#uiDynamicPowerOffers').textContent.includes('不接真实支付'))throw Error('simulated payment disclosure missing');
+          // 8. Purchased offer ledger persists in localStorage and prevents exact-state rebuy.
+          if(!Object.keys(bw.powerOfferBuys||{}).length)throw Error('offer purchase ledger missing');if(b.__TAIXUAN_DYNAMIC_POWER__.getOffers().some(x=>x.key===o?.key&&bw.powerOfferBuys[x.key]))throw Error('exact bought offer resurfaced');
+          console.log('SHOP_M5_DYNAMIC_POWER_OK',JSON.stringify({build:bo.offer.name,repair:ro.offer.name,refine:rr.offer.name,natal:nr.offer.name,law:ls.lawId,origin:gs.originInsight,tribBody:t.__TAIXUAN_TEST__.getState().player.v38TribulationPrep.body,uiCards:cards.length}));
+          NODE
+          rm -rf node_modules package.json package-lock.json
+      - name: Publish M5 to gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin gh-pages:gh-pages || true
+          git checkout gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          git checkout origin/main -- .
+          rm -rf node_modules
+          git add -A
+          git commit -m 'publish: shop M5 dynamic combat offers' || true
+          git push origin gh-pages
+      - name: Mark M5 PASS on main
+        run: |
+          set -euo pipefail
+          git checkout main
+          git pull --ff-only origin main
+          python - <<'PY'
+          import json
+          p='PUBLIC_UI_STATUS.json'
+          d=json.load(open(p,encoding='utf-8'))
+          d['status']='PASS';d['phase']='final-ui-shop-v2';d['coreBuild']=3903;d['schema']=36;d['realPayment']=False
+          s=d.setdefault('shop',{});s['powerRewardAdapter']='M1-PASS';s['vip8PowerNode']='M2-PASS';s['vip12PowerNode']='M3-PASS';s['vip15PowerNode']='M4-PASS';s['dynamicPowerOffers']='M5-PASS';s['dynamicPowerTypes']=['build','artifact-damage','artifact-refine','natal','law','origin','tribulation'];s['dynamicPowerMaxVisible']=4
+          open(p,'w',encoding='utf-8').write(json.dumps(d,ensure_ascii=False,separators=(',',':'))+'\n')
+          PY
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'status: shop M5 dynamic power offers PASS' || true
+          git push origin main
