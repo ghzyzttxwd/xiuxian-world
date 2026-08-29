@@ -1,0 +1,40 @@
+name: Phase8 R10H Inline Helper Manual Diagnostic
+
+on:
+  push:
+    branches: ["phase8-r10-growth-diagnostic"]
+    paths: ["PHASE8_R10H_INLINE.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: phase8-r10-growth-diagnostic, fetch-depth: 0}
+      - name: Measure real manual wiring with same-script helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');let source=fs.readFileSync('src/game-v39.js','utf8');
+          source += `\nwindow.__PHASE8_MANUAL_DIAG__=(name,prof)=>{state.player.realmIndex=7;state.player.location='青云山';state.player.manual=name;state.player.manualProf=prof;state.player.progress=0;const gains=[];for(let i=0;i<500;i++)gains.push(cultivationGainForDays(1));const need=REALMS[7].need;state.player.progress=need;return {name,prof,manualLookup:manual(),meta:v31CurrentManualMeta(),effects:v31CurrentManualEffects(),breakthroughBonus:v31BreakthroughBonus(),meanGain1:gains.reduce((a,b)=>a+b,0)/gains.length,breakthroughChance:breakthroughChance()}};`;
+          const d=new JSDOM(html,{url:'https://inline-helper.test/',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.console={log(){},warn(){},error(){}};w.eval(source);w.__TAIXUAN_TEST__.newGame('inline helper');const rows=[];for(const name of ['基础吐纳诀','五元归息功','玄水纳灵篇'])for(const prof of [0,100,300,700,1400])rows.push(w.__PHASE8_MANUAL_DIAG__(name,prof));const report={phase:'8-round10h-inline-helper-manual',coreBuild:3903,sourceSha256:'1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c',schema:36,rows};fs.writeFileSync('PHASE8_R10H_INLINE_HELPER_MANUAL.json',JSON.stringify(report,null,2)+'\n');console.log('R10H',JSON.stringify(rows));
+          NODE
+          node - <<'NODE'
+          const x=require('./PHASE8_R10H_INLINE_HELPER_MANUAL.json');if(x.rows.length!==15)throw Error('shape');for(const n of ['五元归息功','玄水纳灵篇']){const r=x.rows.find(x=>x.name===n&&x.prof===700);if(!r?.manualLookup?.mult||!r?.meta?.id)throw Error('lookup failed '+n+' '+JSON.stringify(r))}console.log('R10H_OK')
+          NODE
+      - name: Commit inline-helper diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R10H_INLINE_HELPER_MANUAL.json
+          git commit -m 'test: record phase8 r10h inline-helper manual diagnostic [skip ci]'
+          git push origin HEAD:phase8-r10-growth-diagnostic
