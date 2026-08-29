@@ -1,0 +1,311 @@
+name: V2.9 past-life bonds validation and release
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V29_PAST_LIFE_BONDS.trigger"
+      - "tools/build-v29-past-life-bonds.cjs"
+      - "tools/v29-past-life-bonds-block.txt"
+      - "tests/regression-v29.mjs"
+      - ".github/workflows/v29-past-life-bonds.yml"
+  push:
+    branches: ["main"]
+    paths: ["V29_PAST_LIFE_BONDS.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v29-past-life-bonds-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v29:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify V2.8 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const s=require('./PUBLIC_V28_STATUS.json');
+          const sha='6951ff38b0817a6aabc46c126d74af99451183b5ad506e98fe5af587a8ec963a';
+          if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='2801'||s.game_version!=='2.8.0'||s.realm_count!==26||s.location_count!==12||s.route_count!==20||s.save_schema_version!==25||s.source_sha256!==sha) throw new Error('V2.8 baseline is not verified');
+          JS
+
+      - name: Build V2.9 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/build-v29-past-life-bonds.cjs
+          node tools/build-v29-past-life-bonds.cjs
+          node --check src/game-v29.js
+          node - <<'JS'
+          const b=require('./BUILD_V29_PAST_LIFE_BONDS.json');
+          if(b.status!=='PASS'||b.gameplay_version!=='2.9.0'||b.build!=='2901'||b.milestone!=='past-life-bonds'||b.realm_count!==26||b.location_count!==12||b.route_count!==20||b.save_schema_version!==26) throw new Error('V2.9 build report mismatch');
+          JS
+          grep -q "const VERSION='2.9.0'" src/game-v29.js
+          grep -q 'capturePastLifeBonds' src/game-v29.js
+          grep -q 'pastLifeBonds' src/game-v29.js
+          grep -q 'recognizePastLifeNpc' src/game-v29.js
+          grep -q 'resetPlayerNpcTiesForRebirth' src/game-v29.js
+          grep -q 'renderPastLifePanel' src/game-v29.js
+          ! grep -q '天道酬勤' src/game-v29.js
+
+      - name: Run V2.8 and V2.9 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v28.mjs
+          node tests/regression-v29.mjs
+
+      - name: V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v29:
+    if: github.event_name == 'push'
+    needs: validate-v29
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Rebuild and regress exact release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/build-v29-past-life-bonds.cjs
+          node tools/build-v29-past-life-bonds.cjs
+          node --check src/game-v29.js
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v28.mjs
+          node tests/regression-v29.mjs
+
+      - name: Switch runtime shell to V2.9 build 2901
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > app.js <<'JS'
+          // 太玄界 V2.9 前尘旧缘正式加载器 · build 2901
+          (()=>{
+            const fail=(e)=>{console.error(e);document.body.innerHTML='<div style="max-width:680px;margin:40px auto;padding:20px;color:#fff;background:#171a16;border:1px solid #485042;border-radius:14px;font-family:system-ui;line-height:1.7"><h2>太玄界加载失败</h2><div>'+String(e)+'</div><p>请刷新页面；若仍失败，请把这段错误发给我。</p></div>'};
+            try{window.__TAIXUAN_BUILD__={engineeringVersion:'2.9.0',gameplayVersion:'2.9.0',build:'2901',milestone:'past-life-bonds',source:'src/game-v29.js',legacyPatchChain:false};document.title='太玄界 · 修仙大世界 V2.9';const script=document.createElement('script');script.src='./src/game-v29.js?v=2901';script.async=false;script.onload=()=>{if(!window.__TAIXUAN_TEST__)fail(new Error('V2.9 直接源码运行时未完成初始化'))};script.onerror=()=>fail(new Error('V2.9 游戏核心加载失败：src/game-v29.js'));document.head.appendChild(script)}catch(e){fail(e)}})();
+          JS
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html'); s=p.read_text(encoding='utf-8')
+          pairs=[
+            ('太玄界 · 修仙大世界 V2.8','太玄界 · 修仙大世界 V2.9'),
+            ('修仙大世界 · V2.8','修仙大世界 · V2.9'),
+            ('V2.8 · NPC人生后果','V2.9 · 前尘旧缘'),
+            ('./app.js?v=2801','./app.js?v=2901'),
+            ('V2.7 的 NPC 命运网络继续保留。V2.8 让这些经历产生长期后果：故人会主动求援，援手会形成可偿还的人情债；NPC 仇怨会升级为伤亡，散修会加入势力，修士也会经历低频但真实改变状态的人生分叉。','V2.8 的 NPC 人生后果继续保留。V2.9 把轮回与故人真正接起来：上一世的深交会留下旧缘记录，但人情债和未完成求援不会错误跨世继承；新一世第一次重逢只会得到小额熟悉感与一次性旧缘机缘。'),
+            ('见面后仍可赠礼、论道、切磋或求助。V2.8 起关系不再只是一条数值：故人可能主动向你求援，帮助会留下人情并在以后得到回报；NPC 之间的深仇可能升级为真实伤亡，势力归属和重大人生事件也会长期写进人物状态。','见面后仍可赠礼、论道、切磋或求助。V2.9 起，上一世关系达到深交的故人会进入“前尘旧缘”；转世不会直接继承旧关系，真正重逢后才会产生少量熟悉感。上一世欠你的人情和未处理求援会在轮回时结清，不会错绑到新身份。')
+          ]
+          for old,new in pairs:
+            if new in s:
+              continue
+            if old not in s:
+              raise SystemExit(f'index anchor missing and target absent: {old}')
+            s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+          cat > sw.js <<'JS'
+          const CACHE='taixuan-v2.9.0-past-life-bonds-2901';
+          const CORE=['./','./index.html?v=2901','./style.css','./app.js?v=2901','./src/game-v29.js?v=2901','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6'];
+          self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+          self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+          self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=2901'))));});
+          JS
+          cat > README.md <<'MD'
+          # 太玄界 · 修仙大世界
+
+          当前正式版本：**V2.9.0 · 前尘旧缘（build 2901）**
+
+          正式运行结构：`index.html -> app.js -> src/game-v29.js`。浏览器直接加载可读源码，不使用历史补丁链或 `eval`。
+
+          ## V2.9
+          - 完整保留 V2.8 的 NPC 求援、人情债、仇怨伤亡、动态势力归属和重大人生事件；
+          - 本世结束时，关系达到 60 的深交 NPC 会被写入历世旧缘，不记录普通泛泛之交；
+          - 轮回仍然保留世界、NPC 年龄、境界、势力与命运，但玩家与 NPC 的直接关系继续归零；
+          - 修复上一世 `favorDebt` 和 `npcPendingRequest` 错误跨世继承：转世时旧人情债与未处理求援会被明确结清；
+          - 新一世与旧日深交第一次真正重逢时，只获得 +4～6 的小额关系，不直接继承上一世高好感；
+          - 极深旧缘重逢可触发一次很小的资源或悟道机缘，同一人生不能重复领取；
+          - 人物关系页新增“前尘旧缘”，可查看历世深交、旧人当前生死/位置以及本世是否已经重逢。
+
+          ## 存档
+          V2.9 使用 `saveSchemaVersion = 26`。V2.8 schema25 自动迁移；未来 schema27+ 拒绝覆盖。
+
+          V6 App 图标保持固定 SHA-256，不修改。
+          MD
+          node --check app.js
+          node --check sw.js
+          grep -q 'src/game-v29.js?v=2901' app.js
+          grep -q 'src/game-v29.js?v=2901' sw.js
+          grep -q 'V2.9 · 前尘旧缘' index.html
+          ! grep -q 'bundle2' app.js
+          ! grep -q 'eval' app.js
+
+      - name: Regress after shell switch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v29.mjs
+
+      - name: Commit V2.9 runtime to main
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v29.js BUILD_V29_PAST_LIFE_BONDS.json app.js index.html sw.js README.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: V2.9 past-life bonds [skip ci]'
+            git push origin HEAD:main
+          fi
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact V2.9 assets to gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp src/game-v29.js /tmp/pages/src/game-v29.js
+          cp BUILD_V29_PAST_LIFE_BONDS.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png /tmp/pages/
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v29.js BUILD_V29_PAST_LIFE_BONDS.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V2.9 past-life bonds ${RELEASE_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Public terminal verification
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          EXPECT_GAME="$(node -p "require('./BUILD_V29_PAST_LIFE_BONDS.json').source_sha256")"
+          passed=0
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}?v=2901&x=${RELEASE_SHA}-${i}" -o /tmp/public-index.html || ok=0
+            curl -fsSL "${BASE}app.js?v=2901&x=${RELEASE_SHA}-${i}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}src/game-v29.js?v=2901&x=${RELEASE_SHA}-${i}" -o /tmp/public-game.js || ok=0
+            curl -fsSL "${BASE}sw.js?v=2901&x=${RELEASE_SHA}-${i}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${RELEASE_SHA}-${i}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon192.png || ok=0
+            if [ "$ok" = 1 ] && grep -q 'V2.9' /tmp/public-index.html && grep -q 'src/game-v29.js?v=2901' /tmp/public-app.js && grep -q "const VERSION='2.9.0'" /tmp/public-game.js && grep -q 'taixuan-v2.9.0-past-life-bonds-2901' /tmp/public-sw.js; then
+              test "$(sha256sum /tmp/public-game.js | awk '{print $1}')" = "$EXPECT_GAME"
+              test "$(sha256sum /tmp/public-icon512.png | awk '{print $1}')" = "$EXPECT512"
+              test "$(sha256sum /tmp/public-icon192.png | awk '{print $1}')" = "$EXPECT192"
+              node - <<'JS'
+              const fs=require('fs');const m=JSON.parse(fs.readFileSync('/tmp/public-manifest.json','utf8'));if(m.display!=='standalone'||!Array.isArray(m.icons)||m.icons.length<2)throw new Error('public manifest invalid');
+              JS
+              INDEX_PATH=/tmp/public-index.html GAME_PATH=/tmp/public-game.js node tests/regression-v29.mjs
+              passed=1
+              break
+            fi
+            sleep 5
+          done
+          test "$passed" = 1
+
+      - name: Record V2.9 public PASS on gh-pages
+        id: public_pass
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          GAME_SHA="$(node -p "require('./BUILD_V29_PAST_LIFE_BONDS.json').source_sha256")"
+          node - "$RELEASE_SHA" "$GAME_SHA" <<'JS'
+          const fs=require('fs');const [release,gameSha]=process.argv.slice(2);const s={status:'PASS',game_version:'2.9.0',build:'2901',milestone:'past-life-bonds',verified_commit:release,source_sha256:gameSha,realm_count:26,location_count:12,route_count:20,save_schema_version:26,stage:'public-pass',checks:['V2.8 public baseline PASS','PR validation PASS and closed unmerged','V2.9 build and node syntax PASS','V2.8 regression PASS','V2.9 regression PASS','schema 25 to 26 migration','future schema 27 overwrite guard','deep friendship snapshot at life end','no direct relationship inheritance','old favor debt cleared on rebirth','old pending requests cleared on rebirth','one-time past-life recognition','small old-friend starting benefit','public asset HTTP 200','public source hash equality','public headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('/tmp/pages/PUBLIC_V29_STATUS.json',JSON.stringify(s)+'\n');
+          JS
+          cd /tmp/pages
+          git add PUBLIC_V29_STATUS.json
+          git commit -m "chore: record V2.9 public PASS ${RELEASE_SHA} [skip ci]"
+          git push origin HEAD:gh-pages
+          echo "pages_pass_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Verify public PASS is actually reachable
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          expected="$(cat /tmp/pages/PUBLIC_V29_STATUS.json)"
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "${BASE}PUBLIC_V29_STATUS.json?x=${RELEASE_SHA}-${i}" -o /tmp/live-v29-status.json; then
+              node - "$RELEASE_SHA" <<'JS'
+              const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v29-status.json','utf8'));const release=process.argv[2];if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='2.9.0'||s.build!=='2901'||s.save_schema_version!==26||s.verified_commit!==release)process.exit(1);
+              JS
+              if cmp -s /tmp/live-v29-status.json /tmp/pages/PUBLIC_V29_STATUS.json; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync the exact public PASS back to main
+        id: final_main
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          cp /tmp/pages/PUBLIC_V29_STATUS.json PUBLIC_V29_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V29_STATUS.json
+          git commit -m 'chore: sync verified V2.9 public PASS to main [skip ci]'
+          git push origin HEAD:main
+          echo "final_main_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final runtime-to-main compare
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+          FINAL_MAIN_SHA: ${{ steps.final_main.outputs.final_main_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$FINAL_MAIN_SHA"
+          mapfile -t changed < <(git diff --name-only "$RELEASE_SHA" "$FINAL_MAIN_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V29_STATUS.json'
+          node - "$RELEASE_SHA" <<'JS'
+          const fs=require('fs');const s=JSON.parse(fs.readFileSync('PUBLIC_V29_STATUS.json','utf8'));if(s.verified_commit!==process.argv[2]||s.status!=='PASS'||s.stage!=='public-pass')throw new Error('final main PASS mismatch');
+          JS

@@ -1,0 +1,222 @@
+name: V3.1 release fallback
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V31_MANUAL_SPELL_EXPANSION.trigger"
+      - ".github/workflows/v31-release-fallback.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v31-release-fallback-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate exact V3.1 release machinery
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -e "const s=require('./PUBLIC_V30_STATUS.json');process.stdout.write(s.status+' '+s.game_version+' '+s.build)")" = "PASS 3.0.0 3001"
+          node tools/build-v31-manual-spell-expansion.cjs
+          node --check src/game-v31.js
+          test "$(sha256sum src/game-v31.js | awk '{print $1}')" = "492a2808ba69727ab6232e753ed25f388cc324cff0a8032a1ccc35f8549180e7"
+          node -e "const b=require('./BUILD_V31_MANUAL_SPELL_EXPANSION.json');if(b.status!=='PASS'||b.gameplay_version!=='3.1.0'||b.build!=='3101'||b.save_schema_version!==28||b.content_registry_version!==2||b.counts.manuals!==28||b.counts.spells!==60)throw new Error('V3.1 build mismatch')"
+          node --check tools/release-v31-assets.cjs
+          bash -n tools/verify-v31-public.sh
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tools/release-v31-assets.cjs
+          grep -q "gameplayVersion:'3.1.0'" app.js
+          grep -q 'src/game-v31.js?v=3101' app.js
+          grep -q 'V3.1 · 功法术法大扩容' index.html
+          grep -q 'taixuan-v3.1.0-manual-spell-expansion-3101' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v31-final:
+    if: github.head_ref == 'v31-release-final-run'
+    needs: validate-fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - name: Checkout exact main release base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Reconfirm immutable main base and build runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          node tools/build-v31-manual-spell-expansion.cjs
+          node --check src/game-v31.js
+          test "$(sha256sum src/game-v31.js | awk '{print $1}')" = "492a2808ba69727ab6232e753ed25f388cc324cff0a8032a1ccc35f8549180e7"
+          node tools/release-v31-assets.cjs
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+      - name: Commit exact V3.1 runtime to main
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B main "$BASE_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v31.js BUILD_V31_MANUAL_SPELL_EXPANSION.json app.js index.html sw.js
+          git commit -m "feat: V3.1 manual spell expansion [skip ci]"
+          git push origin HEAD:main
+          echo "runtime_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact V3.1 runtime to gh-pages
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp index.html app.js sw.js BUILD_V31_MANUAL_SPELL_EXPANSION.json /tmp/pages/
+          cp src/game-v31.js /tmp/pages/src/game-v31.js
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html app.js sw.js BUILD_V31_MANUAL_SPELL_EXPANSION.json src/game-v31.js
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V3.1 manual spell expansion ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify actual GitHub Pages
+        id: public
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set +e
+          ATTEMPTS=36 bash tools/verify-v31-public.sh
+          rc=$?
+          set -e
+          public_ok=$(cat /tmp/V31_PUBLIC_OK 2>/dev/null || echo false)
+          echo "public_ok=$public_ok" >> "$GITHUB_OUTPUT"
+          echo "verifier_rc=$rc"
+          cat /tmp/V31_PUBLIC_DIAGNOSTIC.txt || true
+          exit 0
+
+      - name: Persist V3.1 diagnostic on failure
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cp /tmp/V31_PUBLIC_DIAGNOSTIC.txt /tmp/pages/PUBLIC_V31_DIAGNOSTIC.txt
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V31_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record V3.1 public diagnostic ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Stop failed public release
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Record V3.1 public PASS on gh-pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cd /tmp/pages
+          git rm -f --ignore-unmatch PUBLIC_V31_DIAGNOSTIC.txt >/dev/null 2>&1 || true
+          RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s={status:'PASS',game_version:'3.1.0',build:'3101',milestone:'manual-spell-expansion',verified_commit:process.env.RUNTIME_SHA,source_sha256:'492a2808ba69727ab6232e753ed25f388cc324cff0a8032a1ccc35f8549180e7',save_schema_version:28,content_registry_version:2,manual_count:28,spell_count:60,active_slots:6,passive_slots:1,stage:'public-pass',transport:'same-repo-pr-fallback',checks:['PR31 V3.1 validation PASS and closed unmerged','fallback workflow validation PASS and closed unmerged','schema27 to schema28 migration','28 differentiated manuals','60 spells and divine arts','independent manual proficiency','six active skill slots plus passive slot','real acquisition costs location and path gates','cooldown status shield control healing DOT counter and survival mechanics','actual GitHub Pages HTTP 200','public V3.1 markers','public source SHA equality','public V3.1 headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('PUBLIC_V31_STATUS.json',JSON.stringify(s)+'\n')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V31_STATUS.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record V3.1 public PASS ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify PASS is actually reachable from Pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V31_STATUS.json?verify=${RUNTIME_SHA}-${i}" -o /tmp/live-v31-status.json; then
+              if RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v31-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='3.1.0'||s.build!=='3101'||s.save_schema_version!==28||s.manual_count!==28||s.spell_count!==60||s.verified_commit!==process.env.RUNTIME_SHA)process.exit(1)" && cmp -s /tmp/live-v31-status.json /tmp/pages/PUBLIC_V31_STATUS.json; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync exact PASS to main
+        if: steps.public.outputs.public_ok == 'true'
+        id: final_main
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$RUNTIME_SHA"
+          git checkout -B main origin/main
+          cp /tmp/pages/PUBLIC_V31_STATUS.json PUBLIC_V31_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V31_STATUS.json
+          if ! git diff --cached --quiet; then git commit -m "chore: record V3.1 public PASS ${RUNTIME_SHA} [skip ci]"; fi
+          git push origin HEAD:main
+          echo "final_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final V3.1 delta guard
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+          FINAL_SHA: ${{ steps.final_main.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$RUNTIME_SHA" "$FINAL_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V31_STATUS.json'
+          cmp -s PUBLIC_V31_STATUS.json /tmp/pages/PUBLIC_V31_STATUS.json
+          echo "V31_PUBLIC_TERMINAL_PASS $RUNTIME_SHA -> $FINAL_SHA"

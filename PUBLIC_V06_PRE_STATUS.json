@@ -1,1 +1,0 @@
-{"status":"PASS","game_version":"0.6.0","milestone":"alchemy-prerelease","stage":"gameplay-pass","checks":["V0.2->V0.3->V0.4->V0.5->V0.6 chain","V0.6 syntax","material consumption","alchemy proficiency growth","healing recipe","healing pill consumes and heals","qi recipe","qi pill restores qi","legacy alchemy migration"]}

@@ -1,0 +1,29 @@
+name: Legacy Phase8 R2 Neutralizer
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "UI_PHASE8_R2.trigger"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taixuan-phase8-r2
+  cancel-in-progress: true
+
+jobs:
+  neutralize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm legacy publisher is retired
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+          grep -q 'TAIXUAN_PHASE8_QOL_V3' ui-phase8-qol.js
+          grep -q 'ui-phase8-qol.js?v=3' app.js
+          echo 'LEGACY_PHASE8_R2_PUBLISHER_RETIRED_NO_WRITE'

@@ -1,0 +1,58 @@
+name: Phase8 R3 Guidance
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["UI_PHASE8_R3.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-phase8-r3-guidance
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Validate guidance and adaptive cultivation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = '99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37'
+          grep -q 'TAIXUAN_PHASE8_QOL_V3' ui-phase8-qol.js
+          grep -q 'ui-phase8-qol.js?v=3' app.js
+          grep -q 'phase8-r3' sw.js
+          node --check ui-phase8-qol.js
+          npm init -y >/dev/null 2>&1;npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');const h=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');const d=new JSDOM(h,{url:'https://test/',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.Math.random=()=>.99;w.eval(fs.readFileSync('src/game-v39.js','utf8'));const a=w.__TAIXUAN_TEST__;a.newGame('引导验收');w.eval(fs.readFileSync('ui-phase8-qol.js','utf8'));const q=w.__TAIXUAN_PHASE8__;if(!q.mount())throw Error('mount');let t=q.guideText();if(!t.includes('踏入炼气'))throw Error('mortal guide '+t);a.v39SetPlayerForTest({realmIndex:1,location:'青石村'});t=q.guideText();if(!t.includes('青石镇')||!t.includes('天下'))throw Error('qi village guide '+t);a.v39SetPlayerForTest({realmIndex:3,location:'青石镇'});t=q.guideText();if(!t.includes('临江城'))throw Error('mid qi guide '+t);a.v39SetPlayerForTest({realmIndex:4,location:'青云山'});if(q.batchDaysFor()!==30)throw Error('30d lost');a.v39SetPlayerForTest({realmIndex:9,location:'青云山'});t=q.guideText();if(!t.includes('筑基'))throw Error('qi9 guide '+t);console.log('GUIDANCE_MATRIX_OK');process.exit(0)
+          NODE
+      - name: Full regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          for v in 29 30 31 32 33 34 35 36 37 38 39;do node tests/regression-v${v}.mjs;done
+      - name: Publish and verify public files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages;rm -rf /tmp/p8r3;git worktree add /tmp/p8r3 origin/gh-pages;mkdir -p /tmp/p8r3/src
+          cp index.html style.css ui-v3920.css ui-v3920.js ui-shop-v1.css ui-shop-v1.js ui-phase8-qol.css ui-phase8-qol.js app.js sw.js /tmp/p8r3/;cp src/game-v39.js /tmp/p8r3/src/
+          cd /tmp/p8r3;git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add .;if ! git diff --cached --quiet;then git commit -m "feat: publish phase8 r3 guidance ${GITHUB_SHA} [skip ci]";git push origin HEAD:gh-pages;fi
+          cd "$GITHUB_WORKSPACE";ok=0;for i in $(seq 1 60);do q="p8r3-${GITHUB_SHA}-${i}";curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/ui-phase8-qol.js?${q}" -o /tmp/q.js||true;curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/src/game-v39.js?${q}" -o /tmp/g.js||true;if grep -q 'TAIXUAN_PHASE8_QOL_V3' /tmp/q.js 2>/dev/null && [ "$(sha256sum /tmp/g.js 2>/dev/null|awk '{print $1}')" = '99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37' ];then ok=1;break;fi;sleep 5;done;test "$ok" -eq 1
+      - name: PASS and sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/p8r3
+          GITHUB_SHA="$GITHUB_SHA" node - <<'NODE'
+          const fs=require('fs');fs.writeFileSync('PUBLIC_UI_STATUS.json',JSON.stringify({status:'PASS',ui_version:'playable-v3920-phase8-r3',gameplay_version:'3.9.0',verified_commit:process.env.GITHUB_SHA,source_sha256:'99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37',save_schema_version:36,balance:{phase:8,round:3,mode:'qol-first',batchCultivationDaysByRealm:{mortalThroughQi3:7,qi4Plus:30},coreCurveChanged:false},guidance:{realmAware:true,signals:['realm','location','manual'],earlyRoute:['青石村','青石镇','临江城'],progressiveDisclosure:true},monetization:{mode:'sandbox',real_payment:false},checks:['guidance matrix smoke','adaptive batch retained','V2.9-V3.9 regression','public HTTP','frozen core SHA']},null,2)+'\n')
+          NODE
+          git add PUBLIC_UI_STATUS.json;git commit -m "chore: phase8 r3 guidance PASS ${GITHUB_SHA} [skip ci]";git push origin HEAD:gh-pages
+          cd "$GITHUB_WORKSPACE";seen=0;for i in $(seq 1 60);do if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_UI_STATUS.json?r3=${GITHUB_SHA}-${i}" -o /tmp/s.json && GITHUB_SHA="$GITHUB_SHA" node -e "const s=require('/tmp/s.json');if(s.status!=='PASS'||s.ui_version!=='playable-v3920-phase8-r3'||s.verified_commit!==process.env.GITHUB_SHA||s.guidance?.realmAware!==true)process.exit(1)";then seen=1;break;fi;sleep 5;done;test "$seen" -eq 1
+          git fetch origin main;git checkout -B main origin/main;cp /tmp/p8r3/PUBLIC_UI_STATUS.json PUBLIC_UI_STATUS.json;git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_UI_STATUS.json;if ! git diff --cached --quiet;then git commit -m "chore: sync phase8 r3 guidance PASS ${GITHUB_SHA} [skip ci]";git push origin HEAD:main;fi

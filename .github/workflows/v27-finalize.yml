@@ -1,0 +1,178 @@
+name: V2.7 clean final release verification
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["V27_FINALIZE.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v27-finalize
+  cancel-in-progress: false
+
+jobs:
+  finalize-v27:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout stable main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Verify V2.6 baseline and exact V2.7 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const v26=require('./PUBLIC_V26_STATUS.json');
+          const b=require('./BUILD_V27_NPC_FATES.json');
+          if(v26.status!=='PASS'||v26.stage!=='public-pass'||v26.build!=='2601'||v26.save_schema_version!==23)throw new Error('V2.6 public baseline invalid');
+          if(b.status!=='PASS'||b.gameplay_version!=='2.7.0'||b.build!=='2701'||b.save_schema_version!==24||b.realm_count!==26||b.location_count!==12||b.route_count!==20)throw new Error('V2.7 build report invalid');
+          JS
+          node --check src/game-v27.js
+          grep -q "const VERSION='2.7.0'" src/game-v27.js
+          grep -q "const SAVE_SCHEMA_VERSION=24" src/game-v27.js
+          grep -q 'npcBattleAllyTurn' src/game-v27.js
+          grep -q 'npcMemorials' src/game-v27.js
+          grep -q 'simulateNpcSecretRealm' src/game-v27.js
+          grep -q 'simulateNpcFactionBattle' src/game-v27.js
+          ! grep -q '天道酬勤' src/game-v27.js
+      - name: Re-run exact headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v26.mjs
+          node tests/regression-v27.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+      - name: Create post-validation runtime release commit
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app.js'); s=p.read_text(encoding='utf-8')
+          old='// 太玄界 V2.7 NPC命运网络加载器 · build 2701'
+          new='// 太玄界 V2.7 NPC命运网络正式验收加载器 · build 2701'
+          if new not in s:
+              if old not in s: raise SystemExit('V2.7 app loader anchor missing')
+              s=s.replace(old,new,1)
+              p.write_text(s,encoding='utf-8')
+          PY
+          node --check app.js
+          grep -q 'src/game-v27.js?v=2701' app.js
+          grep -q 'legacyPatchChain:false' app.js
+          ! grep -q 'bundle2' app.js
+          ! grep -q 'eval' app.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.js
+          if git diff --cached --quiet; then
+            echo 'Expected a distinct post-validation runtime commit, but app.js already had the final marker' >&2
+            exit 1
+          fi
+          git commit -m 'feat: finalize verified V2.7 NPC fate runtime [skip ci]'
+          git push origin HEAD:main
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Publish exact verified V2.7 assets
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp src/game-v27.js /tmp/pages/src/game-v27.js
+          cp BUILD_V27_NPC_FATES.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png /tmp/pages/
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v27.js BUILD_V27_NPC_FATES.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish final verified V2.7 ${RELEASE_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+      - name: Public terminal verification
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          EXPECT_GAME="$(node -p "require('./BUILD_V27_NPC_FATES.json').source_sha256")"
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}?v=2701&x=${RELEASE_SHA}-${i}" -o /tmp/public-index.html || ok=0
+            curl -fsSL "${BASE}app.js?v=2701&x=${RELEASE_SHA}-${i}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}src/game-v27.js?v=2701&x=${RELEASE_SHA}-${i}" -o /tmp/public-game.js || ok=0
+            curl -fsSL "${BASE}sw.js?v=2701&x=${RELEASE_SHA}-${i}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${RELEASE_SHA}-${i}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon192.png || ok=0
+            if [ "$ok" = 1 ] && grep -q 'V2.7' /tmp/public-index.html && grep -q 'NPC命运网络正式验收加载器' /tmp/public-app.js && grep -q 'src/game-v27.js?v=2701' /tmp/public-app.js && grep -q "const VERSION='2.7.0'" /tmp/public-game.js && [ "$(sha256sum /tmp/public-game.js | awk '{print $1}')" = "$EXPECT_GAME" ]; then break; fi
+            if [ "$i" = 60 ]; then echo 'final V2.7 public assets did not converge' >&2; exit 1; fi
+            sleep 2
+          done
+          node --check /tmp/public-app.js
+          node --check /tmp/public-game.js
+          node --check /tmp/public-sw.js
+          INDEX_PATH=/tmp/public-index.html GAME_PATH=/tmp/public-game.js node tests/regression-v27.mjs
+          node - <<'JS'
+          const fs=require('fs');const m=JSON.parse(fs.readFileSync('/tmp/public-manifest.json','utf8'));if(!['standalone','fullscreen'].includes(m.display))throw new Error('manifest display is not standalone/fullscreen');
+          JS
+          test "$(sha256sum /tmp/public-icon512.png | awk '{print $1}')" = "$EXPECT512"
+          test "$(sha256sum /tmp/public-icon192.png | awk '{print $1}')" = "$EXPECT192"
+      - name: Record clean V2.7 public PASS on gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          SHA="$(node -p "require('./BUILD_V27_NPC_FATES.json').source_sha256")"
+          node - "$RELEASE_SHA" "$SHA" <<'JS' >/tmp/v27-final-status.json
+          const [release,sha]=process.argv.slice(2);const s={status:'PASS',game_version:'2.7.0',build:'2701',milestone:'npc-fate-network',verified_commit:release,source_sha256:sha,realm_count:26,location_count:12,route_count:20,save_schema_version:24,stage:'public-pass',checks:['V2.6 public baseline PASS','PR21 validation PASS and closed unmerged','post-validation V2.7 runtime commit','dynamic NPC age injury and lifespan death','persistent NPC to NPC relations','dangerous-region independent adventures','NPC secret realm participation','NPC faction war participation','friend battle assistance','persistent memorial records','V2.6 system regression','schema 23 to 24 migration','future-save overwrite guard','public asset HTTP 200','public source hash equality','public headless regression','standalone manifest','V6 icon hash regression']};process.stdout.write(JSON.stringify(s)+'\n');
+          JS
+          cd /tmp/pages
+          cp /tmp/v27-final-status.json PUBLIC_V27_STATUS.json
+          git add PUBLIC_V27_STATUS.json
+          git commit -m 'chore: record clean V2.7 public PASS [skip ci]'
+          git push origin HEAD:gh-pages
+      - name: Verify clean public PASS visibility
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          URL='https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V27_STATUS.json'
+          for i in $(seq 1 60); do
+            if curl -fsSL "${URL}?x=${RELEASE_SHA}-${i}" -o /tmp/public-v27-final-status.json && node - "$RELEASE_SHA" <<'JS'
+          const fs=require('fs'),release=process.argv[2],s=JSON.parse(fs.readFileSync('/tmp/public-v27-final-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.verified_commit!==release||s.build!=='2701'||s.save_schema_version!==24||!s.checks.includes('PR21 validation PASS and closed unmerged'))process.exit(1);
+          JS
+            then exit 0; fi
+            sleep 2
+          done
+          echo 'clean PUBLIC_V27_STATUS did not become visible' >&2
+          exit 1
+      - name: Sync clean V2.7 PASS to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          cp /tmp/v27-final-status.json PUBLIC_V27_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V27_STATUS.json
+          git commit -m 'chore: sync clean verified V2.7 public PASS to main [skip ci]'
+          git push origin main

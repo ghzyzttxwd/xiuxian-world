@@ -1,0 +1,122 @@
+name: Phase8 R8 Empty Random Pool Fix
+
+on:
+  push:
+    branches: ["phase8-r8-empty-pool-fix"]
+    paths: ["PHASE8_R8_VALIDATE.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-phase8-r8-empty-pool-fix
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase8-r8-empty-pool-fix
+          fetch-depth: 0
+
+      - name: Patch empty eligible enemy pool semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = 'd933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8'
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/game-v39.js');s=p.read_text()
+          old="function randomExploreEnemyEligible(e){const pr=state.player.realmIndex,er=e?.realm||0;return majorRealmStage(er)<=majorRealmStage(pr)&&er<=pr+2}\nfunction weightedEnemy(){const here=ENEMIES.filter(e=>!e.areas||e.areas.includes(state.player.location)),eligible=here.filter(randomExploreEnemyEligible),pool=eligible.length?eligible:here.slice().sort((a,b)=>(a.realm||0)-(b.realm||0)).slice(0,1);const rows=pool.map(e=>({e,w:e.weight/(1+Math.abs(e.realm-state.player.realmIndex)*.65)}));let n=rand()*rows.reduce((a,x)=>a+x.w,0);for(const x of rows){n-=x.w;if(n<=0)return x.e}return rows[0]?.e||ENEMIES[0]}"
+          new="function randomExploreEnemyEligible(e){const pr=state.player.realmIndex,er=e?.realm||0;return majorRealmStage(er)<=majorRealmStage(pr)&&er<=pr+2}\nfunction weightedEnemy(){const here=ENEMIES.filter(e=>!e.areas||e.areas.includes(state.player.location)),pool=here.filter(randomExploreEnemyEligible);if(!pool.length)return null;const rows=pool.map(e=>({e,w:e.weight/(1+Math.abs(e.realm-state.player.realmIndex)*.65)}));let n=rand()*rows.reduce((a,x)=>a+x.w,0);for(const x of rows){n-=x.w;if(n<=0)return x.e}return rows[0]?.e||null}"
+          if old not in s: raise SystemExit('R5 weightedEnemy baseline not found')
+          s=s.replace(old,new,1)
+          old2="if(x<danger){startCombat(weightedEnemy());return}"
+          new2="if(x<danger){const enemy=weightedEnemy();if(enemy){startCombat(enemy);return}addPersonal(`你在${state.player.location}察觉到远超当前层次的危险气息，没有贸然靠近。`);save();render();showResult('远避强敌','你只在远处察觉到不宜招惹的气息，本次探索没有发生战斗。');return}"
+          if old2 not in s: raise SystemExit('explore combat branch baseline not found')
+          s=s.replace(old2,new2,1)
+          anchor='remainingLifespanYears,cultivationGainForDays,retreatSevenDays,randomExploreEnemyEligible,routeInfo:'
+          if anchor not in s: raise SystemExit('test api export anchor missing')
+          s=s.replace(anchor,'remainingLifespanYears,cultivationGainForDays,retreatSevenDays,randomExploreEnemyEligible,weightedEnemy,routeInfo:',1)
+          p.write_text(s)
+
+          a=Path('app.js');t=a.read_text().replace('build 3902','build 3903').replace("build:'3902'","build:'3903'").replace('src/game-v39.js?v=3902','src/game-v39.js?v=3903');a.write_text(t)
+          i=Path('index.html');t=i.read_text().replace('app.js?v=3902','app.js?v=3903');i.write_text(t)
+          sw=Path('sw.js');t=sw.read_text().replace('taixuan-v3.9.0-playable-ui-3920-phase8-r5','taixuan-v3.9.0-playable-ui-3920-phase8-r8').replace('src/game-v39.js?v=3902','src/game-v39.js?v=3903').replace('app.js?v=3902','app.js?v=3903');sw.write_text(t)
+          PY
+          node --check src/game-v39.js
+          node --check app.js
+          grep -q 'if(!pool.length)return null' src/game-v39.js
+          grep -q "showResult('远避强敌'" src/game-v39.js
+          grep -q "build:'3903'" app.js
+          grep -q 'app.js?v=3903' index.html
+          grep -q 'phase8-r8' sw.js
+
+      - name: Verify empty pool never resurrects over-tier enemy
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');
+          const d=new JSDOM(html,{url:'https://r8.test/',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;
+          w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.console=console;
+          w.eval(fs.readFileSync('src/game-v39.js','utf8'));const a=w.__TAIXUAN_TEST__;a.newGame('R8验收');
+          a.v39SetPlayerForTest({realmIndex:5,location:'青云山'});
+          if(a.randomExploreEnemyEligible({realm:12})!==false)throw Error('realm gate regressed');
+          if(a.weightedEnemy()!==null)throw Error('empty eligible pool must return null');
+          a.v39SetPlayerForTest({realmIndex:10,location:'青云山'});
+          const e=a.weightedEnemy();if(!e)throw Error('Foundation Qingyun pool should contain eligible enemy');
+          if((e.realm||0)>12)throw Error('unexpected over-tier Foundation random enemy '+JSON.stringify(e));
+          a.v39SetPlayerForTest({realmIndex:5,location:'青云山'});a.startCombat('青云试剑傀');
+          if(a.getCombat()?.enemy?.name!=='青云试剑傀')throw Error('explicit/scripted puppet combat was removed');
+          if(a.getState().saveSchemaVersion!==36)throw Error('schema changed');
+          console.log('PHASE8_R8_EMPTY_POOL_OK');process.exit(0)
+          NODE
+
+      - name: Re-run old death seed 9206 beyond prior death point
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin phase8-death-diagnostic
+          git show origin/phase8-death-diagnostic:tests/phase8-death-diagnostic.mjs > tests-phase8-r8-seed9206.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests-phase8-r8-seed9206.mjs');s=p.read_text()
+          s=s.replace('for(;steps<800;steps++)','for(;steps<360;steps++)',1)
+          s=s.replace("const results=[run(9202,balanced),run(9206,resource)];fs.writeFileSync('PHASE8_DEATH_DIAGNOSTIC.json',JSON.stringify({phase:'8-death-diagnostic',gameplay:'3.9.0',schema:36,results},null,2)+'\\n');console.log('DEATH_DIAG',JSON.stringify(results));",
+                      "const results=[run(9206,resource)];fs.writeFileSync('PHASE8_R8_SEED9206.json',JSON.stringify({phase:'8-round8-seed9206',gameplay:'3.9.0',coreBuild:3903,schema:36,results},null,2)+'\\n');console.log('R8_SEED9206',JSON.stringify(results));")
+          p.write_text(s)
+          PY
+          node tests-phase8-r8-seed9206.mjs
+          node - <<'NODE'
+          const x=require('./PHASE8_R8_SEED9206.json'),r=x.results[0];
+          if(r.deathContext?.enemy==='青云试剑傀')throw Error('R8 still killed seed9206 with random puppet');
+          if(r.dead&&r.days<=297)throw Error('seed9206 still dies no later than old R7 point '+JSON.stringify(r));
+          console.log('R8_9206_PRIOR_DEATH_REMOVED',JSON.stringify(r));
+          NODE
+
+      - name: Run V2.9 through V3.9 regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          for v in 29 30 31 32 33 34 35 36 37 38 39;do node tests/regression-v${v}.mjs;done
+
+      - name: Commit validated R8 hotfix to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          NEW_SHA="$(sha256sum src/game-v39.js|awk '{print $1}')"
+          GITHUB_SHA="$GITHUB_SHA" NEW_SHA="$NEW_SHA" node - <<'NODE'
+          const fs=require('fs');const seed=require('./PHASE8_R8_SEED9206.json').results[0];
+          const x={status:'PASS',phase:'8-round8',hotfix:'empty-eligible-random-enemy-pool-means-no-combat',core_build:3903,source_sha256:process.env.NEW_SHA,previous_source_sha256:'d933b47081adfea5e1712a95592a7b5ad0b41f4b4404d8671bb81f488e5e42e8',save_schema_version:36,rules:{maxRandomMinorGap:2,crossMajorRealmRandomEncounter:false,emptyEligiblePool:'no-combat',identityOfLockedEnemyHidden:true,explicitBossAndScriptedCombatUnchanged:true},evidence:{r7:{enemy:'青云试剑傀',enemyRealm:12,playerRealms:[5,7,6]},seed9206AfterFix:{dead:seed.dead,days:seed.days,finalRealm:seed.finalRealm,deathEnemy:seed.deathContext?.enemy||null}}};fs.writeFileSync('PHASE8_R8_VALIDATION.json',JSON.stringify(x,null,2)+'\n');
+          NODE
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v39.js app.js index.html sw.js PHASE8_R8_SEED9206.json PHASE8_R8_VALIDATION.json
+          git commit -m 'fix: never resurrect over-tier enemy from empty random pool [skip ci]'
+          git push origin HEAD:phase8-r8-empty-pool-fix

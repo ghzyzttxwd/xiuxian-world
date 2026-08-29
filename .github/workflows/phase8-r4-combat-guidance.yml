@@ -1,0 +1,75 @@
+name: Phase8 R4 Combat Guidance
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["UI_PHASE8_R4.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-phase8-r4-combat-guidance
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Validate QoL V4 combat advice
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = '99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37'
+          grep -q 'TAIXUAN_PHASE8_QOL_V4' ui-phase8-qol.js
+          grep -q 'TAIXUAN_PHASE8_QOL_V2' ui-phase8-qol.css
+          grep -q 'ui-phase8-qol.js?v=4' app.js
+          grep -q 'ui-phase8-qol.css?v=2' app.js
+          grep -q 'phase8-r4' sw.js
+          node --check ui-phase8-qol.js
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const h=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');
+          const d=new JSDOM(h,{url:'https://test/',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;
+          w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.Math.random=()=>.99;
+          w.eval(fs.readFileSync('src/game-v39.js','utf8'));const a=w.__TAIXUAN_TEST__;a.newGame('战斗提示验收');
+          w.eval(fs.readFileSync('ui-phase8-qol.js','utf8'));const q=w.__TAIXUAN_PHASE8__;if(!q.mount())throw Error('mount');
+          if(!q.guideText().includes('踏入炼气'))throw Error('r3 guidance lost');
+          a.v39SetPlayerForTest({realmIndex:4});if(q.batchDaysFor()!==30)throw Error('adaptive batch lost');
+          a.newGame('高危验收');a.v39SetPlayerForTest({realmIndex:0});a.startCombat('血刀门探子');let advice=q.refreshCombatAdvice();
+          if(advice?.level!=='severe'||!w.document.getElementById('phase8CombatAdvice')?.textContent.includes('极高风险'))throw Error('severe advice missing '+JSON.stringify(advice));
+          if(!w.document.querySelector('[data-combat="flee"]')?.classList.contains('phase8-flee-recommended'))throw Error('flee highlight missing');
+          a.closeModal();a.newGame('同境界验收');a.v39SetPlayerForTest({realmIndex:2});a.startCombat('血刀门探子');advice=q.refreshCombatAdvice();
+          if(advice?.level!=='normal')throw Error('equal realm false warning '+JSON.stringify(advice));
+          if(w.document.querySelector('[data-combat="flee"]')?.classList.contains('phase8-flee-recommended'))throw Error('normal fight flee falsely highlighted');
+          console.log('PHASE8_R4_COMBAT_GUIDANCE_OK');process.exit(0)
+          NODE
+      - name: Full V2.9 through V3.9 regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          for v in 29 30 31 32 33 34 35 36 37 38 39;do node tests/regression-v${v}.mjs;done
+      - name: Publish and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages;rm -rf /tmp/p8r4;git worktree add /tmp/p8r4 origin/gh-pages;mkdir -p /tmp/p8r4/src
+          cp index.html style.css ui-v3920.css ui-v3920.js ui-shop-v1.css ui-shop-v1.js ui-phase8-qol.css ui-phase8-qol.js app.js sw.js /tmp/p8r4/;cp src/game-v39.js /tmp/p8r4/src/
+          cd /tmp/p8r4;git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add .;if ! git diff --cached --quiet;then git commit -m "feat: publish phase8 r4 combat guidance ${GITHUB_SHA} [skip ci]";git push origin HEAD:gh-pages;fi
+          cd "$GITHUB_WORKSPACE";ok=0;for i in $(seq 1 60);do q="p8r4-${GITHUB_SHA}-${i}";curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/ui-phase8-qol.js?${q}" -o /tmp/q.js||true;curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/ui-phase8-qol.css?${q}" -o /tmp/q.css||true;curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/src/game-v39.js?${q}" -o /tmp/g.js||true;if grep -q 'TAIXUAN_PHASE8_QOL_V4' /tmp/q.js 2>/dev/null && grep -q 'phase8-combat-advice' /tmp/q.css 2>/dev/null && [ "$(sha256sum /tmp/g.js 2>/dev/null|awk '{print $1}')" = '99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37' ];then ok=1;break;fi;sleep 5;done;test "$ok" -eq 1
+      - name: Record PASS and sync main
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/p8r4
+          GITHUB_SHA="$GITHUB_SHA" node - <<'NODE'
+          const fs=require('fs');fs.writeFileSync('PUBLIC_UI_STATUS.json',JSON.stringify({status:'PASS',ui_version:'playable-v3920-phase8-r4',gameplay_version:'3.9.0',verified_commit:process.env.GITHUB_SHA,source_sha256:'99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37',save_schema_version:36,balance:{phase:8,round:4,mode:'qol-first',batchCultivationDaysByRealm:{mortalThroughQi3:7,qi4Plus:30},coreCurveChanged:false},guidance:{realmAware:true,progressiveDisclosure:true},combatGuidance:{enabled:true,signals:['realm-difference','battle-hp-ratio'],levels:['normal','high','severe'],fleeButtonHighlightOnRisk:true,changesCombatMath:false},monetization:{mode:'sandbox',real_payment:false},checks:['combat advice matrix','adaptive batch retained','realm guidance retained','V2.9-V3.9 regression','public HTTP','frozen core SHA']},null,2)+'\n')
+          NODE
+          git add PUBLIC_UI_STATUS.json;git commit -m "chore: phase8 r4 PASS ${GITHUB_SHA} [skip ci]";git push origin HEAD:gh-pages
+          cd "$GITHUB_WORKSPACE";seen=0;for i in $(seq 1 60);do if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_UI_STATUS.json?r4=${GITHUB_SHA}-${i}" -o /tmp/s.json && GITHUB_SHA="$GITHUB_SHA" node -e "const s=require('/tmp/s.json');if(s.status!=='PASS'||s.ui_version!=='playable-v3920-phase8-r4'||s.verified_commit!==process.env.GITHUB_SHA||s.combatGuidance?.changesCombatMath!==false)process.exit(1)";then seen=1;break;fi;sleep 5;done;test "$seen" -eq 1
+          git fetch origin main;git checkout -B main origin/main;cp /tmp/p8r4/PUBLIC_UI_STATUS.json PUBLIC_UI_STATUS.json;git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add PUBLIC_UI_STATUS.json;if ! git diff --cached --quiet;then git commit -m "chore: sync phase8 r4 PASS ${GITHUB_SHA} [skip ci]";git push origin HEAD:main;fi

@@ -1,0 +1,304 @@
+name: V1.5 regional world validation and release
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V15_WORLD.trigger"
+      - "tools/build-v15-world.cjs"
+      - "tests/regression-v15.mjs"
+      - ".github/workflows/v15-world.yml"
+  push:
+    branches: ["main"]
+    paths: ["V15_WORLD.trigger"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v15-world-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v15:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify V1.4 public engineering baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const s=require('./PUBLIC_V14_STATUS.json');
+          if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='1402'||s.engineering_version!=='1.4.1'||s.save_schema_version!==13) throw new Error('V1.4.1 build 1402 baseline is not verified');
+          JS
+      - name: Build V1.5 regional world source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v15-world.cjs
+          node --check src/game-v15.js
+          node - <<'JS'
+          const b=require('./BUILD_V15_WORLD.json');
+          if(b.status!=='PASS'||b.gameplay_version!=='1.5.0'||b.build!=='1501'||b.location_count!==12||b.save_schema_version!==13) throw new Error('V1.5 build report mismatch');
+          JS
+          grep -q "const VERSION='1.5.0'" src/game-v15.js
+          grep -q "苍梧郡城" src/game-v15.js
+          grep -q "玄阴禁地" src/game-v15.js
+          grep -q "npcMoveTarget" src/game-v15.js
+          grep -q "weightedSecretRealmTemplate" src/game-v15.js
+      - name: Run V1.5 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v15.mjs
+      - name: V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v15:
+    if: github.event_name == 'push'
+    needs: validate-v15
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Rebuild and regress exact release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v15-world.cjs
+          node --check src/game-v15.js
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v15.mjs
+      - name: Switch runtime shell to V1.5 build 1501
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > app.js <<'JS'
+          // 太玄界 V1.5 世界扩张加载器 · build 1501
+          (()=>{
+            const fail=(e)=>{
+              console.error(e);
+              document.body.innerHTML='<div style="max-width:680px;margin:40px auto;padding:20px;color:#fff;background:#171a16;border:1px solid #485042;border-radius:14px;font-family:system-ui;line-height:1.7"><h2>太玄界加载失败</h2><div>'+String(e)+'</div><p>请刷新页面；若仍失败，请把这段错误发给我。</p></div>';
+            };
+            try{
+              window.__TAIXUAN_BUILD__={engineeringVersion:'1.5.0',gameplayVersion:'1.5.0',build:'1501',milestone:'regional-world-expansion',source:'src/game-v15.js',legacyPatchChain:false};
+              document.title='太玄界 · 修仙大世界 V1.5';
+              const script=document.createElement('script');
+              script.src='./src/game-v15.js?v=1501';
+              script.async=false;
+              script.onload=()=>{if(!window.__TAIXUAN_TEST__)fail(new Error('V1.5 直接源码运行时未完成初始化'))};
+              script.onerror=()=>fail(new Error('V1.5 游戏核心加载失败：src/game-v15.js'));
+              document.head.appendChild(script);
+            }catch(e){fail(e)}
+          })();
+          JS
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html'); s=p.read_text(encoding='utf-8')
+          pairs=[
+            ('太玄界 · 修仙大世界 V1.4','太玄界 · 修仙大世界 V1.5'),
+            ('修仙大世界 · V1.4','修仙大世界 · V1.5'),
+            ('V1.4 · 工程重构 · V1.3玩法完整保留','V1.5 · 十二地域与区域生态'),
+            ('./app.js?v=1402','./app.js?v=1501'),
+            ('赶路会真实消耗时间；大事件、宗门大战与短暂秘境都不会因为你在路上而暂停。','十二片地域由道路相连；危险、特产、势力、敌人与秘境活跃度都会随地区变化，赶路仍会真实推进世界时间。'),
+          ]
+          for old,new in pairs:
+            if old not in s: raise SystemExit(f'index anchor missing: {old}')
+            s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+          cat > sw.js <<'JS'
+          const CACHE='taixuan-v1.5.0-regional-world-1501';
+          const CORE=['./','./index.html?v=1501','./style.css','./app.js?v=1501','./src/game-v15.js?v=1501','./manifest-v6.webmanifest?v=6','./icon-v6-192.png?v=6','./icon-v6-512.png?v=6'];
+          self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+          self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+          self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(caches.match(event.request).then(hit=>hit||fetch(event.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return res}).catch(()=>caches.match('./index.html?v=1501'))));});
+          JS
+          cat > README.md <<'MD'
+          # 太玄界 · 修仙大世界
+
+          当前正式版本：**V1.5.0 · 十二地域与区域生态（build 1501）**
+
+          ## 正式运行结构
+
+          ```text
+          index.html
+            -> app.js
+            -> src/game-v15.js
+          ```
+
+          浏览器继续使用直接可读源码，不恢复历史运行时补丁链或 `eval`。
+
+          ## V1.5 世界扩张
+
+          地图由原来的 5 个地点扩展为 12 个连通地域：青石村、青石镇、临江城、黑风岭、青云山、云梦泽、苍梧郡城、赤霞谷、落星矿脉、万兽山脉、古河遗迹、玄阴禁地。
+
+          区域差异已经进入真实玩法：
+
+          - 探索遇敌概率按地区危险度变化；
+          - 采集收益按地域灵草资源变化；
+          - 谋生收入按当地经济与资源变化；
+          - 新区域拥有专属敌人；
+          - NPC 初始活动范围受所属势力影响，并沿道路网络移动；
+          - 地域事件按本地特产结算不同收益；
+          - 动态秘境扩展到新区域，并按地域秘境活跃度加权；
+          - 高危险区域生成的秘境基础威胁更高；
+          - 地图页直接显示危险、势力、特产、秘境活跃度。
+
+          ## 存档兼容
+
+          V1.5 没有新增持久化字段，因此继续使用 `saveSchemaVersion = 13` 和 `xiuxian_world_v02`。V1.4.1 的 schema 2→13 迁移管线与未来版本存档保护完整保留。
+
+          ## 已有系统
+
+          战斗、宗门、坊市经济、炼丹、法器锻造、NPC 人情恩怨、主动破境、洞府闭关与药圃、身死传承与转世、动态秘境、宗门大战与势力演化均继续保留。
+
+          ## 工程与发布
+
+          - `main`：唯一开发源。
+          - `gh-pages`：公开部署产物。
+          - `tools/build-v15-world.cjs`：从已验证的 V1.4 直读源码生成 V1.5 世界扩张源码。
+          - `tests/regression-v15.mjs`：V1.5 地图/生态与既有系统回归。
+          - `.github/workflows/v15-world.yml`：PR 只验证；main trigger 才构建、发布、公网重新下载、运行回归并写 PASS。
+          - V6 App 图标继续做 SHA-256 回归，不修改。
+          MD
+          node --check app.js
+          node --check sw.js
+          grep -q "src/game-v15.js?v=1501" app.js
+          grep -q "src/game-v15.js?v=1501" sw.js
+          ! grep -q "bundle2" app.js
+          ! grep -q "v13-patch.js" app.js
+          ! grep -q "eval" app.js
+      - name: Regress after shell switch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v15.mjs
+      - name: Commit V1.5 source and shell to main
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v15.js BUILD_V15_WORLD.json app.js index.html sw.js README.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: V1.5 regional world expansion [skip ci]'
+            git push origin HEAD:main
+          fi
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Publish exact V1.5 assets to gh-pages
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp src/game-v15.js /tmp/pages/src/game-v15.js
+          cp BUILD_V15_WORLD.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png /tmp/pages/
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v15.js BUILD_V15_WORLD.json app.js index.html sw.js manifest-v6.webmanifest manifest.webmanifest style.css icon-v6-192.png icon-v6-512.png
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V1.5 regional world ${RELEASE_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+      - name: Public terminal verification
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT512='757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b'
+          EXPECT192='a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf'
+          for i in $(seq 1 60); do
+            ok=1
+            curl -fsSL "${BASE}?v=1501&x=${RELEASE_SHA}-${i}" -o /tmp/public-index.html || ok=0
+            curl -fsSL "${BASE}app.js?v=1501&x=${RELEASE_SHA}-${i}" -o /tmp/public-app.js || ok=0
+            curl -fsSL "${BASE}src/game-v15.js?v=1501&x=${RELEASE_SHA}-${i}" -o /tmp/public-game.js || ok=0
+            curl -fsSL "${BASE}sw.js?v=1501&x=${RELEASE_SHA}-${i}" -o /tmp/public-sw.js || ok=0
+            curl -fsSL "${BASE}manifest-v6.webmanifest?v=6&x=${RELEASE_SHA}-${i}" -o /tmp/public-manifest.json || ok=0
+            curl -fsSL "${BASE}icon-v6-512.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon512.png || ok=0
+            curl -fsSL "${BASE}icon-v6-192.png?x=${RELEASE_SHA}-${i}" -o /tmp/public-icon192.png || ok=0
+            if [ "$ok" -eq 1 ] \
+              && grep -q 'V1.5' /tmp/public-index.html \
+              && grep -q 'src/game-v15.js?v=1501' /tmp/public-app.js \
+              && grep -q "const VERSION='1.5.0'" /tmp/public-game.js \
+              && grep -q '玄阴禁地' /tmp/public-game.js \
+              && grep -q 'weightedSecretRealmTemplate' /tmp/public-game.js \
+              && grep -q 'src/game-v15.js?v=1501' /tmp/public-sw.js \
+              && ! grep -q 'bundle2' /tmp/public-app.js \
+              && ! grep -q 'eval' /tmp/public-app.js \
+              && [ "$(sha256sum /tmp/public-icon512.png | awk '{print $1}')" = "$EXPECT512" ] \
+              && [ "$(sha256sum /tmp/public-icon192.png | awk '{print $1}')" = "$EXPECT192" ]; then break; fi
+            test "$i" -lt 60 || { echo 'public V1.5 assets did not converge'; exit 1; }
+            sleep 5
+          done
+          node --check /tmp/public-app.js
+          node --check /tmp/public-game.js
+          node --check /tmp/public-sw.js
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/public-manifest.json'))
+          assert m['display']=='standalone'
+          assert m['short_name']=='太玄界'
+          assert {x['sizes'] for x in m['icons']}=={'192x192','512x512'}
+          assert all(x['purpose']=='any' for x in m['icons'])
+          PY
+          INDEX_PATH=/tmp/public-index.html GAME_PATH=/tmp/public-game.js node tests/regression-v15.mjs
+          LOCAL_SHA=$(node -p "require('./BUILD_V15_WORLD.json').source_sha256")
+          PUBLIC_SHA=$(sha256sum /tmp/public-game.js | awk '{print $1}')
+          test "$LOCAL_SHA" = "$PUBLIC_SHA"
+      - name: Record and serve V1.5 public PASS
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          SOURCE_SHA=$(node -p "require('./BUILD_V15_WORLD.json').source_sha256")
+          cd /tmp/pages
+          cat > PUBLIC_V15_STATUS.json <<JSON
+          {"status":"PASS","game_version":"1.5.0","build":"1501","milestone":"regional-world-expansion","verified_commit":"${RELEASE_SHA}","source_sha256":"${SOURCE_SHA}","location_count":12,"save_schema_version":13,"stage":"public-pass","checks":["V1.4.1 public baseline PASS","V1.5 source build","12 connected regions","regional danger/resources/work","regional enemies","faction-aware NPC ecology","regional events","weighted regional secret realms","existing systems regression","current-schema save upgrade","future-save overwrite guard","public asset HTTP 200","public source hash equality","public headless regression","standalone manifest","V6 icon hash regression"]}
+          JSON
+          git add PUBLIC_V15_STATUS.json
+          git commit -m 'chore: record V1.5 public PASS [skip ci]'
+          git push origin HEAD:gh-pages
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V15_STATUS.json?x=${RELEASE_SHA}-${i}" -o /tmp/public-v15-status.json \
+              && RELEASE_SHA="$RELEASE_SHA" node -e "const s=require('/tmp/public-v15-status.json');if(s.status!=='PASS'||s.stage!=='public-pass'||s.build!=='1501'||s.location_count!==12||s.verified_commit!==process.env.RELEASE_SHA)process.exit(1)"; then break; fi
+            test "$i" -lt 60 || { echo 'PUBLIC_V15_STATUS not served'; exit 1; }
+            sleep 5
+          done
+      - name: Sync verified V1.5 PASS back to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          cp /tmp/public-v15-status.json PUBLIC_V15_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V15_STATUS.json
+          git commit -m 'chore: sync verified V1.5 public PASS to main [skip ci]'
+          git push origin HEAD:main

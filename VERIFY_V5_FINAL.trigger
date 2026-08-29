@@ -1,2 +1,0 @@
-verify cache-safe exact approved TaiXuan V5
-expected_512_sha256=73f85c80f62899d37b5d5848a6679c74de3e88b6d1cd433b7621f4910e171600

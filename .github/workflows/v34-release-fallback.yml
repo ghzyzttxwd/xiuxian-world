@@ -1,0 +1,224 @@
+name: V3.4 release fallback
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V34_RELEASE_FINAL.trigger"
+      - ".github/workflows/v34-release-fallback.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-v34-release-fallback-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate exact V3.4 release machinery
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v34-combat-builds.cjs
+          node --check src/game-v34.js
+          test "$(sha256sum src/game-v34.js | awk '{print $1}')" = "d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec"
+          node -e "const b=require('./BUILD_V34_COMBAT_BUILDS.json');if(b.status!=='PASS'||b.gameplay_version!=='3.4.0'||b.build!=='3401'||b.save_schema_version!==31||b.content_registry_version!==5||b.counts.enemies!==48||b.counts.new_enemies!==19||b.counts.mechanic_enemies!==19||b.counts.mechanics!==19||b.counts.builds!==8||b.counts.sword_builds!==2||b.counts.flame_builds!==2||b.counts.body_builds!==2||b.counts.spirit_builds!==2)throw new Error('V3.4 build mismatch')"
+          node --check tools/release-v34-assets.cjs
+          bash -n tools/verify-v34-public.sh
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tools/release-v34-assets.cjs
+          grep -q "gameplayVersion:'3.4.0'" app.js
+          grep -q 'src/game-v34.js?v=3401' app.js
+          grep -q 'V3.4 · 战斗与四大道途 Build' index.html
+          grep -q 'taixuan-v3.4.0-combat-dao-builds-3401' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+  release-v34-final:
+    if: github.head_ref == 'v34-release-final-run'
+    needs: validate-fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - name: Checkout exact main release base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Reconfirm immutable main base and build runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$BASE_SHA"
+          node tools/build-v34-combat-builds.cjs
+          node --check src/game-v34.js
+          test "$(sha256sum src/game-v34.js | awk '{print $1}')" = "d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec"
+          node tools/release-v34-assets.cjs
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+
+      - name: Commit exact V3.4 runtime to main
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B main "$BASE_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game-v34.js BUILD_V34_COMBAT_BUILDS.json app.js index.html sw.js
+          git commit -m "feat: V3.4 combat and dao builds [skip ci]"
+          git push origin HEAD:main
+          echo "runtime_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact V3.4 runtime to gh-pages
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages
+          git worktree add /tmp/pages origin/gh-pages
+          mkdir -p /tmp/pages/src
+          cp index.html app.js sw.js BUILD_V34_COMBAT_BUILDS.json /tmp/pages/
+          cp src/game-v34.js /tmp/pages/src/game-v34.js
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html app.js sw.js BUILD_V34_COMBAT_BUILDS.json src/game-v34.js
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish V3.4 combat dao builds ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify actual GitHub Pages
+        id: public
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set +e
+          ATTEMPTS=36 bash tools/verify-v34-public.sh
+          rc=$?
+          set -e
+          public_ok=$(cat /tmp/V34_PUBLIC_OK 2>/dev/null || echo false)
+          echo "public_ok=$public_ok" >> "$GITHUB_OUTPUT"
+          echo "verifier_rc=$rc"
+          cat /tmp/V34_PUBLIC_DIAGNOSTIC.txt || true
+          exit 0
+
+      - name: Persist V3.4 diagnostic on failure
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cp /tmp/V34_PUBLIC_DIAGNOSTIC.txt /tmp/pages/PUBLIC_V34_DIAGNOSTIC.txt
+          cd /tmp/pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V34_DIAGNOSTIC.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record V3.4 public diagnostic ${RUNTIME_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Stop failed public release
+        if: steps.public.outputs.public_ok != 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Record V3.4 public PASS on gh-pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          cd /tmp/pages
+          git rm -f --ignore-unmatch PUBLIC_V34_DIAGNOSTIC.txt >/dev/null 2>&1 || true
+          RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s={status:'PASS',game_version:'3.4.0',build:'3401',milestone:'combat-dao-builds',verified_commit:process.env.RUNTIME_SHA,source_sha256:'d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec',save_schema_version:31,content_registry_version:5,enemy_count:48,new_enemy_count:19,mechanic_enemy_count:19,mechanic_count:19,build_count:8,builds_per_path:{sword:2,flame:2,body:2,spirit:2},stage:'public-pass',transport:'same-repo-pr-fallback',checks:['PR43 V3.4 validation PASS and closed unmerged','fallback workflow validation PASS and closed unmerged','schema30 to schema31 migration','48 total enemies','19 new mechanic enemies','eight builds and two per dao path','build auto recognition','build combat bonuses and tradeoffs','enemy armor phase reflect regeneration qi drain dot cooldown tax control resistance and execute mechanics','legacy dangling onGearCombatWin hook safely resolved','V3.3 alchemy material loop preserved','V3.2 artifacts preserved','V3.1 skills preserved','actual GitHub Pages HTTP 200','public V3.4 markers','public source SHA equality','public V3.4 headless regression','standalone manifest','V6 icon hash regression']};fs.writeFileSync('PUBLIC_V34_STATUS.json',JSON.stringify(s)+'\n')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V34_STATUS.json
+          git commit -m "chore: record V3.4 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:gh-pages
+
+      - name: Verify PASS is actually reachable from Pages
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_V34_STATUS.json?verify=${RUNTIME_SHA}-${i}" -o /tmp/live-v34-status.json; then
+              if RUNTIME_SHA="$RUNTIME_SHA" node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('/tmp/live-v34-status.json','utf8'));if(s.status!=='PASS'||s.stage!=='public-pass'||s.game_version!=='3.4.0'||s.build!=='3401'||s.save_schema_version!==31||s.verified_commit!==process.env.RUNTIME_SHA)process.exit(1)" && cmp -s /tmp/live-v34-status.json /tmp/pages/PUBLIC_V34_STATUS.json; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" = 1
+
+      - name: Sync exact PASS to main
+        if: steps.public.outputs.public_ok == 'true'
+        id: final_main
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$RUNTIME_SHA"
+          git checkout -B main origin/main
+          cp /tmp/pages/PUBLIC_V34_STATUS.json PUBLIC_V34_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_V34_STATUS.json
+          git commit -m "chore: record V3.4 public PASS ${RUNTIME_SHA} [skip ci]"
+          git push origin HEAD:main
+          echo "final_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Final V3.4 delta guard
+        if: steps.public.outputs.public_ok == 'true'
+        shell: bash
+        env:
+          RUNTIME_SHA: ${{ steps.runtime.outputs.runtime_sha }}
+          FINAL_SHA: ${{ steps.final_main.outputs.final_sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$RUNTIME_SHA" "$FINAL_SHA")
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'PUBLIC_V34_STATUS.json'
+          cmp -s PUBLIC_V34_STATUS.json /tmp/pages/PUBLIC_V34_STATUS.json
+          echo "V34_PUBLIC_TERMINAL_PASS $RUNTIME_SHA -> $FINAL_SHA"

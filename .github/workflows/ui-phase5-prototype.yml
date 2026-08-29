@@ -1,0 +1,111 @@
+name: UI Phase 5 Prototype
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "UI_PHASE5_RELEASE.trigger"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-ui-phase5-prototype
+  cancel-in-progress: false
+
+jobs:
+  publish-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate prototype files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ui-prototype-v1.html
+          test -f ui-prototype-v1.css
+          grep -q 'TAIXUAN_UI_PHASE5_PROTO_V1' ui-prototype-v1.html
+          grep -q 'TAIXUAN_UI_PHASE5_PROTO_V1' ui-prototype-v1.css
+          for label in '突破 · 筑基' '遭遇战' '见闻' '青云宗' '洞府 · 炼制'; do
+            grep -q "$label" ui-prototype-v1.html
+          done
+          for view in breakthrough battle events sect craft; do
+            grep -q "data-view=\"$view\"" ui-prototype-v1.html
+          done
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+          echo 'PHASE5_PROTO_LOCAL_OK'
+
+      - name: Publish prototype to gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages-phase5
+          git worktree add /tmp/pages-phase5 origin/gh-pages
+          cp ui-prototype-v1.html ui-prototype-v1.css /tmp/pages-phase5/
+          cd /tmp/pages-phase5
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ui-prototype-v1.html ui-prototype-v1.css
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish phase 5 UI prototype ${GITHUB_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify public prototype
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          success=0
+          for i in $(seq 1 48); do
+            bust="phase5-${GITHUB_SHA}-${i}"
+            ok=1
+            curl -fsSL "${BASE}ui-prototype-v1.html?${bust}" -o /tmp/live-phase5.html || ok=0
+            curl -fsSL "${BASE}ui-prototype-v1.css?${bust}" -o /tmp/live-phase5.css || ok=0
+            if [ "$ok" -eq 1 ] \
+              && grep -q 'TAIXUAN_UI_PHASE5_PROTO_V1' /tmp/live-phase5.html \
+              && grep -q 'TAIXUAN_UI_PHASE5_PROTO_V1' /tmp/live-phase5.css \
+              && grep -q '突破 · 筑基' /tmp/live-phase5.html \
+              && grep -q '遭遇战' /tmp/live-phase5.html \
+              && grep -q '见闻' /tmp/live-phase5.html \
+              && grep -q '青云宗' /tmp/live-phase5.html \
+              && grep -q '洞府 · 炼制' /tmp/live-phase5.html; then
+              success=1
+              break
+            fi
+            sleep 5
+          done
+          test "$success" -eq 1
+          echo 'PUBLIC_PHASE5_PROTO_OK'
+
+      - name: Record prototype PASS
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/pages-phase5
+          GITHUB_SHA="$GITHUB_SHA" node - <<'NODE'
+          const fs=require('fs');
+          const s={
+            status:'PASS',
+            prototype:'ui-phase5-v1',
+            verified_commit:process.env.GITHUB_SHA,
+            gameplay_core:'v3.9.0-build3901-frozen',
+            source_sha256:'99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37',
+            reference_viewport:'420x933',
+            screens:['breakthrough','battle','events','sect','craft']
+          };
+          fs.writeFileSync('PUBLIC_UI_PHASE5_STATUS.json',JSON.stringify(s,null,2)+'\n');
+          NODE
+          git add PUBLIC_UI_PHASE5_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record phase 5 UI prototype PASS ${GITHUB_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi

@@ -1,0 +1,3 @@
+trigger final UI + shop v2 validation and publish
+rerun: reward-ui-sync
+rerun: ci-load-sync-helper

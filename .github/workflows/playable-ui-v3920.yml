@@ -1,0 +1,249 @@
+name: Playable UI V3.9.2
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "UI_PLAYABLE_V3920.trigger"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-playable-ui-v3920
+  cancel-in-progress: false
+
+jobs:
+  validate-publish-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate frozen core and V3.9.2 UI contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"
+          node --check app.js
+          node --check ui-v3920.js
+          node --check ui-shop-v1.js
+          node --check ui-phase8-qol.js
+          node --check src/game-v39.js
+          grep -q 'data-ui-shell="playable-v3920"' index.html
+          grep -q 'TAIXUAN_PLAYABLE_UI_V3920' ui-v3920.css
+          grep -q 'TAIXUAN_PLAYABLE_UI_V3920_PHASE6' ui-v3920.js
+          grep -q 'TAIXUAN_MONETIZATION_UI_V1' ui-shop-v1.js
+          grep -q 'TAIXUAN_MONETIZATION_UI_V1' ui-shop-v1.css
+          grep -q 'TAIXUAN_PHASE8_QOL_V1' ui-phase8-qol.js
+          grep -q 'TAIXUAN_PHASE8_QOL_V1' ui-phase8-qol.css
+          grep -q 'ui-shop-v1.js?v=1' app.js
+          grep -q 'ui-phase8-qol.js?v=1' app.js
+          grep -q 'ui-phase8-qol.css?v=1' app.js
+          grep -q 'taixuan-v3.9.0-playable-ui-3920-phase8' sw.js
+          grep -q 'src/game-v39.js?v=3901' app.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('index.html').read_text(encoding='utf-8')
+          required=['startScreen','nameInput','newGameBtn','continueBtn','installStartBtn','installStatus','gameApp','dateTop','installBtn','saveBtn','heroName','heroSub','realmName','cultivationText','cultivationBar','spiritStoneQuick','herbQuick','hpQuick','repQuick','diligenceQuick','insightQuick','urgentBox','breakthroughBox','legacyBox','homeLog','diligencePill','insightPill','insightCultivate','insightManual','insightSpell','characterStats','rootInfo','legacyInfo','legacyActions','sectInfo','sectActions','dwellingInfo','dwellingActions','alchemyInfo','alchemyActions','gearInfo','gearActions','manualList','spellList','mapList','mapScopeText','marketInfo','marketActions','eventBadge','majorEvents','worldLog','npcList','npcPager','inventorySummary','navBadge','modalWrap','modal']
+          missing=[]; dup=[]
+          for x in required:
+              n=len(re.findall(r'id=["\']'+re.escape(x)+r'["\']',html))
+              if n==0: missing.append(x)
+              if n>1: dup.append(x)
+          assert not missing, f'missing IDs: {missing}'
+          assert not dup, f'duplicate IDs: {dup}'
+          for action in ['cultivate','gather','work','explore','rumor','rest']:
+              assert f'data-action="{action}"' in html, action
+          for page in ['home','dwelling','map','relations','inventory','character','events']:
+              assert f'id="page-{page}"' in html, page
+              assert f'data-page="{page}"' in html, page
+          visible=['home','dwelling','map','relations','inventory']
+          for page in visible:
+              assert re.search(r'<button class="nav-btn(?: active)?" data-page="'+page+r'"',html), page
+          assert '修炼</span>' in html and '洞府</span>' in html and '天下</span>' in html and '人脉</span>' in html and '储物</span>' in html
+          print('UI_V3920_PHASE8_DOM_CONTRACT_OK')
+          PY
+
+      - name: Install smoke-test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+
+      - name: Run phase 8 batch cultivation smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const {JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');
+          const dom=new JSDOM(html,{url:'https://taixuan.test/',runScripts:'outside-only',pretendToBeVisual:true});
+          const w=dom.window;
+          w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.console=console;w.Math.random=()=>0.99;
+          w.eval(fs.readFileSync('src/game-v39.js','utf8'));
+          const api=w.__TAIXUAN_TEST__;if(!api)throw new Error('game api missing');
+          api.newGame('Phase8闭关验收');
+          w.eval(fs.readFileSync('ui-phase8-qol.js','utf8'));
+          if(!w.__TAIXUAN_PHASE8__)throw new Error('phase8 api missing');
+          if(!w.__TAIXUAN_PHASE8__.mount())throw new Error('batch cultivation button not mounted');
+          const btn=w.document.getElementById('phase8BatchCultivate');if(!btn)throw new Error('batch cultivation button missing');
+          const dayNo=s=>((s.time.year-1)*360+(s.time.month-1)*30+s.time.day);
+          const before=api.getState(),d0=dayNo(before),p0=Number(before.player.progress)||0;
+          w.__TAIXUAN_PHASE8__.batchCultivate();
+          const after=api.getState(),delta=dayNo(after)-d0,p1=Number(after.player.progress)||0;
+          if(delta<1||delta>7)throw new Error('batch cultivation day delta invalid: '+delta);
+          if(p1<=p0)throw new Error('batch cultivation did not increase progress');
+          if(after.saveSchemaVersion!==36)throw new Error('schema changed: '+after.saveSchemaVersion);
+          console.log('PHASE8_BATCH_CULTIVATION_SMOKE_OK',JSON.stringify({days:delta,progressBefore:p0,progressAfter:p1,schema:after.saveSchemaVersion}));
+          NODE
+
+      - name: Run sandbox monetization smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const {JSDOM}=require('jsdom');
+          const dom=new JSDOM('<!doctype html><html><body><div class="ui-currency"><b>仙玉</b><em>—</em></div></body></html>',{url:'https://taixuan.test/',runScripts:'outside-only'});
+          dom.window.eval(fs.readFileSync('ui-shop-v1.js','utf8'));
+          dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+          const api=dom.window.__TAIXUAN_SHOP__;if(!api)throw new Error('shop api missing');
+          api.open('jade');
+          const first=dom.window.document.querySelector('[data-recharge="jade-6"]');if(!first)throw new Error('recharge card missing');first.click();
+          const w=api.getWallet();
+          if(w.jade!==120||w.vipExp!==60||w.totalCny!==6)throw new Error('sandbox recharge accounting failed '+JSON.stringify(w));
+          console.log('SANDBOX_MONETIZATION_SMOKE_OK',JSON.stringify({jade:w.jade,vipExp:w.vipExp,totalCny:w.totalCny}));
+          NODE
+
+      - name: Run V2.9 through V3.9 gameplay regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          node tests/regression-v38.mjs
+          node tests/regression-v39.mjs
+
+      - name: Publish V3.9.2 UI to gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages
+          rm -rf /tmp/pages3920
+          git worktree add /tmp/pages3920 origin/gh-pages
+          mkdir -p /tmp/pages3920/src
+          cp index.html style.css ui-v3920.css ui-v3920.js ui-shop-v1.css ui-shop-v1.js ui-phase8-qol.css ui-phase8-qol.js app.js sw.js /tmp/pages3920/
+          cp src/game-v39.js /tmp/pages3920/src/game-v39.js
+          cd /tmp/pages3920
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html style.css ui-v3920.css ui-v3920.js ui-shop-v1.css ui-shop-v1.js ui-phase8-qol.css ui-phase8-qol.js app.js sw.js src/game-v39.js
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publish playable UI v3920 phase8 ${GITHUB_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify actual GitHub Pages terminal result
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://ghzyzttxwd.github.io/xiuxian-world/'
+          EXPECT_GAME='99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37'
+          success=0
+          for i in $(seq 1 60); do
+            bust="ui3920-phase8-${GITHUB_SHA}-${i}"
+            ok=1
+            curl -fsSL "${BASE}?${bust}" -o /tmp/live-index.html || ok=0
+            curl -fsSL "${BASE}ui-v3920.js?${bust}" -o /tmp/live-ui.js || ok=0
+            curl -fsSL "${BASE}ui-shop-v1.js?${bust}" -o /tmp/live-shop.js || ok=0
+            curl -fsSL "${BASE}ui-phase8-qol.css?${bust}" -o /tmp/live-qol.css || ok=0
+            curl -fsSL "${BASE}ui-phase8-qol.js?${bust}" -o /tmp/live-qol.js || ok=0
+            curl -fsSL "${BASE}sw.js?${bust}" -o /tmp/live-sw.js || ok=0
+            curl -fsSL "${BASE}app.js?${bust}" -o /tmp/live-app.js || ok=0
+            curl -fsSL "${BASE}src/game-v39.js?${bust}" -o /tmp/live-game.js || ok=0
+            if [ "$ok" -eq 1 ]; then
+              hgame=$(sha256sum /tmp/live-game.js | awk '{print $1}')
+              if [ "$hgame" = "$EXPECT_GAME" ] \
+                && grep -q 'TAIXUAN_PLAYABLE_UI_V3920_PHASE6' /tmp/live-ui.js \
+                && grep -q 'TAIXUAN_MONETIZATION_UI_V1' /tmp/live-shop.js \
+                && grep -q 'TAIXUAN_PHASE8_QOL_V1' /tmp/live-qol.css \
+                && grep -q 'TAIXUAN_PHASE8_QOL_V1' /tmp/live-qol.js \
+                && grep -q 'taixuan-v3.9.0-playable-ui-3920-phase8' /tmp/live-sw.js \
+                && grep -q 'ui-phase8-qol.js?v=1' /tmp/live-app.js; then
+                success=1
+                break
+              fi
+            fi
+            sleep 5
+          done
+          test "$success" -eq 1
+          echo 'PUBLIC_PLAYABLE_UI_V3920_PHASE8_HTTP_AND_HASH_OK'
+
+      - name: Record public PASS on gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/pages3920
+          GITHUB_SHA="$GITHUB_SHA" node - <<'NODE'
+          const fs=require('fs');
+          const s={
+            status:'PASS',ui_version:'playable-v3920-phase8',gameplay_version:'3.9.0',verified_commit:process.env.GITHUB_SHA,
+            source_sha256:'99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37',save_schema_version:36,
+            reference_device:'vivo X100',reference_viewport:'420x933',primary_navigation:['修炼','洞府','天下','人脉','储物'],
+            monetization:{mode:'sandbox',wallet:'localStorage-separate-from-game-save',features:['仙玉充值','月卡','成长令','VIP','每日领取'],real_payment:false},
+            balance:{phase:8,mode:'qol-first',baselineFinding:'early-game-click-burden',batchCultivationDays:7,stopsOn:['event','combat','full-progress','death'],coreCurveChanged:false,microAudit:{runs:3,qi1DaysRange:[22,32],day240TypicalRealm:'炼气四层',deaths:0}},
+            checks:['required DOM contract','phase8 batch cultivation smoke','sandbox monetization smoke','V2.9-V3.9 headless regression','V6 icon hashes unchanged','actual GitHub Pages HTTP 200','public phase8 markers','public V3.9 source SHA equality']
+          };
+          fs.writeFileSync('PUBLIC_UI_STATUS.json',JSON.stringify(s,null,2)+'\n');
+          NODE
+          git add PUBLIC_UI_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record playable UI phase8 PASS ${GITHUB_SHA} [skip ci]"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Verify public PASS file is reachable
+        shell: bash
+        run: |
+          set -euo pipefail
+          visible=0
+          for i in $(seq 1 60); do
+            if curl -fsSL "https://ghzyzttxwd.github.io/xiuxian-world/PUBLIC_UI_STATUS.json?verify-phase8=${GITHUB_SHA}-${i}" -o /tmp/live-ui-status.json; then
+              if GITHUB_SHA="$GITHUB_SHA" node -e "const s=require('/tmp/live-ui-status.json');if(s.status!=='PASS'||s.ui_version!=='playable-v3920-phase8'||s.verified_commit!==process.env.GITHUB_SHA||s.source_sha256!=='99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37'||s.balance?.batchCultivationDays!==7||s.balance?.coreCurveChanged!==false)process.exit(1)"; then visible=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$visible" -eq 1
+
+      - name: Sync public PASS to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          cp /tmp/pages3920/PUBLIC_UI_STATUS.json PUBLIC_UI_STATUS.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PUBLIC_UI_STATUS.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record playable UI phase8 PASS ${GITHUB_SHA} [skip ci]"
+            git push origin HEAD:main
+          fi

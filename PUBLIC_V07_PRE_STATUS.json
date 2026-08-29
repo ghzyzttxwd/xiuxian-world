@@ -1,1 +1,0 @@
-{"status":"PASS","game_version":"0.7.0","milestone":"gear-prerelease","stage":"gameplay-pass","checks":["V0.2->V0.3->V0.4->V0.5->V0.6->V0.7 chain","V0.7 syntax","weapon attack bonus","armor defense bonus","charm hp/qi bonus","gear forging consumes resources","beast material drop","legacy gear migration"]}

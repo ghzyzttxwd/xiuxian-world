@@ -1,0 +1,87 @@
+name: V3.6 refining void
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V36_REFINING_VOID.trigger"
+      - "content/v36-refining-void.cjs"
+      - "tools/v36-refining-runtime.txt"
+      - "tools/build-v36-refining-void.cjs"
+      - "tools/release-v36-assets.cjs"
+      - "tools/verify-v36-public.sh"
+      - "tests/regression-v36.mjs"
+      - ".github/workflows/v36-refining-void.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taixuan-v36-refining-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v36:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact V3.5 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v35.js | awk '{print $1}')" = "b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed"
+          node -e "const s=require('./PUBLIC_V35_STATUS.json');if(s.status!=='PASS'||s.game_version!=='3.5.0'||s.build!=='3501'||s.save_schema_version!==32||s.content_registry_version!==6||s.source_sha256!=='b533cd28b803c1da0823adb3c02e4cd85a54d804b744416d9f688a36c47260ed')throw new Error('V3.5 baseline mismatch')"
+      - name: Build deterministic frozen V3.6 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v36-refining-void.cjs
+          node --check src/game-v36.js
+          first=$(sha256sum src/game-v36.js | awk '{print $1}')
+          test "$first" = "9935e93df2418bd1ccfa1f87f3d9123312ce702ba3660e19b50d1938da24b39d"
+          node tools/build-v36-refining-void.cjs >/tmp/v36-build-second.log
+          second=$(sha256sum src/game-v36.js | awk '{print $1}')
+          test "$first" = "$second"
+          node -e "const b=require('./BUILD_V36_REFINING_VOID.json');if(b.status!=='PASS'||b.gameplay_version!=='3.6.0'||b.build!=='3601'||b.source_sha256!=='9935e93df2418bd1ccfa1f87f3d9123312ce702ba3660e19b50d1938da24b39d'||b.save_schema_version!==33||b.content_registry_version!==7||b.counts.realms!==30||b.counts.regions!==16||b.counts.routes!==26||b.counts.materials!==60||b.counts.recipes!==32||b.counts.manuals!==32||b.counts.spells!==72||b.counts.equipment!==68||b.counts.true_artifacts!==32||b.counts.enemies!==60||b.counts.auction_pool!==16)throw new Error('V3.6 report mismatch')"
+          grep -q "const VERSION='3.6.0'" src/game-v36.js
+          grep -q 'const SAVE_SCHEMA_VERSION=33' src/game-v36.js
+          grep -q 'realm-refining-perfect' src/game-v36.js
+          grep -q 'mat-v36-void-essence' src/game-v36.js
+          grep -q 'v36AttemptRefiningBreakthrough' src/game-v36.js
+      - name: Run V2.9 through V3.6 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+      - name: Validate V3.6 release assets and public verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/release-v36-assets.cjs
+          bash -n tools/verify-v36-public.sh
+          node tools/release-v36-assets.cjs
+          grep -q 'V3.6 · 炼虚与空间篇' index.html
+          grep -q 'src/game-v36.js?v=3601' app.js
+          grep -q "gameplayVersion:'3.6.0'" app.js
+          grep -q 'taixuan-v3.6.0-refining-void-space-3601' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          test "$(grep -o "EXPECT_GAME='[^']*'" tools/verify-v36-public.sh | cut -d\' -f2)" = "9935e93df2418bd1ccfa1f87f3d9123312ce702ba3660e19b50d1938da24b39d"
+      - name: Frozen V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"

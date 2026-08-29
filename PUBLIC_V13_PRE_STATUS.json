@@ -1,1 +1,0 @@
-{"status":"PASS","game_version":"1.3.0","milestone":"faction-war","verified_commit":"984e15c1420292d8f4bb2618e4a342195d7b2b5b","stage":"gameplay-pass","checks":["V0.2->V1.3 patch chain","V1.3 syntax","tension triggers war","qingyun defection blocked","battle contribution","war resolution changes powers/casualties/market","winner reward","old save migration"]}

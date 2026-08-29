@@ -1,0 +1,90 @@
+name: V3.4 combat dao builds
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "V34_COMBAT_BUILDS.trigger"
+      - "content/v34-combat-builds.cjs"
+      - "tools/v34-combat-runtime.txt"
+      - "tools/build-v34-combat-builds.cjs"
+      - "tools/release-v34-assets.cjs"
+      - "tools/verify-v34-public.sh"
+      - "tests/regression-v34.mjs"
+      - ".github/workflows/v34-combat-builds.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taixuan-v34-combat-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-v34:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify V3.3 public baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const b=require('./BUILD_V33_ALCHEMY_MATERIALS.json');if(b.status!=='PASS'||b.gameplay_version!=='3.3.0'||b.build!=='3301'||b.source_sha256!=='f478196139011917072db71697bb306e2de105d5be1abdb1e0d71820be88d425'||b.save_schema_version!==30)throw new Error('V3.3 baseline mismatch')"
+          test "$(sha256sum src/game-v33.js | awk '{print $1}')" = "f478196139011917072db71697bb306e2de105d5be1abdb1e0d71820be88d425"
+          test "$(node -e "const s=require('./PUBLIC_V33_STATUS.json');process.stdout.write(s.status+' '+s.game_version+' '+s.build)")" = "PASS 3.3.0 3301"
+
+      - name: Build deterministic V3.4 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/build-v34-combat-builds.cjs
+          node --check src/game-v34.js
+          first=$(sha256sum src/game-v34.js | awk '{print $1}')
+          test "$first" = "d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec"
+          node tools/build-v34-combat-builds.cjs >/tmp/v34-build-second.log
+          second=$(sha256sum src/game-v34.js | awk '{print $1}')
+          test "$first" = "$second"
+          node -e "const b=require('./BUILD_V34_COMBAT_BUILDS.json');if(b.status!=='PASS'||b.gameplay_version!=='3.4.0'||b.build!=='3401'||b.milestone!=='combat-dao-builds'||b.source_sha256!=='d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec'||b.save_schema_version!==31||b.content_registry_version!==5||b.counts.enemies!==48||b.counts.new_enemies!==19||b.counts.mechanic_enemies!==19||b.counts.mechanics!==19||b.counts.builds!==8||b.counts.sword_builds!==2||b.counts.flame_builds!==2||b.counts.body_builds!==2||b.counts.spirit_builds!==2)throw new Error('V3.4 report mismatch')"
+          grep -q "const VERSION='3.4.0'" src/game-v34.js
+          grep -q 'const SAVE_SCHEMA_VERSION=31' src/game-v34.js
+          grep -q 'V34_BUILD_CATALOG' src/game-v34.js
+          grep -q 'v34EnemyAttackEffect' src/game-v34.js
+          grep -q 'function onGearCombatWin(){return true}' src/game-v34.js
+
+      - name: Run V2.9 through V3.4 headless regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+
+      - name: Validate V3.4 release assets and public verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/release-v34-assets.cjs
+          grep -q 'V3.4 · 战斗与四大道途 Build' index.html
+          grep -q 'src/game-v34.js?v=3401' app.js
+          grep -q "gameplayVersion:'3.4.0'" app.js
+          grep -q 'taixuan-v3.4.0-combat-dao-builds-3401' sw.js
+          ! grep -q 'eval' app.js
+          ! grep -q 'bundle2' app.js
+          bash -n tools/verify-v34-public.sh
+          test "$(grep -o "EXPECT_GAME='[^']*'" tools/verify-v34-public.sh | cut -d\' -f2)" = "d00f7d441478fe79513b4f191e18d09cde40d4c98ebad7f0429bb8cbe969e8ec"
+
+      - name: Frozen V6 icon regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum icon-v6-512.png | awk '{print $1}')" = "757ff87de9b0a763d3de2afcc7e23a3c6655847fee1c9690e29bbb005ce92c7b"
+          test "$(sha256sum icon-v6-192.png | awk '{print $1}')" = "a44e68e89072c644c9f19d2c44997ae7c9af6806facc7cc9eaf76b3e0855bdcf"

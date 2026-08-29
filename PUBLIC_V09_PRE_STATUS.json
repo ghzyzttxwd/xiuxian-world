@@ -1,1 +1,0 @@
-{"status":"PASS","game_version":"0.9.0","milestone":"breakthrough-prerelease","stage":"gameplay-pass","checks":["V0.2->V0.9 patch chain","V0.9 syntax","no automatic realm breakthrough","cultivation cap","insight cap","active breakthrough success","spell unlock on first realm","failure loses cultivation","failure pity +8","legacy overflow migration"]}

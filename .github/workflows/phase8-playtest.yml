@@ -1,0 +1,52 @@
+name: Phase 8 Playtest
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "PHASE8_PLAYTEST.trigger"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-phase8-playtest
+  cancel-in-progress: false
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify frozen pre-balance core
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = "99b3d4f0ce0b8a1cc77d9fb0706e05a856d26b3aa9b19034474d742de4962c37"
+          node --check tests/playtest-phase8.mjs
+
+      - name: Run baseline human-like playtest
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/playtest-phase8.mjs
+          test -s PHASE8_PLAYTEST_REPORT.json
+
+      - name: Commit playtest report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_PLAYTEST_REPORT.json
+          if ! git diff --cached --quiet; then
+            git commit -m "test: record phase 8 baseline playtest [skip ci]"
+            git push origin HEAD:main
+          fi
