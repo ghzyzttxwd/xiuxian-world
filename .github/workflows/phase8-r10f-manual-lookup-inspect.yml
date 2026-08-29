@@ -1,0 +1,51 @@
+name: Phase8 R10F Manual Lookup Inspect
+
+on:
+  push:
+    branches: ["phase8-r10-growth-diagnostic"]
+    paths: ["PHASE8_R10F_LOOKUP.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: phase8-r10-growth-diagnostic, fetch-depth: 0}
+      - name: Extract lookup functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,json
+          s=Path('src/game-v39.js').read_text();out={}
+          names=['manual','v31CurrentManualMeta','v31ManualCatalogRow','v31ScaledEffects']
+          for name in names:
+            m=re.search(r'function\s+'+re.escape(name)+r'\s*\([^)]*\)\s*\{',s)
+            if not m: out[name]=None;continue
+            b=s.find('{',m.start());d=0;j=b
+            while j<len(s):
+              if s[j]=='{':d+=1
+              elif s[j]=='}':
+                d-=1
+                if d==0:j+=1;break
+              j+=1
+            out[name]=s[m.start():j]
+          # exact declaration of legacy MANUALS if present
+          for pat,key in [(r'const\s+MANUALS\s*=\s*\[[\s\S]{0,12000}?\];','MANUALS'),(r'const\s+MANUAL_ID_BY_NAME[^;]*;','MANUAL_ID_BY_NAME'),(r'const\s+V31_MANUAL_ID_BY_NAME[^;]*;','V31_MANUAL_ID_BY_NAME')]:
+            m=re.search(pat,s);out[key]=m.group(0) if m else None
+          Path('PHASE8_R10F_MANUAL_LOOKUP.json').write_text(json.dumps({'phase':'8-round10f-manual-lookup','functions':out},ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps(out,ensure_ascii=False))
+          PY
+      - name: Commit lookup inspect
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R10F_MANUAL_LOOKUP.json
+          git commit -m 'test: record phase8 r10f manual lookup inspect [skip ci]'
+          git push origin HEAD:phase8-r10-growth-diagnostic
