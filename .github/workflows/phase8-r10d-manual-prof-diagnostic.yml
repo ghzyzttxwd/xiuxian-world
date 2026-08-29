@@ -1,0 +1,42 @@
+name: Phase8 R10D Manual Proficiency Diagnostic
+
+on:
+  push:
+    branches: ["phase8-r10-growth-diagnostic"]
+    paths: ["PHASE8_R10D_MANUAL_PROF.trigger"]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: phase8-r10-growth-diagnostic, fetch-depth: 0}
+      - name: Sweep manual proficiency and measure real core effects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js|awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'');const source=fs.readFileSync('src/game-v39.js','utf8');
+          function make(){const d=new JSDOM(html,{url:'https://prof-diag.test/',runScripts:'outside-only',pretendToBeVisual:true});const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.console={log(){},warn(){},error(){}};w.eval(source);const a=w.__TAIXUAN_TEST__;a.newGame('熟练扫描');return a}
+          function n(v){if(typeof v==='number')return v;if(v&&typeof v==='object'){for(const k of ['gain','progress','cultivation','value','total'])if(typeof v[k]==='number')return v[k]}return NaN}
+          function avg(a,days,samples=120){let sum=0,c=0;for(let i=0;i<samples;i++){const v=n(a.cultivationGainForDays(days));if(Number.isFinite(v)){sum+=v;c++}}return c?Number((sum/c).toFixed(2)):null}
+          const profs=[0,10,30,60,100,150,200,300,450,600,800,1000,1400,2000,3000];const manuals=[{id:null,name:'基础吐纳诀'},{id:'manual-five-elements-return',name:'五元归息功'},{id:'manual-mystic-water',name:'玄水纳灵篇'}];const out=[];
+          for(const m of manuals){const a=make();a.v39SetPlayerForTest({realmIndex:7,location:'青云山'});const p=a.getState().player;p.manual=m.name;if(m.id&&Array.isArray(p.manualLibraryIds)&&!p.manualLibraryIds.includes(m.id))p.manualLibraryIds.push(m.id);for(const prof of profs){p.manualProf=prof;p.progress=0;const effects=typeof a.v31CurrentManualEffects==='function'?a.v31CurrentManualEffects():null;const bonus=typeof a.v31BreakthroughBonus==='function'?a.v31BreakthroughBonus():null;const g1=avg(a,1),g30=avg(a,30,40);p.progress=a.realmBalance()[7].need;const chance=a.breakthroughChance();out.push({manual:m.name,prof,effects,breakthroughBonus:bonus,meanGain1:g1,meanGain30:g30,qi7BreakthroughChance:chance})}}
+          const report={phase:'8-round10d-manual-prof-diagnostic',gameplay:'3.9.0',coreBuild:3903,sourceSha256:'1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c',schema:36,realm:'炼气七层',rows:out};fs.writeFileSync('PHASE8_R10D_MANUAL_PROF_DIAGNOSTIC.json',JSON.stringify(report,null,2)+'\n');console.log('R10D',JSON.stringify(out.filter((r,i)=>i===0||JSON.stringify(r.effects)!==JSON.stringify(out[i-1]?.effects)||r.breakthroughBonus!==out[i-1]?.breakthroughBonus)));
+          NODE
+          test -s PHASE8_R10D_MANUAL_PROF_DIAGNOSTIC.json
+      - name: Commit proficiency diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PHASE8_R10D_MANUAL_PROF_DIAGNOSTIC.json
+          git commit -m 'test: record phase8 r10d manual proficiency diagnostic [skip ci]'
+          git push origin HEAD:phase8-r10-growth-diagnostic
