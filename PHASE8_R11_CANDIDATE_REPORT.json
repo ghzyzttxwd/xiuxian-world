@@ -1,0 +1,303 @@
+{
+  "phase": "8-round11-late-qi-candidate",
+  "gameplay": "3.9.0",
+  "schema": 36,
+  "generatedAt": "2026-08-29T09:34:44.859Z",
+  "summary": {
+    "runs": 6,
+    "deaths": 0,
+    "reached": {
+      "qi1": 6,
+      "qi4": 6,
+      "qi7": 6,
+      "qi9": 5,
+      "foundation": 3
+    },
+    "medianDays": {
+      "qi1": 29,
+      "qi4": 185,
+      "qi7": 497,
+      "qi9": 684,
+      "foundation": 790
+    },
+    "averageDays": {
+      "qi1": 29.2,
+      "qi4": 183.5,
+      "qi7": 477.3,
+      "qi9": 708.4,
+      "foundation": 782
+    },
+    "manualUpgradeRuns": 6,
+    "travelRuns": 6,
+    "maxFullStall": 1,
+    "minSpiritStones": 0
+  },
+  "flags": [],
+  "results": [
+    {
+      "seed": 9201,
+      "profile": "balanced",
+      "actions": 800,
+      "days": 831,
+      "finalRealm": 9,
+      "finalProgress": 215,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 28,
+        "qi4": 185,
+        "qi7": 497,
+        "qi9": 803,
+        "foundation": null
+      },
+      "breakthroughFailures": 1,
+      "maxFullStall": 1,
+      "minStones": 2,
+      "travelCount": 5,
+      "manuals": [
+        "基础吐纳诀",
+        "五元归息功",
+        "玄水纳灵篇"
+      ],
+      "locations": [
+        "青石村",
+        "青石镇",
+        "临江城",
+        "青云山",
+        "苍梧郡城"
+      ],
+      "final": {
+        "manual": "玄水纳灵篇",
+        "location": "青云山",
+        "stones": 47,
+        "herbs": 94,
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 9202,
+      "profile": "balanced",
+      "actions": 759,
+      "days": 790,
+      "finalRealm": 10,
+      "finalProgress": 0,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 29,
+        "qi4": 182,
+        "qi7": 428,
+        "qi9": 653,
+        "foundation": 790
+      },
+      "breakthroughFailures": 2,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "travelCount": 3,
+      "manuals": [
+        "基础吐纳诀",
+        "五元归息功",
+        "玄水纳灵篇"
+      ],
+      "locations": [
+        "青石村",
+        "青石镇",
+        "临江城",
+        "青云山"
+      ],
+      "final": {
+        "manual": "玄水纳灵篇",
+        "location": "青云山",
+        "stones": 28,
+        "herbs": 92,
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 9203,
+      "profile": "cultivation-heavy",
+      "actions": 698,
+      "days": 729,
+      "finalRealm": 10,
+      "finalProgress": 0,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 22,
+        "qi4": 145,
+        "qi7": 380,
+        "qi9": 601,
+        "foundation": 729
+      },
+      "breakthroughFailures": 0,
+      "maxFullStall": 1,
+      "minStones": 1,
+      "travelCount": 5,
+      "manuals": [
+        "基础吐纳诀",
+        "五元归息功",
+        "玄水纳灵篇"
+      ],
+      "locations": [
+        "青石村",
+        "青石镇",
+        "临江城",
+        "青云山",
+        "苍梧郡城"
+      ],
+      "final": {
+        "manual": "玄水纳灵篇",
+        "location": "青云山",
+        "stones": 32,
+        "herbs": 63,
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 9204,
+      "profile": "cultivation-heavy",
+      "actions": 800,
+      "days": 835,
+      "finalRealm": 9,
+      "finalProgress": 249,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 22,
+        "qi4": 178,
+        "qi7": 532,
+        "qi9": 801,
+        "foundation": null
+      },
+      "breakthroughFailures": 3,
+      "maxFullStall": 1,
+      "minStones": 0,
+      "travelCount": 5,
+      "manuals": [
+        "基础吐纳诀",
+        "五元归息功",
+        "玄水纳灵篇"
+      ],
+      "locations": [
+        "青石村",
+        "青石镇",
+        "临江城",
+        "青云山",
+        "苍梧郡城"
+      ],
+      "final": {
+        "manual": "玄水纳灵篇",
+        "location": "青云山",
+        "stones": 30,
+        "herbs": 109,
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 9205,
+      "profile": "resource-aware",
+      "actions": 800,
+      "days": 823,
+      "finalRealm": 8,
+      "finalProgress": 566,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 42,
+        "qi4": 220,
+        "qi7": 579,
+        "qi9": null,
+        "foundation": null
+      },
+      "breakthroughFailures": 0,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "travelCount": 3,
+      "manuals": [
+        "基础吐纳诀",
+        "五元归息功",
+        "玄水纳灵篇"
+      ],
+      "locations": [
+        "青石村",
+        "青石镇",
+        "临江城",
+        "青云山"
+      ],
+      "final": {
+        "manual": "玄水纳灵篇",
+        "location": "青云山",
+        "stones": 36,
+        "herbs": 204,
+        "sect": "散修"
+      }
+    },
+    {
+      "seed": 9206,
+      "profile": "resource-aware",
+      "actions": 798,
+      "days": 827,
+      "finalRealm": 10,
+      "finalProgress": 0,
+      "dead": false,
+      "deathCause": null,
+      "milestones": {
+        "qi1": 32,
+        "qi4": 191,
+        "qi7": 448,
+        "qi9": 684,
+        "foundation": 827
+      },
+      "breakthroughFailures": 1,
+      "maxFullStall": 1,
+      "minStones": 3,
+      "travelCount": 3,
+      "manuals": [
+        "基础吐纳诀",
+        "五元归息功",
+        "玄水纳灵篇"
+      ],
+      "locations": [
+        "青石村",
+        "青石镇",
+        "临江城",
+        "青云山"
+      ],
+      "final": {
+        "manual": "玄水纳灵篇",
+        "location": "青云山",
+        "stones": 37,
+        "herbs": 226,
+        "sect": "散修"
+      }
+    }
+  ],
+  "candidate": {
+    "lateQiNeeds": {
+      "qi7": 900,
+      "qi8": 1100,
+      "qi9": 1200
+    },
+    "breakthroughFormulaChanged": false,
+    "enemyStatsChanged": false,
+    "schema": 36
+  },
+  "baselineR9": {
+    "deaths": 0,
+    "reached": {
+      "qi7": 6,
+      "qi9": 2,
+      "foundation": 0
+    },
+    "medianDays": {
+      "qi7": 491,
+      "qi9": 787
+    }
+  },
+  "candidateSourceSha256": "3c2967e448b161383b80b925d866abfec83f23cb19d2db9156314f2161fe68cb",
+  "target": {
+    "maxDeaths": 1,
+    "minQi9": 4,
+    "minFoundation": 3
+  }
+}
