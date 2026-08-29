@@ -8,6 +8,7 @@ on:
       - "tools/build-v310-balance-v4.cjs"
       - "tools/build-v310-balance-v5.cjs"
       - "tools/build-v310-balance-v6.cjs"
+      - "tools/verify-v310-v64-evidence.mjs"
       - "tests/regression-v310-natal-origin-id.mjs"
       - "tests/regression-v310-tribulation-essence.mjs"
       - "tests/regression-v310-resource-utility.mjs"
@@ -41,4 +42,5 @@ jobs:
           test "$(sha256sum src/game-v310.js | awk '{print $1}')" = "af83bcef5657ccf17372e51038ea8f1709da6623a4739b8e9267a902ffd47f63"
           node tests/regression-v310-resource-utility.mjs
           node tests/regression-v310-domain-sand-source.mjs
+          node --check tools/verify-v310-v64-evidence.mjs
           echo 'V310_V64_RELEASE_PREP_QUICK_PASS'
