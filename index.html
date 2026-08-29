@@ -11,16 +11,17 @@
   <link rel="icon" href="./icon-v6-192.png?v=6" />
   <link rel="apple-touch-icon" href="./icon-v6-192.png?v=6" />
   <link rel="stylesheet" href="./style.css?v=3910" />
+  <link rel="stylesheet" href="./ui-v3920.css?v=3920" />
   <title>太玄界 · 修仙大世界 V3.9</title>
 </head>
-<body data-ui-shell="playable-v3910">
+<body data-ui-shell="playable-v3920">
 <div id="startScreen" class="start">
   <section class="start-box">
     <div class="start-seal">太</div>
     <div class="start-kicker">一介凡修 · 逆天争命</div>
     <h1>太玄界</h1>
-    <p class="start-lead">从山野凡人起步，在寿元耗尽之前寻功法、夺机缘、炼法宝，走到渡劫飞升。</p>
-    <div class="realm-road"><span>凡人</span><i></i><span>筑基</span><i></i><span>金丹</span><i></i><span>元婴</span><i></i><span>化神</span><i></i><span>真仙</span></div>
+    <p class="start-lead">从山野凡人起步。眼下先活下去、寻到修行之法；更大的天地，要等你真正走到那里才会显露。</p>
+    <div class="realm-road"><span>凡人</span><i></i><span>炼气</span><i></i><span>筑基</span><i></i><span>……</span></div>
     <label class="name-label" for="nameInput">你的姓名 / 道号</label>
     <input id="nameInput" maxlength="8" placeholder="输入姓名或道号" value="陆尘" />
     <div class="start-actions">
@@ -29,19 +30,23 @@
       <button id="installStartBtn" class="ghost">安装到桌面</button>
     </div>
     <div id="installStatus" class="install-note"></div>
-    <div class="version">V3.9 · 渡劫飞升与真仙终局篇 · Playable UI</div>
+    <div class="version">V3.9 · Playable UI 3.9.2</div>
   </section>
 </div>
 
 <div id="gameApp" class="app hidden">
   <header class="topbar">
     <div class="brand"><b>太玄界</b><span id="dateTop"></span></div>
-    <div class="top-actions"><button id="installBtn" class="mini-btn ghost">安装</button><button id="saveBtn" class="mini-btn">存档</button></div>
+    <div class="top-actions">
+      <div class="ui-currency" aria-label="仙玉预留"><b>仙玉</b><em>—</em></div>
+      <button id="installBtn" class="mini-btn ghost">安装</button>
+      <button id="saveBtn" class="mini-btn">存档</button>
+    </div>
   </header>
 
   <main>
     <section id="page-home" class="page active">
-      <div class="page-eyebrow">修行总览</div>
+      <div class="page-eyebrow">当前修行</div>
       <div class="hero-card">
         <div class="hero-row">
           <div><div class="hero-name" id="heroName">陆尘</div><div class="hero-sub" id="heroSub"></div></div>
@@ -54,7 +59,7 @@
           <div class="quick-stat vital"><b id="hpQuick">0</b><span>气血</span></div>
           <div class="quick-stat"><b id="repQuick">0</b><span>声望</span></div>
           <div class="quick-stat"><b id="diligenceQuick">0</b><span>历练</span></div>
-          <div class="quick-stat"><b id="insightQuick">0</b><span>悟道点</span></div>
+          <div class="quick-stat"><b id="insightQuick">0</b><span>悟道</span></div>
         </div>
       </div>
 
@@ -62,97 +67,119 @@
       <div id="breakthroughBox"></div>
       <div id="legacyBox"></div>
 
+      <div class="ui-home-shortcuts">
+        <button type="button" data-ui-page="character">修行详情 · 功法与突破</button>
+        <button type="button" data-ui-page="events">见闻 · 天下正在发生什么</button>
+      </div>
+      <div id="uiWorldHint" class="ui-facility-note">你现在只需要关心身边的世界。</div>
+
       <section class="panel action-panel">
-        <div class="panel-title-row"><div><div class="panel-kicker">安排这一日</div><h2>今日行程</h2></div><span class="day-cost">行动会推进时间</span></div>
-        <p class="section-tip">先活下去，再求长生。修炼提升修为；探索找机缘也可能遇险；缺资源时先采集或谋生。</p>
+        <div class="panel-title-row"><div><div class="panel-kicker">安排这一日</div><h2>今日可做</h2></div><span class="day-cost">行动推进时间</span></div>
         <div class="actions-grid">
           <button class="action-btn primary action-main" data-action="cultivate"><span class="action-icon">修</span><div><b>吐纳修炼</b><small>1日 · 修为与功法熟练度</small></div></button>
-          <button class="action-btn action-main" data-action="explore"><span class="action-icon">游</span><div><b>外出探索</b><small>1日 · 事件、战斗与发现</small></div></button>
-          <button class="action-btn" data-action="gather"><span class="action-icon">采</span><div><b>采集灵草</b><small>1日 · 获取灵草与材料</small></div></button>
-          <button class="action-btn" data-action="work"><span class="action-icon">业</span><div><b>谋生换钱</b><small>1日 · 稳定获得少量灵石</small></div></button>
-          <button class="action-btn" data-action="rumor"><span class="action-icon">闻</span><div><b>打听消息</b><small>1日 · 获知天下大事</small></div></button>
-          <button class="action-btn" data-action="rest"><span class="action-icon">息</span><div><b>闭门休整</b><small>1日 · 恢复气血，规避风险</small></div></button>
+          <button class="action-btn action-main" data-action="explore"><span class="action-icon">游</span><div><b>外出历练</b><small>1日 · 事件、战斗与发现</small></div></button>
+          <button class="action-btn" data-action="gather"><span class="action-icon">采</span><div><b>采集</b><small>1日</small></div></button>
+          <button class="action-btn" data-action="work"><span class="action-icon">业</span><div><b>谋生</b><small>1日</small></div></button>
+          <button class="action-btn" data-action="rumor"><span class="action-icon">闻</span><div><b>打听</b><small>1日</small></div></button>
+          <button class="action-btn" data-action="rest"><span class="action-icon">息</span><div><b>休整</b><small>1日</small></div></button>
         </div>
       </section>
 
-      <section class="panel log-panel"><div class="panel-title-row"><div><div class="panel-kicker">你的足迹</div><h2>最近经历</h2></div></div><div id="homeLog" class="log-list"></div></section>
+      <section class="panel log-panel"><div class="panel-title-row"><div><div class="panel-kicker">最近发生</div><h2>你的足迹</h2></div></div><div id="homeLog" class="log-list"></div></section>
+    </section>
+
+    <section id="page-dwelling" class="page">
+      <div class="ui-primary-page-heading"><div class="page-eyebrow">安身立命</div><h1>洞府</h1><p>这里只显示你已经拥有或真正接触到的设施；没学会炼丹，就不会提前摆一排锁着的炼丹功能。</p></div>
+      <details class="panel system-panel" open>
+        <summary><div><b>洞府本体</b><small>居所、闭关、药圃与聚灵</small></div><span>展开</span></summary>
+        <div class="system-body"><div id="dwellingInfo"></div><div id="dwellingActions"></div></div>
+      </details>
+      <details class="panel system-panel" open>
+        <summary><div><b>炼丹</b><small>丹方、材料、丹毒与开炉</small></div><span>展开</span></summary>
+        <div class="system-body"><div id="alchemyInfo"></div><div id="alchemyActions"></div></div>
+      </details>
+      <div class="ui-entry-grid">
+        <button class="ui-entry" type="button" data-ui-page="character"><span class="ui-seal">悟</span><div><b>静室与修行</b><small>查看功法、悟道与高阶修行体系</small></div></button>
+        <button class="ui-entry" type="button" data-ui-page="inventory"><span class="ui-seal">器</span><div><b>法器与炼器</b><small>装备、法宝和锻造统一归入储物体系</small></div></button>
+      </div>
+    </section>
+
+    <section id="page-map" class="page">
+      <div class="ui-primary-page-heading"><div class="page-eyebrow">脚下山河</div><h1>天下</h1><p>世界不会一次性摊在你面前。默认只显示当前位置和眼下真正能抵达的地方。</p></div>
+      <div id="mapScopeText" class="ui-map-scope"><b>当前位置</b><span>正在读取周边</span></div>
+      <section class="panel"><div class="panel-kicker">附近与去处</div><h2>地区</h2><div id="mapList" class="ui-world-stack"></div></section>
+      <section class="panel market-panel"><div class="panel-kicker">交易</div><h2>坊市与市场</h2><p class="section-tip">只有当前地区真正存在的交易机会才有意义。</p><div id="marketInfo"></div><div id="marketActions"></div></section>
+      <div class="ui-entry-grid">
+        <button class="ui-entry" type="button" data-ui-page="events"><span class="ui-seal">闻</span><div><b>见闻</b><small>本地消息、重大事件与高阶天下大势</small></div></button>
+        <button class="ui-entry" type="button" data-ui-page="relations"><span class="ui-seal">缘</span><div><b>此地人脉</b><small>只看真正认识、产生过因果的人</small></div></button>
+      </div>
+    </section>
+
+    <section id="page-relations" class="page">
+      <div class="ui-primary-page-heading"><div class="page-eyebrow">人情因果</div><h1>人脉</h1><p>数据库里存在的人不等于你认识的人。这里只展示真正接触过、结过缘或结过怨的人。</p></div>
+      <details class="panel system-panel" open>
+        <summary><div><b>师门与宗门</b><small>身份、任务、师承与宗门关系</small></div><span>展开</span></summary>
+        <div class="system-body"><div id="sectInfo"></div><div id="sectActions"></div></div>
+      </details>
+      <section class="panel"><div class="panel-kicker">最近往来</div><h2>已识之人</h2><div id="npcList"></div><div id="npcPager"></div></section>
+    </section>
+
+    <section id="page-inventory" class="page">
+      <div class="ui-primary-page-heading"><div class="page-eyebrow">身家与法器</div><h1>储物</h1><p>常用资源先做五格总览；装备、法宝和炼器放在同一套体系里，不再拆成独立一级入口。</p></div>
+      <section class="panel"><div class="panel-kicker">常用资源</div><h2>储物袋</h2><div id="inventorySummary" class="ui-resource-grid"></div></section>
+      <details class="panel system-panel" open>
+        <summary><div><b>装备与法宝</b><small>武器、佩饰、真正法宝、本命法宝与锻造</small></div><span>展开</span></summary>
+        <div class="system-body"><div id="gearInfo"></div><div id="gearActions"></div></div>
+      </details>
     </section>
 
     <section id="page-character" class="page">
-      <div class="page-heading"><div><div class="page-eyebrow">修行体系</div><h1>我的修行</h1></div><p>常用内容默认展开，其余系统按需打开，不再一次把所有信息堆满屏幕。</p></div>
-
+      <div class="ui-secondary-bar"><button type="button" data-ui-page="home">← 返回修炼</button><span>二级页面 · 不占主导航</span></div>
+      <div class="page-heading"><div><div class="page-eyebrow">修行深处</div><h1>修行详情</h1></div><p>境界越高，这里才逐步出现道途、神通、法则、炼虚、合体、大乘等真正相关的高阶体系。</p></div>
       <section class="panel cheat cultivation-card">
         <div class="panel-kicker">悟道</div><h2>修行参悟</h2>
         <div class="cheat-name">【凡修之路】</div>
-        <div class="cheat-desc">没有额外修炼外挂。灵根、功法、洞府、丹药、机缘与时间共同决定修炼速度；悟道点来自论道、遗迹、秘境、丹药或特殊机缘。</div>
+        <div class="cheat-desc">灵根、功法、洞府、丹药、机缘与时间共同决定修炼速度。</div>
         <div class="cheat-points"><span class="pill" id="diligencePill"></span><span class="pill" id="insightPill"></span></div>
         <div class="cheat-buttons"><button id="insightCultivate">顿悟修为</button><button id="insightManual">顿悟功法</button><button id="insightSpell">顿悟法术</button></div>
       </section>
-
       <details class="panel system-panel" open>
         <summary><div><b>人物与灵根</b><small>境界、寿元、属性与根骨</small></div><span>展开</span></summary>
         <div class="system-body desktop-grid"><section><h2>人物</h2><div id="characterStats"></div></section><section><h2>灵根</h2><div id="rootInfo"></div></section></div>
       </details>
-
       <details class="panel system-panel" open>
-        <summary><div><b>功法与法术</b><small>查看当前修行路线与熟练度</small></div><span>展开</span></summary>
+        <summary><div><b>功法与法术</b><small>当前修行路线与熟练度</small></div><span>展开</span></summary>
         <div class="system-body"><h2>功法</h2><div id="manualList"></div><h3>法术与技艺</h3><div id="spellList"></div></div>
       </details>
-
-      <details class="panel system-panel">
-        <summary><div><b>法器与锻造</b><small>装备、法宝、本命法宝与炼器</small></div><span>展开</span></summary>
-        <div class="system-body"><p class="section-tip">武器、佩饰和真正法宝会直接影响战斗与高阶突破。</p><div id="gearInfo"></div><div id="gearActions"></div></div>
-      </details>
-
-      <details class="panel system-panel">
-        <summary><div><b>炼丹</b><small>丹方、材料与炼制</small></div><span>展开</span></summary>
-        <div class="system-body"><p class="section-tip">炼丹会真实消耗材料；高境界丹药需要对应高阶资源。</p><div id="alchemyInfo"></div><div id="alchemyActions"></div></div>
-      </details>
-
-      <details class="panel system-panel">
-        <summary><div><b>宗门</b><small>身份、师门、任务与宗门关系</small></div><span>展开</span></summary>
-        <div class="system-body"><p class="section-tip">宗门人物会自行修炼、闭关、突破和老去，你在门中的身份也会改变可获得的资源。</p><div id="sectInfo"></div><div id="sectActions"></div></div>
-      </details>
-
-      <details class="panel system-panel">
-        <summary><div><b>洞府</b><small>居所、闭关与药圃</small></div><span>展开</span></summary>
-        <div class="system-body"><p class="section-tip">洞府提升在家修炼效率；闭关与药圃都会真实推进世界时间。</p><div id="dwellingInfo"></div><div id="dwellingActions"></div></div>
-      </details>
-
       <details class="panel system-panel danger-system">
         <summary><div><b>轮回传承</b><small>身死或寿尽后的下一世</small></div><span>展开</span></summary>
-        <div class="system-body"><p class="section-tip">本世死亡后会永久锁死并凝成传承点；只有进入轮回才能开启新角色，世界仍会继续前行。</p><div id="legacyInfo"></div><div id="legacyActions"></div></div>
+        <div class="system-body"><div id="legacyInfo"></div><div id="legacyActions"></div></div>
       </details>
-    </section>
-
-    <section id="page-map" class="page">
-      <div class="page-heading"><div><div class="page-eyebrow">山河万里</div><h1>天下行旅</h1></div><p>27 片区域与多条路线已接入真实危险、路费、势力关系和随机事件。</p></div>
-      <section class="panel"><div class="panel-kicker">当前位置与去处</div><h2>地图</h2><p class="section-tip">路线天数、地区危险、伤势与势力关系会共同决定途中风险。高危区域不要只看路程。</p><div id="mapList"></div></section>
-      <section class="panel market-panel"><div class="panel-kicker">交易</div><h2>坊市与市场</h2><p class="section-tip">行情会随世界经济和大战余波波动，买价始终高于卖价，无法原地倒卖刷灵石。</p><div id="marketInfo"></div><div id="marketActions"></div></section>
     </section>
 
     <section id="page-events" class="page">
-      <div class="page-heading"><div><div class="page-eyebrow">世界在变化</div><h1>天下大事</h1></div><p>你闭关时，宗门、势力和修真界人物也在继续行动。</p></div>
-      <section class="panel"><h2>重大事件 <span id="eventBadge" class="badge">0</span></h2><div id="majorEvents"></div></section>
-      <section class="panel"><h2>修真界传闻</h2><div id="worldLog" class="log-list"></div></section>
-    </section>
-
-    <section id="page-relations" class="page">
-      <div class="page-heading"><div><div class="page-eyebrow">人情因果</div><h1>人物关系</h1></div><p>赠礼、论道、切磋、求助、恩怨和前尘旧缘都会留下后果。</p></div>
-      <section class="panel"><p class="section-tip">深交故人会进入“前尘旧缘”。转世不会直接继承旧关系，真正重逢后才会产生少量熟悉感。</p><div id="npcList"></div></section>
+      <div class="ui-secondary-bar"><button type="button" data-ui-page="map">← 返回天下</button><span>二级页面 · 视野随境界扩大</span></div>
+      <div class="page-heading"><div><div class="page-eyebrow">你所能听见的风声</div><h1>见闻</h1></div><p>凡人先听村镇消息；真正踏入高阶修真界后，才会逐渐接触宗门大战与世界级危机。</p></div>
+      <section class="panel"><h2>当前大事 <span id="eventBadge" class="badge">0</span></h2><div id="majorEvents"></div></section>
+      <section class="panel"><h2>传闻与消息</h2><div id="worldLog" class="log-list"></div></section>
     </section>
   </main>
 
   <nav class="bottom-nav" aria-label="主导航">
     <button class="nav-btn active" data-page="home"><b>☯</b><span>修炼</span></button>
-    <button class="nav-btn" data-page="character"><b>卷</b><span>修行</span></button>
-    <button class="nav-btn" data-page="map"><b>山</b><span>地图</span></button>
-    <button class="nav-btn" data-page="events"><b>令</b><span>天下</span><em id="navBadge" class="badge hidden">0</em></button>
-    <button class="nav-btn" data-page="relations"><b>缘</b><span>关系</span></button>
+    <button class="nav-btn" data-page="dwelling"><b>庐</b><span>洞府</span></button>
+    <button class="nav-btn" data-page="map"><b>山</b><span>天下</span><em id="navBadge" class="badge hidden">0</em></button>
+    <button class="nav-btn" data-page="relations"><b>缘</b><span>人脉</span></button>
+    <button class="nav-btn" data-page="inventory"><b>囊</b><span>储物</span></button>
   </nav>
+  <div class="hidden" aria-hidden="true">
+    <button class="nav-btn hidden" data-page="character" tabindex="-1">修行详情</button>
+    <button class="nav-btn hidden" data-page="events" tabindex="-1">见闻</button>
+  </div>
 </div>
 
 <div id="modalWrap" class="modal-wrap hidden"><div id="modal" class="modal"></div></div>
+<script src="./ui-v3920.js?v=3920"></script>
 <script src="./app.js?v=3901"></script>
 </body>
 </html>
