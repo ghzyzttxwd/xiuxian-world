@@ -49,14 +49,21 @@ for(const [id,n] of Object.entries(requiredNamed)){
  assert((m.locations||[]).includes('九霄劫台')||(m.locations||[]).includes('人界议庭'),`V60 required material lacks pre-tribulation source: ${id}`);
  assert(n>0);
 }
-assert((materials['mat-v39-thunder-crystal'].combatKinds||[]).includes('劫雷异灵'),'thunder crystal lost 劫雷异灵 combat source');
-assert((materials['mat-v39-tribulation-gold'].combatKinds||[]).includes('劫雷异灵'),'tribulation gold lost 劫雷异灵 combat source');
+
+// Prove the first two V39 materials are not merely declared at 九霄劫台: the runtime enemy
+// registry must expose a realm-37 thunder enemy there, and that enemy's runtime drop table must
+// contain both materials. This survives registry normalization and verifies the actual acquisition path.
 const thunderEnemy=Object.values(reg.enemies||{}).find(e=>e?.id==='enemy-v39-thunder-spirit');
 assert(thunderEnemy,'pre-tribulation 劫雷化灵 enemy missing');
 assert.equal(thunderEnemy.kind,'劫雷异灵','pre-tribulation thunder enemy kind drifted');
 const stage37RealmId=Object.values(realms).find(r=>Number(r.index)===37)?.id;
 assert.equal(thunderEnemy.realmId,stage37RealmId,'pre-tribulation thunder enemy realm drifted');
 assert((thunderEnemy.areas||[]).some(id=>reg.regions?.[id]?.name==='九霄劫台'),'pre-tribulation 劫雷化灵 encounter missing from 九霄劫台');
+const thunderDrop=Object.values(reg.drops||{}).find(d=>d?.enemyId===thunderEnemy.id);
+assert(thunderDrop,'runtime drop table missing for 劫雷化灵');
+const droppedIds=new Set((thunderDrop.entries||[]).filter(x=>Number(x.max)>0).map(x=>x.materialId));
+assert(droppedIds.has('mat-v39-thunder-crystal'),'劫雷化灵 runtime drops lost 九转劫雷晶');
+assert(droppedIds.has('mat-v39-tribulation-gold'),'劫雷化灵 runtime drops lost 定劫仙金');
 
 const totalStoneCost=Number(umbrella.cost?.stones||0)+Number(disc.cost?.stones||0);
 assert(totalStoneCost>=18800,'V60 dedicated preparation became trivially cheap');
@@ -64,4 +71,4 @@ const thunderArtifactGuard=Number(umbrella.passive?.tribulationGuard||0)+Number(
 const formationArtifactGuard=Number(umbrella.passive?.tribulationGuard||0)+Number(disc.passive?.tribulationGuard||0)+Number(disc.passive?.formationGuard||0);
 assert(thunderArtifactGuard>=.70,'V60 late-thunder artifact guard insufficient');
 assert(formationArtifactGuard>=.72,'V60 stage-five formation artifact guard insufficient');
-console.log('V310_V60_TRIBULATION_GEAR_REGRESSION_PASS '+JSON.stringify({totalStoneCost,thunderArtifactGuard,formationArtifactGuard,preTribulationNamedCosts:requiredNamed,fourPathAccessible:true,preTribulationThunderEnemy:true,runtimeRealmIndex:37,registryCrossChecked:true}));
+console.log('V310_V60_TRIBULATION_GEAR_REGRESSION_PASS '+JSON.stringify({totalStoneCost,thunderArtifactGuard,formationArtifactGuard,preTribulationNamedCosts:requiredNamed,fourPathAccessible:true,preTribulationThunderEnemy:true,runtimeRealmIndex:37,runtimeDropTableVerified:true,registryCrossChecked:true}));
