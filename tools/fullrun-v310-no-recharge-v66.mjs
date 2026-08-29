@@ -70,9 +70,10 @@ const helper=`function ensureV66TribulationManual(){
  return true
 }
 `;
-runner=replaceOnce(runner,'function cultivateFull(){improveManual();',helper+'function cultivateFull(){ensureV66TribulationManual();improveManual();','attach legal terminal manual before realm cultivation');
+runner=replaceOnce(runner,'function cultivateFull(){',helper+'function cultivateFull(){ensureV66TribulationManual();','attach legal terminal manual at cultivate entry');
 
 if(!runner.includes('function ensureV66TribulationManual(){'))throw new Error('V66 terminal manual helper missing');
+if(!runner.includes('function cultivateFull(){ensureV66TribulationManual();'))throw new Error('V66 cultivate entry hook missing');
 if(!runner.includes("invoke('learnV31Manual',wanted.id)"))throw new Error('V66 normal learn API missing');
 if(!runner.includes("invoke('switchV31Manual',wanted.id)"))throw new Error('V66 normal switch API missing');
 if(!runner.includes("goTo('九霄劫台')"))throw new Error('V66 normal route acquisition missing');
