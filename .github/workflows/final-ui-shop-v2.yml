@@ -1,0 +1,91 @@
+name: Final UI + Shop V2
+on:
+  push:
+    paths:
+      - 'FINAL_UI_SHOP_V2_TRIGGER.txt'
+concurrency:
+  group: final-ui-shop-v2
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  validate-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen gameplay core
+        run: |
+          set -euo pipefail
+          test "$(sha256sum src/game-v39.js | awk '{print $1}')" = '1dc5860e93aab32d9dd14fe6fda1d34bd5004ab97198f57c73231a0bb5d5756c'
+          grep -q "build:'3903'" app.js
+      - name: Syntax check UI and shop
+        run: |
+          node --check ui-final-v1.js
+          node --check ui-shop-v2.js
+          node --check app.js
+          grep -q 'TAIXUAN_FINAL_PLAYABLE_UI_V1' ui-final-v1.js
+          grep -q 'VIP8 至尊冲刺礼包' ui-shop-v2.js
+          grep -q "8:{jade:1888" ui-shop-v2.js
+          grep -q 'taixuan-v3.9.0-final-ui-shop-v2' sw.js
+      - name: Browser smoke - final UI and VIP8 path
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node - <<'NODE'
+          const fs=require('fs'),{JSDOM}=require('jsdom');
+          const html=fs.readFileSync('index.html','utf8').replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g,'');
+          const d=new JSDOM(html,{url:'https://final-ui.test/',runScripts:'outside-only',pretendToBeVisual:true});
+          const w=d.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.scrollTo=()=>{};w.confirm=()=>true;w.console=console;
+          w.eval(fs.readFileSync('src/game-v39.js','utf8'));
+          w.eval(fs.readFileSync('ui-v3920.js','utf8'));
+          w.eval(fs.readFileSync('ui-final-v1.js','utf8'));
+          w.eval(fs.readFileSync('ui-shop-v2.js','utf8'));
+          w.document.dispatchEvent(new w.Event('DOMContentLoaded',{bubbles:true}));
+          w.__TAIXUAN_TEST__.newGame('正式试玩');
+          setTimeout(()=>{
+            const q=s=>w.document.querySelector(s);
+            if(!q('#uiFinalGoal')||!q('#uiFinalNearby')||!q('#uiFinalRumor'))throw Error('final home blocks missing');
+            if(w.document.querySelectorAll('#page-home [data-action]').length!==6)throw Error('action count changed');
+            w.__TAIXUAN_SHOP__.open('jade');
+            q('[data-recharge="jade-648"]').click();
+            w.__TAIXUAN_SHOP__.open('recommend');
+            const sprint=q('[data-pack="vip8-sprint"]');if(!sprint)throw Error('VIP8 sprint offer missing at VIP7');sprint.click();
+            w.__TAIXUAN_SHOP__.open('vip');
+            const claim=q('[data-vip-milestone="8"]');if(!claim||claim.disabled)throw Error('VIP8 milestone not claimable');claim.click();
+            const wallet=w.__TAIXUAN_SHOP__.getWallet(),s=w.__TAIXUAN_TEST__.getState();
+            if(w.__TAIXUAN_SHOP__.vipLevel()<8)throw Error('VIP8 not reached');
+            if(!wallet.titles.includes('八荒至尊'))throw Error('VIP8 title missing');
+            if((s.player.spiritStones||0)<1800)throw Error('VIP8 game reward not applied');
+            if(!/120\s*\/\s*120/.test(w.document.getElementById('cultivationText').textContent))throw Error('VIP8 full cultivation reward not applied');
+            console.log('FINAL_UI_SHOP_V2_SMOKE_OK',JSON.stringify({vip:w.__TAIXUAN_SHOP__.vipLevel(),jade:wallet.jade,stones:s.player.spiritStones,title:wallet.titles.at(-1)}));
+            process.exit(0);
+          },250);
+          setTimeout(()=>{throw Error('smoke timeout')},3000);
+          NODE
+          rm -rf node_modules package.json package-lock.json
+      - name: Publish to gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin gh-pages:gh-pages || true
+          git checkout gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          git checkout origin/main -- .
+          rm -rf node_modules
+          git add -A
+          git commit -m 'publish: final UI + shop v2' || true
+          git push origin gh-pages
+      - name: Write public status to main
+        run: |
+          set -euo pipefail
+          git checkout main
+          cat > PUBLIC_UI_STATUS.json <<'JSON'
+          {"status":"PASS","phase":"final-ui-shop-v2","coreBuild":3903,"schema":36,"realPayment":false,"mainNav":["修炼","洞府","天下","人脉","储物"],"shop":{"dynamicOffers":true,"packages":true,"monthly":true,"growth":true,"vipMax":15,"vip8MajorNode":true,"vip8Title":"八荒至尊"}}
+          JSON
+          git add PUBLIC_UI_STATUS.json
+          git commit -m 'status: final UI shop v2 PASS' || true
+          git push origin main
