@@ -1,0 +1,44 @@
+name: V3.10 V64 non-publishing release prep quick
+
+on:
+  push:
+    branches: ["v310-release-prep-nonpublish"]
+    paths:
+      - ".github/workflows/v310-v64-release-prep-quick.yml"
+      - "tools/build-v310-balance-v4.cjs"
+      - "tools/build-v310-balance-v5.cjs"
+      - "tools/build-v310-balance-v6.cjs"
+      - "tests/regression-v310-natal-origin-id.mjs"
+      - "tests/regression-v310-tribulation-essence.mjs"
+      - "tests/regression-v310-resource-utility.mjs"
+      - "tests/regression-v310-v38-pill-effects.mjs"
+      - "tests/regression-v310-domain-sand-source.mjs"
+      - "V310_V64_RELEASE_PREP_QUICK.trigger"
+
+permissions:
+  contents: read
+
+jobs:
+  quick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install jsdom
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+      - name: Rebuild exact V6 and run all staged V3.10 repair gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" != "62db848091ce7686c85357a8c963820a9d27f24c"
+          node tests/regression-v310-natal-origin-id.mjs
+          node tests/regression-v310-tribulation-essence.mjs
+          node tests/regression-v310-v38-pill-effects.mjs
+          node tools/build-v310-balance-v6.cjs
+          node --check src/game-v310.js
+          test "$(sha256sum src/game-v310.js | awk '{print $1}')" = "af83bcef5657ccf17372e51038ea8f1709da6623a4739b8e9267a902ffd47f63"
+          node tests/regression-v310-resource-utility.mjs
+          node tests/regression-v310-domain-sand-source.mjs
+          echo 'V310_V64_RELEASE_PREP_QUICK_PASS'
