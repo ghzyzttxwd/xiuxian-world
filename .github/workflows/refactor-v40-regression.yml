@@ -1,0 +1,71 @@
+name: Refactor V4.0 regression gate
+
+on:
+  push:
+    branches: ["refactor-v40"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taixuan-refactor-v40
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout refactor branch
+        uses: actions/checkout@v4
+
+      - name: Syntax check current runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app.js
+          node --check src/game-v39.js
+          node --check ui-final-v1.js
+          node --check ui-phase8-qol.js
+          node --check ui-shop-v2.js
+          node --check ui-shop-v2-sync.js
+          node --check ui-shop-v2-power-adapter.js
+          node --check ui-shop-v2-vip8.js
+          node --check ui-shop-v2-vip12.js
+          node --check ui-shop-v2-vip15.js
+          node --check ui-shop-v2-dynamic-power.js
+          node --check ui-shop-v2-jade-sinks.js
+
+      - name: Install regression dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+
+      - name: Run V2.9 through V3.9 gameplay regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          node tests/regression-v38.mjs
+          node tests/regression-v39.mjs
+
+      - name: Verify frozen compatibility contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "const VERSION='3.9.0'" src/game-v39.js
+          grep -q 'const SAVE_SCHEMA_VERSION=36' src/game-v39.js
+          grep -q "SAVE_KEY='xiuxian_world_v02'" src/game-v39.js
+          grep -q "source:'src/game-v39.js'" app.js
+          echo 'REFACTOR_V40_BASELINE_OK'
