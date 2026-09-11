@@ -24,7 +24,7 @@ const markerEnd='];\nconst V23_REALM_NEEDS=';
 const start=game.indexOf(markerStart);
 const end=game.indexOf(markerEnd,start);
 if(start<0||end<0)throw new Error('Could not locate REALMS block');
-const arrayLiteral=game.slice(start+'const REALMS='.length,end+2);
+const arrayLiteral=game.slice(start+'const REALMS='.length,end+1);
 
 // Guard the extracted data before touching the core.
 const value=Function(`"use strict";return (${arrayLiteral})`)();
@@ -63,4 +63,4 @@ test=once(test,
   'regression REALMS preload');
 write(testPath,test);
 
-console.log(JSON.stringify({ok:true,realmCount:value.length,first:value[0].name,last:value[value.length-1].name,gameBytesBefore:Buffer.byteLength(read(gamePath))+Buffer.byteLength(realmFile),gameBytesAfter:Buffer.byteLength(read(gamePath)),realmFileBytes:Buffer.byteLength(realmFile)},null,2));
+console.log(JSON.stringify({ok:true,realmCount:value.length,first:value[0].name,last:value[value.length-1].name,gameBytesAfter:Buffer.byteLength(read(gamePath)),realmFileBytes:Buffer.byteLength(realmFile)},null,2));
