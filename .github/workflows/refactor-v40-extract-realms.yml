@@ -1,0 +1,95 @@
+name: Refactor V4.0 extract REALMS
+
+on:
+  push:
+    branches: ["refactor-v40"]
+    paths:
+      - ".github/workflows/refactor-v40-extract-realms.yml"
+      - "REFRACTOR_V40_REALMS.trigger"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taixuan-refactor-v40-realms
+  cancel-in-progress: false
+
+jobs:
+  extract-test-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout refactor branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor-v40
+          fetch-depth: 0
+
+      - name: Extract REALMS with guarded transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/refactor-v40-extract-realms.cjs
+          test -f src/data/realms.js
+          grep -q 'root.REALMS=' src/data/realms.js
+          grep -q 'const REALMS=window.__TAIXUAN_DATA__.REALMS;' src/game-v39.js
+          grep -q 'src/data/realms.js?v=4001' app.js
+          grep -q 'src/data/realms.js?v=4001' sw.js
+
+      - name: Syntax checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/data/realms.js
+          node --check src/game-v39.js
+          node --check app.js
+          node --check sw.js
+          node --check tests/regression-v39.mjs
+
+      - name: Install regression dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+
+      - name: Run full gameplay regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/regression-v29.mjs
+          node tests/regression-v30.mjs
+          node tests/regression-v31.mjs
+          node tests/regression-v32.mjs
+          node tests/regression-v33.mjs
+          node tests/regression-v34.mjs
+          node tests/regression-v35.mjs
+          node tests/regression-v36.mjs
+          node tests/regression-v37.mjs
+          node tests/regression-v38.mjs
+          node tests/regression-v39.mjs
+
+      - name: Verify extraction contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const src=fs.readFileSync('src/data/realms.js','utf8');
+          const box={window:{}};vm.createContext(box);vm.runInContext(src,box);
+          const r=box.window.__TAIXUAN_DATA__.REALMS;
+          if(r.length!==40||r[0].name!=='凡人'||r.at(-1).name!=='真仙')throw new Error('REALMS contract changed');
+          const app=fs.readFileSync('app.js','utf8');
+          if(app.indexOf('src/data/realms.js?v=4001')>app.indexOf('src/game-v39.js?v=3903'))throw new Error('REALMS preload order wrong');
+          console.log('REALMS_EXTRACTION_CONTRACT_OK');
+          NODE
+
+      - name: Commit only after regression passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/data/realms.js src/game-v39.js app.js sw.js tests/regression-v39.mjs
+          git commit -m 'refactor: extract REALMS data module [skip realms-extract]'
+          git push origin HEAD:refactor-v40
