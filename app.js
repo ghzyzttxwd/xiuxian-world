@@ -17,6 +17,7 @@
     const shopJade=document.createElement('script');shopJade.src='./ui-shop-v2-jade-sinks.js?v=m6-2';shopJade.async=false;document.head.appendChild(shopJade);
     const finalScript=document.createElement('script');finalScript.src='./ui-final-v1.js?v=1';finalScript.async=false;document.head.appendChild(finalScript);
     const qolScript=document.createElement('script');qolScript.src='./ui-phase8-qol.js?v=4';qolScript.async=false;document.head.appendChild(qolScript);
+    const realmDataScript=document.createElement('script');realmDataScript.src='./src/data/realms.js?v=4001';realmDataScript.async=false;document.head.appendChild(realmDataScript);
     const script=document.createElement('script');script.src='./src/game-v39.js?v=3903';script.async=false;script.onload=()=>{if(!window.__TAIXUAN_TEST__)fail(new Error('V3.9 直接源码运行时未完成初始化'));if(!window.__TAIXUAN_POWER_SHOP__)fail(new Error('M1 战力商品发奖适配层未加载'));if(!window.__TAIXUAN_VIP8__)fail(new Error('M2 VIP8战力节点未加载'));if(!window.__TAIXUAN_VIP12__)fail(new Error('M3 VIP12大道传承节点未加载'));if(!window.__TAIXUAN_VIP15__)fail(new Error('M4 VIP15阶段权柄未加载'));if(!window.__TAIXUAN_DYNAMIC_POWER__)fail(new Error('M5动态战力礼包未加载'));if(!window.__TAIXUAN_JADE_SINKS__)fail(new Error('M6仙玉消费出口未加载'))};script.onerror=()=>fail(new Error('V3.9 游戏核心加载失败：src/game-v39.js'));document.head.appendChild(script)
   }catch(e){fail(e)}
 })();

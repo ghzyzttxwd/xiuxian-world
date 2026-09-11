@@ -1,13 +1,13 @@
 import fs from 'fs';
 import assert from 'assert';
 import {JSDOM} from 'jsdom';
-const INDEX_PATH=process.env.INDEX_PATH||'index.html',GAME_PATH=process.env.GAME_PATH||'src/game-v39.js',SAVE_KEY='xiuxian_world_v02';
-const htmlRaw=fs.readFileSync(INDEX_PATH,'utf8'),source=fs.readFileSync(GAME_PATH,'utf8');
+const INDEX_PATH=process.env.INDEX_PATH||'index.html',GAME_PATH=process.env.GAME_PATH||'src/game-v39.js',REALMS_PATH=process.env.REALMS_PATH||'src/data/realms.js',SAVE_KEY='xiuxian_world_v02';
+const htmlRaw=fs.readFileSync(INDEX_PATH,'utf8'),realmSource=fs.readFileSync(REALMS_PATH,'utf8'),source=fs.readFileSync(GAME_PATH,'utf8');
 assert(source.includes("const VERSION='3.9.0'"));assert(source.includes('const SAVE_SCHEMA_VERSION=36'));assert(source.includes('const CONTENT_STATE_VERSION=10'));assert(source.includes('((state.world.v38WorldOrder||50)-50)*.04'),'world-order precedence fix missing');
 for(const x of ['渡劫境','真仙','v39BeginTribulation','v39ResolveThunder','v39ResolveHeartDemon','v39ResolveTransformation','v39AscendToTrueImmortal','v39BuildTribulationFormation'])assert(source.includes(x),x);
 const mechanicTypes=['v39-thunder-mark','v39-heart-copy','v39-law-thunder','v39-body-thunder','v39-soul-thunder','v39-rift-phase','v39-transform-drain','v39-gate-law','v39-immortal-pressure','v39-last-heart'];for(const type of mechanicTypes)assert(source.includes("m.type==='"+type+"'"),'missing V3.9 mechanic branch '+type);
 function cleanHtml(h){return h.replace(/<script[^>]+src=["'][^"']*app\.js[^"']*["'][^>]*><\/script>/i,'')}
-function makeDom(seed=null){const d=new JSDOM(cleanHtml(htmlRaw),{url:'http://example.test/',runScripts:'outside-only',pretendToBeVisual:true});d.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});d.window.scrollTo=()=>{};d.window.console=console;if(seed!==null)d.window.localStorage.setItem(SAVE_KEY,seed);d.window.eval(source);return d}
+function makeDom(seed=null){const d=new JSDOM(cleanHtml(htmlRaw),{url:'http://example.test/',runScripts:'outside-only',pretendToBeVisual:true});d.window.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});d.window.scrollTo=()=>{};d.window.console=console;if(seed!==null)d.window.localStorage.setItem(SAVE_KEY,seed);d.window.eval(realmSource);d.window.eval(source);return d}
 function fresh(){const d=makeDom(),api=d.window.__TAIXUAN_TEST__;api.newGame('V39回归');return {d,api}}
 function loadState(o){const d=makeDom(JSON.stringify(o));d.window.document.getElementById('continueBtn').click();return d}
 function stripV39(s){for(const k of ['v39FinaleVersion','v39TribulationStatus','v39TribulationAttempt','v39ThunderStage','v39TribulationFailures','v39HeartDemonFailures','v39TransformationStep','v39FormationId','v39FormationIntegrity','v39PillGuards','v39LastFailureStage','v39TribulationHistory','v39AscensionComplete','v39TrueImmortalArchive','tribulationEssence'])delete s.player[k];for(const k of ['v39AscensionCount','v39LastAscender','v39HeavenGateOpen'])delete s.world[k];if(s.legacy)delete s.legacy.trueImmortalArchives}
