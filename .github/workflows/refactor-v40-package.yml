@@ -1,0 +1,105 @@
+name: Refactor V4.0 R1 handoff package
+
+on:
+  push:
+    branches: ["refactor-v40"]
+    paths:
+      - ".github/workflows/refactor-v40-package.yml"
+      - "REFRACTOR_V40_PACKAGE.trigger"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout refactor branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor-v40
+
+      - name: Validate current R1 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app.js
+          node --check src/data/realms.js
+          node --check src/game-v39.js
+          node --check ui-v3920.js
+          node --check ui-final-v1.js
+          node --check ui-phase8-qol.js
+          node --check ui-shop-v2.js
+          npm init -y >/dev/null 2>&1
+          npm install --no-save jsdom@24 >/dev/null 2>&1
+          node tests/regression-v39.mjs
+
+      - name: Assemble clean Codex workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          PKG=/tmp/taixuan-v40-r1
+          rm -rf "$PKG"
+          mkdir -p "$PKG/src" "$PKG/tests" "$PKG/tools"
+
+          cp index.html app.js style.css sw.js "$PKG/"
+          cp manifest-v6.webmanifest icon-v6-192.png icon-v6-512.png "$PKG/"
+          cp ui-v3920.css ui-v3920.js "$PKG/"
+          cp ui-final-v1.css ui-final-v1.js "$PKG/"
+          cp ui-phase8-qol.css ui-phase8-qol.js "$PKG/"
+          cp ui-shop-v2.css ui-shop-v2.js ui-shop-v2-sync.js "$PKG/"
+          cp ui-shop-v2-power-adapter.js ui-shop-v2-vip8.js ui-shop-v2-vip12.js ui-shop-v2-vip15.js "$PKG/"
+          cp ui-shop-v2-dynamic-power.js ui-shop-v2-jade-sinks.js "$PKG/"
+
+          cp src/game-v39.js "$PKG/src/"
+          cp -R src/data src/core src/systems src/ui "$PKG/src/"
+          cp -R assets content docs "$PKG/"
+          cp tests/regression-v39.mjs "$PKG/tests/"
+          cp tools/refactor-v40-extract-realms.cjs "$PKG/tools/"
+
+          cat > "$PKG/package.json" <<'JSON'
+          {
+            "name": "taixuan-v40-r1-handoff",
+            "private": true,
+            "scripts": {
+              "test": "node tests/regression-v39.mjs",
+              "check": "node --check src/game-v39.js && node --check src/data/realms.js && node --check app.js"
+            },
+            "devDependencies": {
+              "jsdom": "24"
+            }
+          }
+          JSON
+
+          cat > "$PKG/HANDOFF.txt" <<EOF
+          太玄界 V4.0 R1 Codex 精简工作区
+          来源分支: refactor-v40
+          来源提交: ${GITHUB_SHA}
+
+          当前唯一核心: src/game-v39.js
+          已完成第一刀: REALMS -> src/data/realms.js
+          当前测试: npm install && npm test
+
+          必读:
+          docs/CODEX_HANDOFF.md
+          docs/REFACTOR_V40_PLAN.md
+          docs/CURRENT_RUNTIME_MANIFEST.md
+          docs/REFACTOR_V40_PROGRESS.md
+
+          注意: 本包故意不包含 src/game-v02.js ~ game-v38.js 等历史核心快照，避免 Codex 误改旧版本。
+          EOF
+
+          (cd /tmp && zip -qr "$GITHUB_WORKSPACE/taixuan-v40-r1-codex-handoff.zip" taixuan-v40-r1)
+          sha256sum taixuan-v40-r1-codex-handoff.zip > taixuan-v40-r1-codex-handoff.zip.sha256
+          unzip -l taixuan-v40-r1-codex-handoff.zip | head -80
+
+      - name: Upload handoff ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: taixuan-v40-r1-codex-handoff
+          path: |
+            taixuan-v40-r1-codex-handoff.zip
+            taixuan-v40-r1-codex-handoff.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
